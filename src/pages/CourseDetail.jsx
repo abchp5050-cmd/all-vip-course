@@ -8,6 +8,7 @@ import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp
 import { db } from "../lib/firebase"
 import { useAuth } from "../contexts/AuthContext"
 import { isFirebaseId } from "../lib/slug"
+import TelegramJoinButton from "../components/TelegramJoinButton"
 
 export default function CourseDetail() {
   const { slug } = useParams()
@@ -18,6 +19,7 @@ export default function CourseDetail() {
   const [hasAccess, setHasAccess] = useState(false)
   const [hasPendingPayment, setHasPendingPayment] = useState(false)
   const [teachers, setTeachers] = useState([])
+  const [enrollmentId, setEnrollmentId] = useState(null)
 
   useEffect(() => {
     fetchCourseData()
@@ -70,6 +72,19 @@ export default function CourseDetail() {
             return payment.courses?.some((c) => c.id === courseData.id)
           })
           setHasAccess(hasApprovedCourse)
+
+          if (hasApprovedCourse) {
+            const enrollmentsQuery = query(
+              collection(db, "enrollments"),
+              where("userId", "==", currentUser.uid),
+              where("courseId", "==", courseData.id),
+              where("status", "==", "APPROVED")
+            )
+            const enrollmentsSnapshot = await getDocs(enrollmentsQuery)
+            if (!enrollmentsSnapshot.empty) {
+              setEnrollmentId(enrollmentsSnapshot.docs[0].id)
+            }
+          }
 
           const pendingPaymentQuery = query(
             collection(db, "payments"),
@@ -264,9 +279,18 @@ export default function CourseDetail() {
                       <span className="font-semibold text-green-600 dark:text-green-400">You own this course</span>
                     </div>
                     <p className="text-sm text-green-700 dark:text-green-300">
-                      Your payment has been approved. Access your course from My Courses page.
+                      Your payment has been approved. Join the Telegram group to get started.
                     </p>
                   </div>
+                  
+                  {course.telegramLink && enrollmentId && (
+                    <TelegramJoinButton 
+                      enrollmentId={enrollmentId}
+                      telegramLink={course.telegramLink}
+                      courseName={course.title}
+                    />
+                  )}
+                  
                   <button
                     onClick={handleGoToMyCourses}
                     className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors font-medium flex items-center justify-center gap-2"

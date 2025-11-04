@@ -272,13 +272,32 @@ export default function ManagePayments() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">Sender Number</p>
-                  <p className="font-medium text-sm sm:text-base break-all">{payment.senderNumber}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-1">Phone Number</p>
+                  <p className="font-medium text-sm sm:text-base break-all">{payment.phoneNumber || payment.senderNumber || "N/A"}</p>
                 </div>
                 <div>
                   <p className="text-xs sm:text-sm text-muted-foreground mb-1">Transaction ID</p>
                   <p className="font-medium font-mono text-xs sm:text-sm break-all">{payment.transactionId}</p>
                 </div>
+                {payment.telegramId && (
+                  <div>
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">Telegram ID</p>
+                    <p className="font-medium text-sm sm:text-base break-all">{payment.telegramId}</p>
+                  </div>
+                )}
+                {payment.telegramLink && (
+                  <div>
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">Telegram Link</p>
+                    <a 
+                      href={payment.telegramLink} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="font-medium text-sm sm:text-base text-blue-600 hover:text-blue-700 break-all underline"
+                    >
+                      {payment.telegramLink}
+                    </a>
+                  </div>
+                )}
                 <div>
                   <p className="text-xs sm:text-sm text-muted-foreground mb-1">Submitted At</p>
                   <p className="font-medium text-xs sm:text-sm">

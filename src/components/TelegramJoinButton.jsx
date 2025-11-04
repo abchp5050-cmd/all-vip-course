@@ -1,63 +1,115 @@
-import { useState } from "react";
-import { Send } from "lucide-react";
-import { toast } from "sonner";
+import { useState, useEffect } from "react"
+import { Send, Check } from "lucide-react"
+import { doc, updateDoc, serverTimestamp, getDoc } from "firebase/firestore"
+import { db } from "../lib/firebase"
+import { toast } from "sonner"
 
-export default function TelegramJoinButton({ userId, courseId, enrollmentId, courseName }) {
-  const [loading, setLoading] = useState(false);
-  const [joined, setJoined] = useState(false);
+export default function TelegramJoinButton({ enrollmentId, telegramLink, courseName }) {
+  const [hasJoined, setHasJoined] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  const handleJoinTelegram = async () => {
-    if (joined) {
-      toast.info("You've already joined this Telegram group");
-      return;
+  useEffect(() => {
+    checkJoinStatus()
+  }, [enrollmentId])
+
+  const checkJoinStatus = async () => {
+    if (!enrollmentId) {
+      setLoading(false)
+      return
     }
 
-    setLoading(true);
     try {
-      const response = await fetch("/api/get-telegram-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          courseId,
-          enrollmentId
-        })
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setJoined(true);
-        
-        // Open Telegram app directly using tg:// protocol
-        window.location.href = data.telegramLink;
-        
-        toast.success("Opening Telegram app...");
-      } else {
-        toast.error(data.error || "Failed to get Telegram link");
+      const enrollmentDoc = await getDoc(doc(db, "enrollments", enrollmentId))
+      if (enrollmentDoc.exists()) {
+        const data = enrollmentDoc.data()
+        setHasJoined(!!data.telegramJoinedAt)
       }
     } catch (error) {
-      console.error("Error joining Telegram group:", error);
-      toast.error("Failed to join Telegram group");
+      console.error("Error checking join status:", error)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
+
+  const handleJoinTelegram = async () => {
+    if (!telegramLink) {
+      toast.error("Telegram link not available for this course")
+      return
+    }
+
+    if (hasJoined) {
+      toast.info("You've already joined this Telegram group")
+      return
+    }
+
+    try {
+      let telegramAppUrl
+      const link = telegramLink
+      
+      if (link.includes('joinchat/') || link.includes('+')) {
+        let inviteCode = link
+        if (inviteCode.includes('joinchat/')) {
+          inviteCode = inviteCode.split('joinchat/')[1].split('?')[0]
+        } else if (inviteCode.includes('+')) {
+          inviteCode = inviteCode.split('+')[1].split('?')[0]
+        }
+        telegramAppUrl = `tg://join?invite=${inviteCode}`
+      } else if (link.includes('t.me/')) {
+        const username = link.split('t.me/')[1].split('/')[0].split('?')[0]
+        telegramAppUrl = `tg://resolve?domain=${username}`
+      } else {
+        telegramAppUrl = link
+      }
+      
+      window.location.href = telegramAppUrl
+      
+      setTimeout(async () => {
+        if (enrollmentId) {
+          try {
+            await updateDoc(doc(db, "enrollments", enrollmentId), {
+              telegramJoinedAt: serverTimestamp()
+            })
+            setHasJoined(true)
+            toast.success("Joined Telegram group successfully!")
+          } catch (error) {
+            console.error("Error updating join status:", error)
+          }
+        }
+      }, 1000)
+    } catch (error) {
+      console.error("Error joining Telegram group:", error)
+      toast.error("Failed to open Telegram")
+    }
+  }
+
+  if (!telegramLink) {
+    return null
+  }
+
+  if (loading) {
+    return (
+      <button
+        disabled
+        className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium bg-muted text-muted-foreground cursor-not-allowed w-full"
+      >
+        <Send className="w-4 h-4" />
+        <span>Loading...</span>
+      </button>
+    )
+  }
 
   return (
     <button
       onClick={handleJoinTelegram}
-      disabled={loading || joined}
-      className={`flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition w-full ${
-        joined
-          ? "bg-green-100 text-green-800 border-2 border-green-300 cursor-not-allowed"
-          : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95"
+      disabled={hasJoined}
+      className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition w-full ${
+        hasJoined
+          ? "bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 cursor-not-allowed"
+          : "bg-blue-600 hover:bg-blue-700 text-white active:scale-95"
       }`}
     >
-      <Send size={20} />
-      <span>
-        {loading ? "Loading..." : joined ? "✓ Joined Telegram Group" : "Join Telegram Group"}
-      </span>
+      {hasJoined ? <Check className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+      <span>{hasJoined ? "Joined Telegram Group" : "Join Telegram Group"}</span>
     </button>
-  );
+  )
 }

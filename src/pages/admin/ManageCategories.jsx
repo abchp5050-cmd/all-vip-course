@@ -17,6 +17,7 @@ export default function ManageCategories() {
     title: "",
     description: "",
     icon: "",
+    imageURL: "",
     showOnHomepage: false,
     order: 0
   });
@@ -25,6 +26,7 @@ export default function ManageCategories() {
     categoryId: "",
     title: "",
     description: "",
+    imageURL: "",
     order: 0
   });
 
@@ -146,6 +148,7 @@ export default function ManageCategories() {
       title: category.title,
       description: category.description,
       icon: category.icon || "",
+      imageURL: category.imageURL || "",
       showOnHomepage: category.showOnHomepage || false,
       order: category.order || 0
     });
@@ -158,6 +161,7 @@ export default function ManageCategories() {
       categoryId: subcategory.categoryId,
       title: subcategory.title,
       description: subcategory.description,
+      imageURL: subcategory.imageURL || "",
       order: subcategory.order || 0
     });
     setShowSubcategoryForm(true);
@@ -168,6 +172,7 @@ export default function ManageCategories() {
       title: "",
       description: "",
       icon: "",
+      imageURL: "",
       showOnHomepage: false,
       order: 0
     });
@@ -180,6 +185,7 @@ export default function ManageCategories() {
       categoryId: "",
       title: "",
       description: "",
+      imageURL: "",
       order: 0
     });
     setEditingSubcategory(null);
@@ -248,6 +254,21 @@ export default function ManageCategories() {
                     className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="Icon name or URL"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-card-foreground">Image URL (optional)</label>
+                  <input
+                    type="url"
+                    value={categoryForm.imageURL}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, imageURL: e.target.value })}
+                    className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+                    placeholder="https://example.com/image.jpg"
+                  />
+                  {categoryForm.imageURL && (
+                    <div className="mt-2">
+                      <img src={categoryForm.imageURL} alt="Preview" className="w-20 h-20 object-cover rounded" />
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2 text-card-foreground">Order</label>
@@ -388,6 +409,21 @@ export default function ManageCategories() {
                     rows={3}
                     required
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-card-foreground">Image URL (optional)</label>
+                  <input
+                    type="url"
+                    value={subcategoryForm.imageURL}
+                    onChange={(e) => setSubcategoryForm({ ...subcategoryForm, imageURL: e.target.value })}
+                    className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+                    placeholder="https://example.com/image.jpg"
+                  />
+                  {subcategoryForm.imageURL && (
+                    <div className="mt-2">
+                      <img src={subcategoryForm.imageURL} alt="Preview" className="w-20 h-20 object-cover rounded" />
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2 text-card-foreground">Order</label>

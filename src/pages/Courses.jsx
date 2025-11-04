@@ -11,13 +11,14 @@ import { useAuth } from "../contexts/AuthContext"
 
 export default function Courses() {
   const location = useLocation()
-  const { isAdmin } = useAuth()
+  const { isAdmin, currentUser } = useAuth()
   const [courses, setCourses] = useState([])
   const [filteredCourses, setFilteredCourses] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [sortBy, setSortBy] = useState("newest")
   const [loading, setLoading] = useState(true)
+  const [paymentStatusMap, setPaymentStatusMap] = useState({})
 
   useEffect(() => {
     if (location.state?.searchQuery) {
@@ -30,7 +31,10 @@ export default function Courses() {
 
   useEffect(() => {
     fetchCourses()
-  }, [isAdmin])
+    if (currentUser) {
+      fetchPaymentStatus()
+    }
+  }, [isAdmin, currentUser])
 
   useEffect(() => {
     filterAndSortCourses()
@@ -45,7 +49,6 @@ export default function Courses() {
         ...doc.data(),
       }))
       
-      // Filter out draft courses for non-admin users
       if (!isAdmin) {
         coursesData = coursesData.filter(course => course.publishStatus !== "draft")
       }
@@ -55,6 +58,35 @@ export default function Courses() {
       console.error("Error fetching courses:", error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchPaymentStatus = async () => {
+    if (!currentUser) return
+    
+    try {
+      const paymentsQuery = query(
+        collection(db, "payments"),
+        where("userId", "==", currentUser.uid)
+      )
+      const paymentsSnapshot = await getDocs(paymentsQuery)
+
+      const statusMap = {}
+      
+      paymentsSnapshot.docs.forEach((doc) => {
+        const payment = doc.data()
+        payment.courses?.forEach((course) => {
+          if (payment.status === "pending" && !statusMap[course.id]) {
+            statusMap[course.id] = "pending"
+          } else if (payment.status === "approved") {
+            statusMap[course.id] = "approved"
+          }
+        })
+      })
+
+      setPaymentStatusMap(statusMap)
+    } catch (error) {
+      console.error("Error fetching payment status:", error)
     }
   }
 
@@ -171,7 +203,7 @@ export default function Courses() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
               >
-                <CourseCard course={course} />
+                <CourseCard course={course} paymentStatus={paymentStatusMap[course.id]} />
               </motion.div>
             ))}
           </div>

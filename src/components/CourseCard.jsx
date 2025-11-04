@@ -2,55 +2,11 @@
 
 import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
-import { useState, useEffect } from "react"
-import { collection, query, where, getDocs } from "firebase/firestore"
-import { db } from "../lib/firebase"
-import { useAuth } from "../contexts/AuthContext"
 import { AlertCircle, Check } from "lucide-react"
 
-export default function CourseCard({ course }) {
-  const { currentUser } = useAuth()
-  const [hasPendingPayment, setHasPendingPayment] = useState(false)
-  const [hasAccess, setHasAccess] = useState(false)
-
-  useEffect(() => {
-    if (currentUser && course) {
-      checkPaymentStatus()
-    }
-  }, [currentUser, course])
-
-  const checkPaymentStatus = async () => {
-    if (!currentUser || !course) return
-
-    try {
-      const paymentsQuery = query(
-        collection(db, "payments"),
-        where("userId", "==", currentUser.uid)
-      )
-      const paymentsSnapshot = await getDocs(paymentsQuery)
-
-      let foundPending = false
-      let foundApproved = false
-
-      paymentsSnapshot.docs.forEach((doc) => {
-        const payment = doc.data()
-        const hasCourse = payment.courses?.some((c) => c.id === course.id)
-        
-        if (hasCourse) {
-          if (payment.status === "pending") {
-            foundPending = true
-          } else if (payment.status === "approved") {
-            foundApproved = true
-          }
-        }
-      })
-
-      setHasPendingPayment(foundPending)
-      setHasAccess(foundApproved)
-    } catch (error) {
-      console.error("Error checking payment status:", error)
-    }
-  }
+export default function CourseCard({ course, paymentStatus }) {
+  const hasPendingPayment = paymentStatus === "pending"
+  const hasAccess = paymentStatus === "approved"
 
   return (
     <Link to={`/${course.slug || course.id}`} className="h-full">
