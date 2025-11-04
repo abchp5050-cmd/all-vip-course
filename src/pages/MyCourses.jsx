@@ -37,32 +37,50 @@ export default function MyCourses() {
 
   const fetchEnrollments = async () => {
     try {
-      const enrollmentsQuery = query(
-        collection(db, "enrollments"),
-        where("userId", "==", currentUser.uid)
+      const paymentsQuery = query(
+        collection(db, "payments"),
+        where("userId", "==", currentUser.uid),
+        where("status", "==", "approved")
       )
-      const enrollmentsSnapshot = await getDocs(enrollmentsQuery)
+      const paymentsSnapshot = await getDocs(paymentsQuery)
 
-      const enrollmentsData = await Promise.all(
-        enrollmentsSnapshot.docs.map(async (enrollmentDoc) => {
-          const enrollment = { id: enrollmentDoc.id, ...enrollmentDoc.data() }
-          
-          try {
-            const courseDoc = await getDoc(doc(db, "courses", enrollment.courseId))
-            if (courseDoc.exists()) {
-              return {
-                ...enrollment,
-                course: { id: courseDoc.id, ...courseDoc.data() }
+      const enrollmentsData = []
+      
+      for (const paymentDoc of paymentsSnapshot.docs) {
+        const payment = paymentDoc.data()
+        
+        if (payment.courses && payment.courses.length > 0) {
+          for (const courseInfo of payment.courses) {
+            try {
+              const courseDoc = await getDoc(doc(db, "courses", courseInfo.id))
+              if (courseDoc.exists()) {
+                const enrollmentQuery = query(
+                  collection(db, "enrollments"),
+                  where("userId", "==", currentUser.uid),
+                  where("courseId", "==", courseInfo.id)
+                )
+                const enrollmentSnapshot = await getDocs(enrollmentQuery)
+                const enrollmentId = !enrollmentSnapshot.empty ? enrollmentSnapshot.docs[0].id : null
+
+                enrollmentsData.push({
+                  id: enrollmentId || `${paymentDoc.id}_${courseInfo.id}`,
+                  enrollmentId,
+                  paymentId: paymentDoc.id,
+                  userId: currentUser.uid,
+                  courseId: courseInfo.id,
+                  status: 'APPROVED',
+                  paymentStatus: 'approved',
+                  course: { id: courseDoc.id, ...courseDoc.data() }
+                })
               }
+            } catch (error) {
+              console.error("Error fetching course:", error)
             }
-          } catch (error) {
-            console.error("Error fetching course:", error)
           }
-          return null
-        })
-      )
+        }
+      }
 
-      setEnrollments(enrollmentsData.filter(Boolean))
+      setEnrollments(enrollmentsData)
     } catch (error) {
       console.error("Error fetching enrollments:", error)
     } finally {

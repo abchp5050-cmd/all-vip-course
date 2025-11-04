@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy } from "firebase/firestore";
 import { db } from "../../lib/firebase";
-import { Plus, Edit2, Trash2, Home, Save, X } from "lucide-react";
+import { Plus, Edit2, Trash2, Home, Save, X, Upload, Loader } from "lucide-react";
 import { toast } from "sonner";
+import { uploadImageToImgBB } from "../../lib/imgbb";
 
 export default function ManageCategories() {
   const [categories, setCategories] = useState([]);
@@ -12,6 +13,8 @@ export default function ManageCategories() {
   const [showSubcategoryForm, setShowSubcategoryForm] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [editingSubcategory, setEditingSubcategory] = useState(null);
+  const [uploadingCategoryImage, setUploadingCategoryImage] = useState(false);
+  const [uploadingSubcategoryImage, setUploadingSubcategoryImage] = useState(false);
   
   const [categoryForm, setCategoryForm] = useState({
     title: "",
@@ -196,6 +199,40 @@ export default function ManageCategories() {
     return subcategories.filter(sub => sub.categoryId === categoryId);
   };
 
+  const handleCategoryImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingCategoryImage(true);
+      const imageUrl = await uploadImageToImgBB(file);
+      setCategoryForm({ ...categoryForm, imageURL: imageUrl });
+      toast.success("Image uploaded successfully");
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error(error.message || "Failed to upload image");
+    } finally {
+      setUploadingCategoryImage(false);
+    }
+  };
+
+  const handleSubcategoryImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingSubcategoryImage(true);
+      const imageUrl = await uploadImageToImgBB(file);
+      setSubcategoryForm({ ...subcategoryForm, imageURL: imageUrl });
+      toast.success("Image uploaded successfully");
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error(error.message || "Failed to upload image");
+    } finally {
+      setUploadingSubcategoryImage(false);
+    }
+  };
+
   if (loading) {
     return <div className="p-8 text-center">Loading...</div>;
   }
@@ -256,19 +293,43 @@ export default function ManageCategories() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-card-foreground">Image URL (optional)</label>
-                  <input
-                    type="url"
-                    value={categoryForm.imageURL}
-                    onChange={(e) => setCategoryForm({ ...categoryForm, imageURL: e.target.value })}
-                    className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="https://example.com/image.jpg"
-                  />
-                  {categoryForm.imageURL && (
-                    <div className="mt-2">
-                      <img src={categoryForm.imageURL} alt="Preview" className="w-20 h-20 object-cover rounded" />
+                  <label className="block text-sm font-medium mb-2 text-card-foreground">Category Image (optional)</label>
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        value={categoryForm.imageURL}
+                        onChange={(e) => setCategoryForm({ ...categoryForm, imageURL: e.target.value })}
+                        className="flex-1 px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+                        placeholder="Paste image URL"
+                      />
+                      <label className="relative inline-flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition cursor-pointer">
+                        {uploadingCategoryImage ? (
+                          <>
+                            <Loader className="w-4 h-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload size={18} />
+                            Upload
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleCategoryImageUpload}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                          disabled={uploadingCategoryImage}
+                        />
+                      </label>
                     </div>
-                  )}
+                    {categoryForm.imageURL && (
+                      <div className="mt-2">
+                        <img src={categoryForm.imageURL} alt="Preview" className="w-32 h-32 object-cover rounded-lg border-2 border-border" />
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2 text-card-foreground">Order</label>
@@ -411,19 +472,43 @@ export default function ManageCategories() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2 text-card-foreground">Image URL (optional)</label>
-                  <input
-                    type="url"
-                    value={subcategoryForm.imageURL}
-                    onChange={(e) => setSubcategoryForm({ ...subcategoryForm, imageURL: e.target.value })}
-                    className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="https://example.com/image.jpg"
-                  />
-                  {subcategoryForm.imageURL && (
-                    <div className="mt-2">
-                      <img src={subcategoryForm.imageURL} alt="Preview" className="w-20 h-20 object-cover rounded" />
+                  <label className="block text-sm font-medium mb-2 text-card-foreground">Subcategory Image (optional)</label>
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        value={subcategoryForm.imageURL}
+                        onChange={(e) => setSubcategoryForm({ ...subcategoryForm, imageURL: e.target.value })}
+                        className="flex-1 px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+                        placeholder="Paste image URL"
+                      />
+                      <label className="relative inline-flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition cursor-pointer">
+                        {uploadingSubcategoryImage ? (
+                          <>
+                            <Loader className="w-4 h-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload size={18} />
+                            Upload
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleSubcategoryImageUpload}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                          disabled={uploadingSubcategoryImage}
+                        />
+                      </label>
                     </div>
-                  )}
+                    {subcategoryForm.imageURL && (
+                      <div className="mt-2">
+                        <img src={subcategoryForm.imageURL} alt="Preview" className="w-32 h-32 object-cover rounded-lg border-2 border-border" />
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2 text-card-foreground">Order</label>

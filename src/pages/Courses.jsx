@@ -13,9 +13,12 @@ export default function Courses() {
   const location = useLocation()
   const { isAdmin, currentUser } = useAuth()
   const [courses, setCourses] = useState([])
+  const [categories, setCategories] = useState([])
+  const [subcategories, setSubcategories] = useState([])
   const [filteredCourses, setFilteredCourses] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
+  const [subcategoryFilter, setSubcategoryFilter] = useState("all")
   const [sortBy, setSortBy] = useState("newest")
   const [loading, setLoading] = useState(true)
   const [paymentStatusMap, setPaymentStatusMap] = useState({})
@@ -31,14 +34,24 @@ export default function Courses() {
 
   useEffect(() => {
     fetchCourses()
+    fetchCategories()
     if (currentUser) {
       fetchPaymentStatus()
     }
   }, [isAdmin, currentUser])
 
   useEffect(() => {
+    if (categoryFilter && categoryFilter !== "all") {
+      fetchSubcategories(categoryFilter)
+    } else {
+      setSubcategories([])
+      setSubcategoryFilter("all")
+    }
+  }, [categoryFilter])
+
+  useEffect(() => {
     filterAndSortCourses()
-  }, [courses, searchQuery, categoryFilter, sortBy])
+  }, [courses, searchQuery, categoryFilter, subcategoryFilter, sortBy])
 
   const fetchCourses = async () => {
     try {
@@ -58,6 +71,39 @@ export default function Courses() {
       console.error("Error fetching courses:", error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchCategories = async () => {
+    try {
+      const categoriesQuery = query(collection(db, "categories"), orderBy("order", "asc"))
+      const categoriesSnapshot = await getDocs(categoriesQuery)
+      const categoriesData = categoriesSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }))
+      setCategories(categoriesData)
+    } catch (error) {
+      console.error("Error fetching categories:", error)
+    }
+  }
+
+  const fetchSubcategories = async (categoryId) => {
+    try {
+      const subcategoriesQuery = query(
+        collection(db, "subcategories"),
+        where("categoryId", "==", categoryId),
+        orderBy("order", "asc")
+      )
+      const subcategoriesSnapshot = await getDocs(subcategoriesQuery)
+      const subcategoriesData = subcategoriesSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }))
+      setSubcategories(subcategoriesData)
+    } catch (error) {
+      console.error("Error fetching subcategories:", error)
+      setSubcategories([])
     }
   }
 
@@ -98,12 +144,23 @@ export default function Courses() {
         (course) =>
           course.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           course.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          course.category?.toLowerCase().includes(searchQuery.toLowerCase()),
+          course.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          course.subcategory?.toLowerCase().includes(searchQuery.toLowerCase()),
       )
     }
 
     if (categoryFilter && categoryFilter !== "all") {
-      filtered = filtered.filter((course) => course.category === categoryFilter)
+      const selectedCategory = categories.find(cat => cat.id === categoryFilter)
+      if (selectedCategory) {
+        filtered = filtered.filter((course) => course.category === selectedCategory.title)
+      }
+    }
+
+    if (subcategoryFilter && subcategoryFilter !== "all") {
+      const selectedSubcategory = subcategories.find(sub => sub.id === subcategoryFilter)
+      if (selectedSubcategory) {
+        filtered = filtered.filter((course) => course.subcategory === selectedSubcategory.title)
+      }
     }
 
     if (sortBy === "newest") {
@@ -117,8 +174,6 @@ export default function Courses() {
     setFilteredCourses(filtered)
   }
 
-  const categories = ["all", ...new Set(courses.map((c) => c.category).filter(Boolean))]
-
   return (
     <div className="min-h-screen py-6 md:py-8 px-4">
       <div className="container mx-auto max-w-3xl">
@@ -129,7 +184,7 @@ export default function Courses() {
 
         <div className="bg-card border border-border rounded-lg p-4 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-            <div className="md:col-span-2">
+            <div>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
@@ -147,17 +202,41 @@ export default function Courses() {
                 <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <select
                   value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  onChange={(e) => {
+                    setCategoryFilter(e.target.value)
+                    setSubcategoryFilter("all")
+                  }}
                   className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary text-sm appearance-none"
                 >
+                  <option value="all">All Categories</option>
                   {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat === "all" ? "All Categories" : cat}
+                    <option key={cat.id} value={cat.id}>
+                      {cat.title}
                     </option>
                   ))}
                 </select>
               </div>
             </div>
+
+            {subcategories.length > 0 && (
+              <div>
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <select
+                    value={subcategoryFilter}
+                    onChange={(e) => setSubcategoryFilter(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary text-sm appearance-none"
+                  >
+                    <option value="all">All Subcategories</option>
+                    {subcategories.map((sub) => (
+                      <option key={sub.id} value={sub.id}>
+                        {sub.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -203,7 +282,7 @@ export default function Courses() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
               >
-                <CourseCard course={course} paymentStatus={paymentStatusMap[course.id]} />
+                <CourseCard course={course} paymentStatus={paymentStatusMap[course.id]} showButton={true} />
               </motion.div>
             ))}
           </div>
