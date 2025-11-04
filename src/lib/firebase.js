@@ -6,13 +6,13 @@ import { getMessaging, isSupported } from "firebase/messaging"
 console.log(" Initializing Firebase...")
 
 const firebaseConfig = {
-  apiKey: "AIzaSyA9U8SwZAaMjF90fkIbs8sYHev_VSbBZjc",
-  authDomain: "easy-education-real.firebaseapp.com",
-  projectId: "easy-education-real",
-  storageBucket: "easy-education-real.firebasestorage.app",
-  messagingSenderId: "457903642621",
-  appId: "1:457903642621:web:5910d351656ef32d2ceb94",
-  measurementId: "G-4BE9SRM6HK"
+  apiKey: "AIzaSyC7tLtNF1mxFSlFiLOckwTcVV9qK8BF38Q",
+  authDomain: "all-vip-courses.firebaseapp.com",
+  projectId: "all-vip-courses",
+  storageBucket: "all-vip-courses.firebasestorage.app",
+  messagingSenderId: "637350756869",
+  appId: "1:637350756869:web:325f4f0836727d44c5126c",
+  measurementId: "G-XJBJ81F4K9"
 };
 
 let app
