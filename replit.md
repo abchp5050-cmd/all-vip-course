@@ -8,16 +8,29 @@ The application serves both free and paid educational content, with support for 
 
 ## Recent Changes (November 2025)
 
+### Latest Migration Updates (November 04, 2025)
+- **Complete Cart System Removal**: Fully removed CartProvider and cart-related UI across the application
+  - Direct "Buy Now" flow using localStorage for single-item checkout
+  - Streamlined checkout experience for users
+- **Payment Status Display**: Added centralized payment status fetching with performance optimization
+  - Course cards now show "Pending" badge for pending payments
+  - "Enrolled" badge for approved courses
+  - Fixed N+1 Firestore query issue with centralized status lookup
+- **Telegram Group Access**: Implemented one-time Telegram join button for enrolled users
+  - TelegramJoinButton component with tg:// protocol for direct app opening
+  - Join status tracking with `telegramJoinedAt` timestamp in enrollments
+  - Prevents web/inspection access by opening in Telegram app only
+- **Category/Subcategory Enhancement**: Added image URL support
+  - Categories and subcategories now have optional `imageURL` field
+  - Live inline preview when adding/editing image URLs
+  - Ready for use in course filtering and browsing UIs
+
 ### Design & UX Improvements
 - **Minimal Design Aesthetic**: Redesigned entire platform with cleaner, minimal aesthetic inspired by rj1.dev
   - Reduced container widths (max-w-4xl to max-w-6xl) for better readability
   - Simplified header, hero section, and course card designs
   - Streamlined overall layout with better whitespace
 - **Dark Mode Fix**: Properly implemented ThemeProvider wrapping entire app for consistent theme toggle
-- **Streamlined Checkout**: Removed "Add to Cart" UI elements, kept only "Buy Now" button for direct checkout flow
-  - CartContext maintained for checkout processing
-  - Users click "Buy Now" → goes directly to checkout → payment processing
-  - No visible shopping cart icon or drawer
 
 ### Slug-Based Course Routing
 - Implemented slug generation for courses (e.g., /web-development-course)
