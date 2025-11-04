@@ -5,7 +5,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Search, BookOpen, Award, Infinity, ChevronRight } from "lucide-react"
 import CourseCard from "../components/CourseCard"
-import { collection, query, orderBy, limit, getDocs } from "firebase/firestore"
+import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore"
 import { db } from "../lib/firebase"
 import { useAuth } from "../contexts/AuthContext"
 
@@ -42,7 +42,12 @@ export default function Home() {
 
       setTrendingCourses(coursesData.slice(0, 6))
 
-      const categoriesQuery = query(collection(db, "categories"), limit(8))
+      const categoriesQuery = query(
+        collection(db, "categories"), 
+        where("showOnHomepage", "==", true),
+        orderBy("order", "asc"),
+        limit(8)
+      )
       const categoriesSnapshot = await getDocs(categoriesQuery)
       const categoriesData = categoriesSnapshot.docs.map((doc) => ({
         id: doc.id,

@@ -9,12 +9,16 @@ import {
   Send,
   Menu,
   X,
+  FolderTree,
+  UserCheck,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import ManageUsers from "./ManageUsers"
 import ManageCourses from "./ManageCourses"
 import ManagePayments from "./ManagePayments"
 import ManageTelegramSubmissions from "./ManageTelegramSubmissions"
+import ManageCategories from "./ManageCategories"
+import ManageEnrollments from "./ManageEnrollments"
 
 export default function AdminDashboard() {
   const location = useLocation()
@@ -22,8 +26,10 @@ export default function AdminDashboard() {
 
   const navItems = [
     { name: "Users", path: "/admin/users", icon: Users },
-    { name: "Payments", path: "/admin/payments", icon: CreditCard },
+    { name: "Enrollments", path: "/admin/enrollments", icon: UserCheck },
+    { name: "Categories", path: "/admin/categories", icon: FolderTree },
     { name: "Courses", path: "/admin/courses", icon: BookOpen },
+    { name: "Payments", path: "/admin/payments", icon: CreditCard },
     { name: "Telegram Submissions", path: "/admin/telegram", icon: Send },
   ]
 
@@ -133,8 +139,10 @@ export default function AdminDashboard() {
             <Routes>
               <Route index element={<ManageUsers />} />
               <Route path="users" element={<ManageUsers />} />
-              <Route path="payments" element={<ManagePayments />} />
+              <Route path="enrollments" element={<ManageEnrollments />} />
+              <Route path="categories" element={<ManageCategories />} />
               <Route path="courses" element={<ManageCourses />} />
+              <Route path="payments" element={<ManagePayments />} />
               <Route path="telegram" element={<ManageTelegramSubmissions />} />
             </Routes>
           </div>

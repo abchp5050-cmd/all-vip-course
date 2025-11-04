@@ -49,6 +49,7 @@ export default function Checkout() {
     try {
       const subtotal = getTotal()
       
+      // Create payment record
       await addDoc(collection(db, "payments"), {
         userId: currentUser.uid,
         userName: userProfile?.name || currentUser.displayName || "User",
@@ -66,6 +67,23 @@ export default function Checkout() {
         status: "pending",
         submittedAt: serverTimestamp(),
       })
+
+      // Create PENDING enrollment for each course
+      for (const course of cartItems) {
+        await addDoc(collection(db, "enrollments"), {
+          userId: currentUser.uid,
+          courseId: course.id,
+          status: "PENDING",
+          paymentInfo: {
+            phoneNumber: phoneNumber.trim(),
+            transactionId: transactionId.trim(),
+            amount: parseFloat(course.price) || 0
+          },
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          telegramJoinedAt: null
+        })
+      }
 
       clearCart()
       toast({

@@ -3,76 +3,53 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
-import { BookOpen, Send, Check } from "lucide-react"
+import { BookOpen, Send, Check, Clock, CheckCircle, XCircle } from "lucide-react"
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore"
 import { db } from "../lib/firebase"
 import { useAuth } from "../contexts/AuthContext"
+import TelegramJoinButton from "../components/TelegramJoinButton"
 
 export default function MyCourses() {
   const { currentUser } = useAuth()
-  const [purchasedCourses, setPurchasedCourses] = useState([])
+  const [enrollments, setEnrollments] = useState([])
   const [loading, setLoading] = useState(true)
-  const [clickedLinks, setClickedLinks] = useState({})
 
   useEffect(() => {
     if (currentUser) {
-      fetchPurchasedCourses()
-      loadClickedLinks()
+      fetchEnrollments()
     }
   }, [currentUser])
 
-  const loadClickedLinks = () => {
-    const saved = localStorage.getItem(`telegram_clicked_${currentUser.uid}`)
-    if (saved) {
-      setClickedLinks(JSON.parse(saved))
-    }
-  }
-
-  const saveClickedLink = (courseId) => {
-    const updated = { ...clickedLinks, [courseId]: true }
-    setClickedLinks(updated)
-    localStorage.setItem(`telegram_clicked_${currentUser.uid}`, JSON.stringify(updated))
-  }
-
-  const fetchPurchasedCourses = async () => {
+  const fetchEnrollments = async () => {
     try {
-      const paymentsQuery = query(
-        collection(db, "payments"),
-        where("userId", "==", currentUser.uid),
-        where("status", "==", "approved"),
+      const enrollmentsQuery = query(
+        collection(db, "enrollments"),
+        where("userId", "==", currentUser.uid)
       )
-      const paymentsSnapshot = await getDocs(paymentsQuery)
+      const enrollmentsSnapshot = await getDocs(enrollmentsQuery)
 
-      const coursesData = await Promise.all(
-        paymentsSnapshot.docs.flatMap(async (paymentDoc) => {
-          const payment = paymentDoc.data()
-
-          return Promise.all(
-            (payment.courses || []).map(async (courseItem) => {
-              try {
-                const courseDoc = await getDoc(doc(db, "courses", courseItem.id))
-
-                if (courseDoc.exists()) {
-                  const courseData = { id: courseDoc.id, ...courseDoc.data() }
-                  return {
-                    ...courseData,
-                    paymentId: paymentDoc.id,
-                    purchaseDate: payment.submittedAt,
-                  }
-                }
-                return null
-              } catch (error) {
-                console.error("Error fetching course:", error)
-                return null
+      const enrollmentsData = await Promise.all(
+        enrollmentsSnapshot.docs.map(async (enrollmentDoc) => {
+          const enrollment = { id: enrollmentDoc.id, ...enrollmentDoc.data() }
+          
+          try {
+            const courseDoc = await getDoc(doc(db, "courses", enrollment.courseId))
+            if (courseDoc.exists()) {
+              return {
+                ...enrollment,
+                course: { id: courseDoc.id, ...courseDoc.data() }
               }
-            }),
-          )
-        }),
+            }
+          } catch (error) {
+            console.error("Error fetching course:", error)
+          }
+          return null
+        })
       )
 
-      setPurchasedCourses(coursesData.flat().filter(Boolean))
+      setEnrollments(enrollmentsData.filter(Boolean))
     } catch (error) {
-      console.error("Error fetching purchased courses:", error)
+      console.error("Error fetching enrollments:", error)
     } finally {
       setLoading(false)
     }

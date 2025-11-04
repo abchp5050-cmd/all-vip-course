@@ -8,6 +8,8 @@ import paymentWebhookHandler from './api/payment-webhook.js';
 import uploadImageHandler from './api/upload-image.js';
 import processEnrollmentHandler from './api/process-enrollment.js';
 import dynamicManifestHandler from './api/dynamic-manifest.js';
+import getTelegramLinkHandler from './api/get-telegram-link.js';
+import updateEnrollmentStatusHandler from './api/update-enrollment-status.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -49,6 +51,14 @@ app.post('/api/process-enrollment', (req, res) => {
 
 app.post('/api/upload-image', (req, res) => {
   uploadImageHandler(req, res);
+});
+
+app.post('/api/get-telegram-link', (req, res) => {
+  getTelegramLinkHandler(req, res);
+});
+
+app.post('/api/update-enrollment-status', (req, res) => {
+  updateEnrollmentStatusHandler(req, res);
 });
 
 if (IS_PRODUCTION) {
