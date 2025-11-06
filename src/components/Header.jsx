@@ -352,18 +352,16 @@ export default function Header() {
             </div>
 
             <nav className="hidden lg:flex items-center gap-2">
-              {navLinks.map((link) => {
+              {navLinks && navLinks.length > 0 && navLinks.map((link, index) => {
                 const isExternal = link.type === 'external'
-                const linkProps = {
-                  key: link.path,
-                  className: "px-4 py-2 rounded-lg hover:bg-accent transition-colors text-sm font-medium text-foreground hover:text-primary"
-                }
+                const linkClassName = "px-4 py-2 rounded-lg hover:bg-accent transition-colors text-sm font-medium text-foreground hover:text-primary"
                 
                 if (isExternal) {
                   return (
                     <a
-                      {...linkProps}
+                      key={`desktop-${link.path}-${index}`}
                       href={link.path}
+                      className={linkClassName}
                       target={link.openInNewTab ? "_blank" : "_self"}
                       rel={link.openInNewTab ? "noopener noreferrer" : undefined}
                     >
@@ -374,8 +372,9 @@ export default function Header() {
                 
                 return (
                   <Link
-                    {...linkProps}
+                    key={`desktop-${link.path}-${index}`}
                     to={link.path}
+                    className={linkClassName}
                   >
                     {link.name}
                   </Link>
@@ -422,7 +421,7 @@ export default function Header() {
         </nav>
       </header>
 
-      {/* Mobile Sidebar - Keep existing code */}
+      {/* Mobile Sidebar */}
       <AnimatePresence>
         {sidebarOpen && (
           <>
@@ -441,7 +440,6 @@ export default function Header() {
               transition={{ duration: 0.3, ease: "easeInOut" }}
               className="fixed left-0 top-0 bottom-0 w-full sm:w-80 bg-card border-r border-border z-50 overflow-y-auto shadow-2xl"
             >
-              {/* Keep all existing sidebar content */}
               <div className="flex items-center justify-between p-4 border-b border-border/50 bg-primary/5">
                 <Link to="/" onClick={() => setSidebarOpen(false)}>
                   <motion.div
@@ -484,15 +482,15 @@ export default function Header() {
               )}
 
               <div className="p-4 space-y-1">
-                {navLinks.map((link) => {
-                  const Icon = link.icon
+                {navLinks && navLinks.length > 0 && navLinks.map((link, index) => {
+                  const Icon = link.icon || Home
                   const isExternal = link.type === 'external'
                   const linkClassName = "flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 smooth-transition group hover:scale-[1.02] active:scale-[0.98]"
                   
                   if (isExternal) {
                     return (
                       <a
-                        key={link.path}
+                        key={`mobile-${link.path}-${index}`}
                         href={link.path}
                         target={link.openInNewTab ? "_blank" : "_self"}
                         rel={link.openInNewTab ? "noopener noreferrer" : undefined}
@@ -507,7 +505,7 @@ export default function Header() {
                   
                   return (
                     <Link
-                      key={link.path}
+                      key={`mobile-${link.path}-${index}`}
                       to={link.path}
                       onClick={() => setSidebarOpen(false)}
                       className={linkClassName}
