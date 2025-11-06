@@ -294,32 +294,32 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border">
-        <nav className="container mx-auto max-w-4xl px-4 py-3">
+      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border shadow-sm">
+        <nav className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-1.5 hover:bg-muted rounded-md transition-colors"
+                className="lg:hidden p-2 hover:bg-accent rounded-lg transition-colors"
                 aria-label="Open menu"
               >
                 <Menu className="w-5 h-5 text-foreground" />
               </button>
 
               <Link to="/" className="flex items-center">
-                <div className="text-base sm:text-lg font-semibold text-foreground">
+                <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary via-blue-600 to-purple-600 bg-clip-text text-transparent">
                   All Vip Courses
                 </div>
               </Link>
             </div>
 
-            <nav className="hidden lg:flex items-center gap-1">
+            <nav className="hidden lg:flex items-center gap-2">
               {navLinks.map((link) => {
                 return (
                   <Link
                     key={link.path}
                     to={link.path}
-                    className="px-3 py-1.5 rounded-md hover:bg-muted transition-colors text-sm font-medium text-foreground"
+                    className="px-4 py-2 rounded-lg hover:bg-accent transition-colors text-sm font-medium text-foreground hover:text-primary"
                   >
                     {link.name}
                   </Link>
@@ -332,14 +332,14 @@ export default function Header() {
                 <>
                   <Link
                     to={isAdmin ? "/admin" : "/dashboard"}
-                    className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-md transition-colors text-sm font-medium"
+                    className="hidden sm:flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors text-sm font-medium shadow-sm"
                   >
                     <LayoutDashboard className="w-4 h-4" />
                     Dashboard
                   </Link>
                   <button
                     onClick={handleSignOut}
-                    className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 hover:bg-muted rounded-md transition-colors text-sm font-medium text-foreground"
+                    className="hidden sm:flex items-center gap-2 px-4 py-2 hover:bg-accent rounded-lg transition-colors text-sm font-medium text-foreground"
                   >
                     <LogOut className="w-4 h-4" />
                     Sign Out
@@ -348,7 +348,7 @@ export default function Header() {
               ) : (
                 <Link
                   to="/login"
-                  className="hidden sm:block px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-md transition-colors text-sm font-medium"
+                  className="hidden sm:flex items-center px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors text-sm font-medium shadow-sm"
                 >
                   Login
                 </Link>
@@ -356,7 +356,7 @@ export default function Header() {
 
               <button
                 onClick={toggleTheme}
-                className="p-1.5 hover:bg-muted rounded-md transition-colors"
+                className="p-2 hover:bg-accent rounded-lg transition-colors"
                 aria-label="Toggle theme"
               >
                 {isDark ? <Sun className="w-5 h-5 text-foreground" /> : <Moon className="w-5 h-5 text-foreground" />}
@@ -382,8 +382,8 @@ export default function Header() {
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed left-0 top-0 bottom-0 w-full sm:w-80 bg-card border-r border-border z-50 overflow-y-auto"
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="fixed left-0 top-0 bottom-0 w-full sm:w-80 bg-card border-r border-border z-50 overflow-y-auto shadow-2xl"
             >
               {/* Keep all existing sidebar content */}
               <div className="flex items-center justify-between p-4 border-b border-border/50 bg-primary/5">

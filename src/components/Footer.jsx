@@ -4,22 +4,22 @@ import { Send, Youtube, MessageCircle, Mail, Phone } from "lucide-react"
 export default function Footer() {
   return (
     <footer className="bg-card border-t border-border mt-auto">
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand */}
           <div>
-            <h3 className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-4">
+            <h3 className="text-xl font-bold bg-gradient-to-r from-primary via-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
               All Vip Courses
             </h3>
-            <p className="text-muted-foreground text-sm">
+            <p className="text-muted-foreground text-sm leading-relaxed">
               HSC academic & admission courses at low price.
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="font-semibold mb-4">Quick Links</h4>
-            <div className="flex flex-col gap-2">
+            <h4 className="font-semibold mb-4 text-foreground">Quick Links</h4>
+            <div className="flex flex-col gap-3">
               <Link to="/" className="text-muted-foreground hover:text-primary transition-colors text-sm">
                 Home
               </Link>
@@ -37,19 +37,20 @@ export default function Footer() {
 
           {/* Contact */}
           <div>
-            <h4 className="font-semibold mb-4">Contact</h4>
-            <div className="flex flex-col gap-2">
+            <h4 className="font-semibold mb-4 text-foreground">Contact</h4>
+            <div className="flex flex-col gap-3">
               <a
                 href="mailto:easyeducation556644@gmail.com"
                 className="text-muted-foreground hover:text-primary transition-colors text-sm flex items-center gap-2"
               >
-                <Mail className="w-4 h-4" /> easyeducation556644@gmail.com
+                <Mail className="w-4 h-4 flex-shrink-0" />
+                <span className="break-all">easyeducation556644@gmail.com</span>
               </a>
               <a
                 href="tel:+8801969752197"
                 className="text-muted-foreground hover:text-primary transition-colors text-sm flex items-center gap-2"
               >
-                <Phone className="w-4 h-4" />
+                <Phone className="w-4 h-4 flex-shrink-0" />
                 +8801969752197
               </a>
               <a
@@ -58,7 +59,7 @@ export default function Footer() {
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-primary transition-colors text-sm flex items-center gap-2"
               >
-                <MessageCircle className="w-4 h-4" />
+                <MessageCircle className="w-4 h-4 flex-shrink-0" />
                 Support Bot
               </a>
               <a
@@ -67,59 +68,66 @@ export default function Footer() {
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-primary transition-colors text-sm flex items-center gap-2"
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-4 h-4 flex-shrink-0" />
                 Support ID
               </a>
-                           
               <a
                 href="https://t.me/Easy_Education_01"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-primary transition-colors text-sm flex items-center gap-2"
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-4 h-4 flex-shrink-0" />
                 Telegram
-              </a> 
-
+              </a>
             </div>
           </div>
           
-           <div>
-            <h4 className="font-semibold mb-4 ml-2">Follow Us</h4>
-            <div className="flex flex-col gap-2">
-
-<a
-              href = "https://youtube.com/@easyeducation19"
-              target = "_blank"
-              rel = "noopener noreferrer"
-              className = "text-muted-foreground hover:text-primary transition-colors text-sm flex items-center gap-2" >
-                <Youtube className="w-4 h-4" />
-              YouTube 01
-                </a>
-                <a
-              href = "https://youtube.com/@easyeducation-01"
-              target = "_blank"
-              rel = "noopener noreferrer"
-              className = "text-muted-foreground hover:text-primary transition-colors text-sm flex items-center gap-2" >
-                <Youtube className="w-4 h-4" />
-              YouTube 02
-                </a>
+          {/* Follow Us */}
+          <div>
+            <h4 className="font-semibold mb-4 text-foreground">Follow Us</h4>
+            <div className="flex flex-col gap-3">
+              <a
+                href="https://youtube.com/@easyeducation19"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-primary transition-colors text-sm flex items-center gap-2"
+              >
+                <Youtube className="w-4 h-4 flex-shrink-0" />
+                YouTube 01
+              </a>
+              <a
+                href="https://youtube.com/@easyeducation-01"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-primary transition-colors text-sm flex items-center gap-2"
+              >
+                <Youtube className="w-4 h-4 flex-shrink-0" />
+                YouTube 02
+              </a>
             </div>
           </div>
-          
-        </div>
-        
-        
-          
         </div>
 
-        <div className="mt-8 pt-8 border-t border-border text-center text-muted-foreground text-sm grid grid-2">
-          <p>All Vip Courses © All rights reserved</p>
-          <p>Developed by: <a href= "https://t.me/hermanoMayorBot">Hermano Mayor</a></p>
+        <div className="mt-10 pt-8 border-t border-border">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+            <p className="text-sm text-muted-foreground">
+              © {new Date().getFullYear()} All Vip Courses. All rights reserved.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Developed by:{" "}
+              <a 
+                href="https://t.me/hermanoMayorBot" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:text-primary/80 transition-colors font-medium"
+              >
+                Hermano Mayor
+              </a>
+            </p>
+          </div>
         </div>
-      
-      
-      
+      </div>
     </footer>
   )
 }
