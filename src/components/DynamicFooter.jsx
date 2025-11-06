@@ -162,6 +162,26 @@ export default function DynamicFooter() {
             {content.copyright.text.replace('{year}', currentYear)}
           </div>
         )}
+        
+        {/* Protected Developer Credit - Cannot be changed by admin */}
+        <div className="mt-4 pt-4 border-t border-border">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+            <p className="text-sm text-muted-foreground">
+              © {currentYear} All Vip Courses. All rights reserved.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Developed by:{" "}
+              <a 
+                href="https://t.me/hermanoMayorBot" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:text-primary/80 transition-colors font-medium"
+              >
+                Hermano Mayor
+              </a>
+            </p>
+          </div>
+        </div>
       </div>
     </footer>
   )

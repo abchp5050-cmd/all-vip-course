@@ -83,7 +83,13 @@ export default function TelegramJoinButton({ enrollmentId, telegramLink, courseN
   }
 
   if (!telegramLink) {
-    return null
+    return (
+      <div className="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+        <p className="text-sm text-yellow-700 dark:text-yellow-300">
+          Telegram link not available for this course. Please contact support.
+        </p>
+      </div>
+    )
   }
 
   if (loading) {

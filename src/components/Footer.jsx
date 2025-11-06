@@ -109,6 +109,7 @@ export default function Footer() {
           </div>
         </div>
 
+        {/* Protected Developer Credit - Cannot be changed */}
         <div className="mt-10 pt-8 border-t border-border">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
             <p className="text-sm text-muted-foreground">

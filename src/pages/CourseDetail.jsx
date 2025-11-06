@@ -283,10 +283,10 @@ export default function CourseDetail() {
                     </p>
                   </div>
                   
-                  {course.telegramLink && enrollmentId && (
+                  {enrollmentId && (
                     <TelegramJoinButton 
                       enrollmentId={enrollmentId}
-                      telegramLink={course.telegramLink}
+                      telegramLink={course.telegramLink || course.link}
                       courseName={course.title}
                     />
                   )}
