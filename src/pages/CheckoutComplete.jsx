@@ -217,15 +217,14 @@ export default function CheckoutComplete() {
             <ul className="space-y-2 text-xs sm:text-sm text-muted-foreground">
               <li className="flex gap-2">
                 <span className="text-primary font-bold flex-shrink-0">1.</span>
-                <span>Our admin team will verify your payment</span>
-              </li>
+                <span>এডমিন আপনার পেমেন্ট চেক করবে! </span></li>
               <li className="flex gap-2">
                 <span className="text-primary font-bold flex-shrink-0">2.</span>
-                <span>You'll receive an email confirmation</span>
+                <span>সব ঠিক থাকলে আপনি আপ্রোভ পেয়ে যাবেন</span>
               </li>
               <li className="flex gap-2">
                 <span className="text-primary font-bold flex-shrink-0">3.</span>
-                <span>Access your courses in "My Courses"</span>
+                <span>কিছুক্ষন পরে My Course অপশনে এসে চেক করে দেখুন, পেমেন্ট ঠিক থাকলে আপনাকে লিংক দিয়ে দেওয়া হবে।</span>
               </li>
             </ul>
           </motion.div>
@@ -265,7 +264,7 @@ export default function CheckoutComplete() {
         >
           <p className="text-xs sm:text-sm text-muted-foreground mb-3">Having issues with your payment?</p>
           <a
-            href="mailto:support@easyeducation.com"
+            href="mailto:allviphsc@gmail.com"
             className="text-primary hover:text-primary/80 font-medium text-xs sm:text-sm transition-colors"
           >
             Contact Support
