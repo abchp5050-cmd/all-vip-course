@@ -24,6 +24,7 @@ import { useAuth } from "../contexts/AuthContext"
 import { useTheme } from "../contexts/ThemeContext"
 import { collection, getDocs, query, where } from "firebase/firestore"
 import { db } from "../lib/firebase"
+import { fetchActiveHeaderConfig } from "../lib/headerFooterUtils"
 
 // CRITICAL: Define deferredPrompt at module level to capture event early
 let deferredPrompt = null
@@ -42,6 +43,11 @@ export default function Header() {
   const [showInstallModal, setShowInstallModal] = useState(false)
   const [isIOS, setIsIOS] = useState(false)
   const [canInstall, setCanInstall] = useState(false)
+  const [headerConfig, setHeaderConfig] = useState(null)
+  const [navLinks, setNavLinks] = useState([
+    { name: "Home", path: "/", icon: Home },
+    { name: "Courses", path: "/courses", icon: BookOpen },
+  ])
 
   // Set up beforeinstallprompt listener IMMEDIATELY (before any other effects)
   useEffect(() => {
@@ -89,6 +95,43 @@ export default function Header() {
       }
     }
     fetchSettings()
+  }, [])
+
+  useEffect(() => {
+    const loadHeaderConfig = async () => {
+      try {
+        const config = await fetchActiveHeaderConfig()
+        if (config && config.content && config.content.navigation) {
+          setHeaderConfig(config)
+          
+          const iconMap = {
+            Home,
+            BookOpen,
+            Newspaper,
+            Users,
+            Download,
+            CreditCard,
+            BarChart3
+          }
+          
+          const dynamicNavLinks = config.content.navigation
+            .filter(item => item.isVisible !== false)
+            .sort((a, b) => (a.order || 0) - (b.order || 0))
+            .map(item => ({
+              name: item.label,
+              path: item.url,
+              icon: iconMap[item.label] || Home,
+              openInNewTab: item.openInNewTab || false,
+              type: item.type || 'internal'
+            }))
+          
+          setNavLinks(dynamicNavLinks)
+        }
+      } catch (error) {
+        console.error("Error loading header config:", error)
+      }
+    }
+    loadHeaderConfig()
   }, [])
 
   useEffect(() => {
@@ -287,13 +330,6 @@ export default function Header() {
     }
   }, [sidebarOpen])
 
-  const navLinks = [
-    { name: "Home", path: "/", icon: Home },
-    { name: "Courses", path: "/courses", icon: BookOpen },
-    ...(communityEnabled ? [{ name: "Community", path: "/community", icon: Users }] : []),
-    { name: "Announcements", path: "/announcements", icon: Newspaper },
-  ]
-
   return (
     <>
       <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border shadow-sm">
@@ -317,11 +353,29 @@ export default function Header() {
 
             <nav className="hidden lg:flex items-center gap-2">
               {navLinks.map((link) => {
+                const isExternal = link.type === 'external'
+                const linkProps = {
+                  key: link.path,
+                  className: "px-4 py-2 rounded-lg hover:bg-accent transition-colors text-sm font-medium text-foreground hover:text-primary"
+                }
+                
+                if (isExternal) {
+                  return (
+                    <a
+                      {...linkProps}
+                      href={link.path}
+                      target={link.openInNewTab ? "_blank" : "_self"}
+                      rel={link.openInNewTab ? "noopener noreferrer" : undefined}
+                    >
+                      {link.name}
+                    </a>
+                  )
+                }
+                
                 return (
                   <Link
-                    key={link.path}
+                    {...linkProps}
                     to={link.path}
-                    className="px-4 py-2 rounded-lg hover:bg-accent transition-colors text-sm font-medium text-foreground hover:text-primary"
                   >
                     {link.name}
                   </Link>
@@ -432,12 +486,31 @@ export default function Header() {
               <div className="p-4 space-y-1">
                 {navLinks.map((link) => {
                   const Icon = link.icon
+                  const isExternal = link.type === 'external'
+                  const linkClassName = "flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 smooth-transition group hover:scale-[1.02] active:scale-[0.98]"
+                  
+                  if (isExternal) {
+                    return (
+                      <a
+                        key={link.path}
+                        href={link.path}
+                        target={link.openInNewTab ? "_blank" : "_self"}
+                        rel={link.openInNewTab ? "noopener noreferrer" : undefined}
+                        onClick={() => setSidebarOpen(false)}
+                        className={linkClassName}
+                      >
+                        <Icon className="w-5 h-5 text-muted-foreground group-hover:text-primary smooth-transition" />
+                        <span className="font-medium group-hover:text-primary smooth-transition">{link.name}</span>
+                      </a>
+                    )
+                  }
+                  
                   return (
                     <Link
                       key={link.path}
                       to={link.path}
                       onClick={() => setSidebarOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 smooth-transition group hover:scale-[1.02] active:scale-[0.98]"
+                      className={linkClassName}
                     >
                       <Icon className="w-5 h-5 text-muted-foreground group-hover:text-primary smooth-transition" />
                       <span className="font-medium group-hover:text-primary smooth-transition">{link.name}</span>
