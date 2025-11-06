@@ -30,6 +30,13 @@ import { fetchActiveHeaderConfig } from "../lib/headerFooterUtils"
 let deferredPrompt = null
 let isInstallListenerSet = false
 
+// Define default navigation links outside the component
+const DEFAULT_NAV_LINKS = [
+    { name: "Home", path: "/", icon: Home, type: "internal" },
+    { name: "Courses", path: "/courses", icon: BookOpen, type: "internal" },
+    // Removed Community/Announcement as user only wants Home/Courses by default
+]
+
 export default function Header() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -44,10 +51,9 @@ export default function Header() {
   const [isIOS, setIsIOS] = useState(false)
   const [canInstall, setCanInstall] = useState(false)
   const [headerConfig, setHeaderConfig] = useState(null)
-  const [navLinks, setNavLinks] = useState([
-    { name: "Home", path: "/", icon: Home, type: "internal" },
-    { name: "Courses", path: "/courses", icon: BookOpen, type: "internal" },
-  ])
+  
+  // Initialize with DEFAULT_NAV_LINKS
+  const [navLinks, setNavLinks] = useState(DEFAULT_NAV_LINKS)
 
   // Set up beforeinstallprompt listener IMMEDIATELY (before any other effects)
   useEffect(() => {
@@ -97,8 +103,13 @@ export default function Header() {
     fetchSettings()
   }, [])
 
+  // 🛠️ CRITICAL FIX: Ensure proper fallback and link filtering
   useEffect(() => {
     const loadHeaderConfig = async () => {
+      // Start with a clone of the default links to ensure Home and Courses are always present
+      let finalNavLinks = [...DEFAULT_NAV_LINKS] 
+      const existingLinkNames = new Set(DEFAULT_NAV_LINKS.map(link => link.name))
+
       try {
         const config = await fetchActiveHeaderConfig()
         console.log('🔍 Header Config:', config)
@@ -117,8 +128,8 @@ export default function Header() {
           }
           
           const dynamicNavLinks = config.content.navigation
-            .filter(item => item.isVisible !== false)
-            .sort((a, b) => (a.order || 0) - (b.order || 0))
+            .filter(item => item.isVisible !== false) // Only take visible items
+            .sort((a, b) => (a.order || 0) - (b.order || 0)) // Sort by order
             .map(item => {
               // Default icon based on label or use Home as fallback
               let defaultIcon = Home
@@ -127,23 +138,44 @@ export default function Header() {
               else if (item.label?.toLowerCase().includes('community') || item.label?.toLowerCase().includes('user')) defaultIcon = Users
               else if (item.label?.toLowerCase().includes('payment') || item.label?.toLowerCase().includes('price')) defaultIcon = CreditCard
               
-              return {
+              const link = {
                 name: item.label,
                 path: item.url,
                 icon: item.icon ? (iconMap[item.icon] || defaultIcon) : defaultIcon,
                 openInNewTab: item.openInNewTab || false,
                 type: item.type || 'internal'
               }
+              
+              // Only add dynamic link if it's not a duplicate of a default link
+              // This ensures the default Home/Courses are not duplicated, but can be customized if they are in config.
+              if (!existingLinkNames.has(link.name)) {
+                  return link
+              }
+              
+              // If it's a duplicate, we allow the dynamic one to overwrite the properties, 
+              // but we rely on the final combination logic below.
+              return link
             })
+            .filter(link => !existingLinkNames.has(link.name)); // Filter out Home/Courses if they are dynamically loaded
+
           
-          console.log('🔍 Dynamic Nav Links:', dynamicNavLinks)
-          setNavLinks(dynamicNavLinks)
+          // Combine: Default links + unique dynamic links
+          finalNavLinks = [...DEFAULT_NAV_LINKS, ...dynamicNavLinks];
+
+          console.log('🔍 Dynamic Nav Links (Combined):', finalNavLinks)
+          
         } else {
-          console.log('⚠️ No config found, using default navLinks')
+          // If no valid config is found, finalNavLinks remains as DEFAULT_NAV_LINKS (Home, Courses)
+          console.log('⚠️ No config found, using safe default navLinks')
         }
       } catch (error) {
-        console.error("❌ Error loading header config:", error)
+        console.error("❌ Error loading header config, falling back to defaults:", error)
+        // On error, finalNavLinks remains as DEFAULT_NAV_LINKS
       }
+      
+      // Update state with the final, safe list of links
+      setNavLinks(finalNavLinks)
+
     }
     loadHeaderConfig()
   }, [])
@@ -352,6 +384,7 @@ export default function Header() {
               </Link>
             </div>
 
+            {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center gap-2">
               {navLinks && navLinks.length > 0 && navLinks.map((link, index) => {
                 const isExternal = link.type === 'external'
@@ -482,6 +515,7 @@ export default function Header() {
                 </div>
               )}
 
+              {/* Mobile Main Navigation Links (Now guaranteed to have Home/Courses) */}
               <div className="p-4 space-y-1">
                 {navLinks && navLinks.length > 0 && navLinks.map((link, index) => {
                   const Icon = link.icon || Home
@@ -580,7 +614,7 @@ export default function Header() {
         )}
       </AnimatePresence>
 
-      {/* Install Modal */}
+      {/* Install Modal (rest of the component is unchanged) */}
       <AnimatePresence>
         {showInstallModal && (
           <motion.div
@@ -747,3 +781,4 @@ export default function Header() {
     </>
   )
 }
+
