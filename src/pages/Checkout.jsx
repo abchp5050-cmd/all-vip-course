@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
-import { ShoppingCart, ArrowLeft, Phone, Hash, Loader2, CheckCircle2 } from "lucide-react"
+import { ShoppingCart, ArrowLeft, Phone, Loader2, CheckCircle2 } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 import { collection, addDoc, serverTimestamp } from "firebase/firestore"
 import { db } from "../lib/firebase"
@@ -15,7 +15,6 @@ export default function Checkout() {
   const [cartItems, setCartItems] = useState([])
   const [loading, setLoading] = useState(false)
   const [phoneNumber, setPhoneNumber] = useState("")
-  const [transactionId, setTransactionId] = useState("")
   const [telegramId, setTelegramId] = useState("")
   const [telegramLink, setTelegramLink] = useState("")
   const [customerName, setCustomerName] = useState("")
@@ -56,7 +55,7 @@ export default function Checkout() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    if (!phoneNumber.trim() || !transactionId.trim() || !customerName.trim() || !telegramId.trim()) {
+    if (!phoneNumber.trim() || !customerName.trim() || !telegramId.trim()) {
       toast({
         variant: "destructive",
         title: "Missing Information",
@@ -76,7 +75,6 @@ export default function Checkout() {
         userName: customerName.trim(),
         userEmail: userProfile?.email || currentUser.email,
         phoneNumber: phoneNumber.trim(),
-        transactionId: transactionId.trim(),
         telegramId: telegramId.trim(),
         telegramLink: telegramLink.trim() || "",
         courses: cartItems.map((item) => ({
@@ -99,7 +97,6 @@ export default function Checkout() {
           status: "PENDING",
           paymentInfo: {
             phoneNumber: phoneNumber.trim(),
-            transactionId: transactionId.trim(),
             amount: parseFloat(course.price) || 0,
             telegramId: telegramId.trim(),
             telegramLink: telegramLink.trim() || "",
@@ -121,7 +118,6 @@ export default function Checkout() {
       navigate("/checkout-complete", {
         state: {
           phoneNumber: phoneNumber.trim(),
-          transactionId: transactionId.trim(),
           amount: subtotal.toFixed(2),
           courses: cartItems
         }
@@ -187,12 +183,23 @@ export default function Checkout() {
                 <h2 className="text-lg sm:text-xl font-semibold mb-6">Payment Information</h2>
 
                 <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
-                  <h3 className="font-semibold text-sm mb-2">Payment Instructions</h3>
-                  <ol className="text-xs sm:text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-                    <li>Send ৳{subtotal.toFixed(2)} via bKash/Nagad/Rocket to our payment number</li>
-                    <li>Enter your phone number below (from which you sent money)</li>
-                    <li>Enter the transaction ID you received</li>
-                    <li>Click Submit - Admin will approve your payment shortly</li>
+                  <h3 className="font-semibold text-sm mb-3">Payment Instructions</h3>
+                  <div className="space-y-3">
+                    <div className="bg-white dark:bg-gray-900 p-3 rounded border border-blue-300 dark:border-blue-700">
+                      <p className="font-semibold text-sm mb-1">✿ বিকাশ ✿</p>
+                      <p className="text-xs sm:text-sm">: ‌‌➛ 01831952349</p>
+                      <p className="text-xs text-muted-foreground">(সেন্ড মানি/ক্যাশ ইন)</p>
+                    </div>
+                    <div className="bg-white dark:bg-gray-900 p-3 rounded border border-blue-300 dark:border-blue-700">
+                      <p className="font-semibold text-sm mb-1">✿ নগদ ✿</p>
+                      <p className="text-xs sm:text-sm">: ‌‌➛ 01815307903</p>
+                      <p className="text-xs text-muted-foreground">(সেন্ড মানি/ক্যাশ ইন)</p>
+                    </div>
+                  </div>
+                  <ol className="text-xs sm:text-sm text-muted-foreground space-y-1 list-decimal list-inside mt-3">
+                    <li>উপরের যেকোনো নাম্বারে ৳{subtotal.toFixed(2)} পাঠান</li>
+                    <li>নিচে আপনার তথ্য দিয়ে Submit করুন</li>
+                    <li>Admin verify করে আপনাকে access দিবে</li>
                   </ol>
                 </div>
 
@@ -260,28 +267,7 @@ export default function Checkout() {
                       />
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Enter the phone number from which you sent the payment
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Transaction ID
-                      <span className="text-red-500 ml-1">*</span>
-                    </label>
-                    <div className="relative">
-                      <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <input
-                        type="text"
-                        value={transactionId}
-                        onChange={(e) => setTransactionId(e.target.value)}
-                        placeholder="Enter transaction ID"
-                        required
-                        className="w-full pl-11 pr-4 py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Enter the transaction ID from your payment receipt
+                      যে নাম্বার থেকে টাকা পাঠিয়েছেন সে নাম্বার।
                     </p>
                   </div>
 
