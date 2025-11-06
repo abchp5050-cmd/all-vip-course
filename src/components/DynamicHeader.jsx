@@ -172,19 +172,31 @@ export default function DynamicHeader() {
     <header className={headerClass}>
       <nav className={containerClass}>
         <div className="flex items-center justify-between gap-4">
-          {/* Logo */}
-          <Link to={content?.logo?.link || "/"} className="flex items-center">
-            {content?.logo?.type === 'image' && content?.logo?.imageUrl ? (
-              <img src={content.logo.imageUrl} alt={content.logo.alt || "Logo"} className="h-8 sm:h-10 object-contain" />
-            ) : (
-              <div className={logoClass}>
-                {content?.logo?.text || "All Vip Courses"}
-              </div>
+          {/* Left Section: Mobile Menu + Logo */}
+          <div className="flex items-center gap-3 lg:flex-1">
+            {content?.mobileMenu?.enabled && (
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden p-2 hover:bg-accent rounded-lg transition-colors"
+                aria-label="Open menu"
+              >
+                <Menu className="w-5 h-5 text-foreground" />
+              </button>
             )}
-          </Link>
+            
+            <Link to={content?.logo?.link || "/"} className="flex items-center">
+              {content?.logo?.type === 'image' && content?.logo?.imageUrl ? (
+                <img src={content.logo.imageUrl} alt={content.logo.alt || "Logo"} className="h-8 sm:h-10 object-contain" />
+              ) : (
+                <div className={logoClass}>
+                  {content?.logo?.text || "All Vip Courses"}
+                </div>
+              )}
+            </Link>
+          </div>
           
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-2">
+          <nav className="hidden lg:flex items-center gap-2">
             {visibleNavItems.map((item) => (
               <Link
                 key={item.id}
@@ -196,10 +208,10 @@ export default function DynamicHeader() {
                 {item.label}
               </Link>
             ))}
-          </div>
+          </nav>
 
           {/* Right Section */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 lg:flex-1 justify-end">
             {currentUser ? (
               <>
                 <Link
@@ -233,16 +245,6 @@ export default function DynamicHeader() {
                 aria-label="Toggle theme"
               >
                 {isDark ? <Sun className="w-5 h-5 text-foreground" /> : <Moon className="w-5 h-5 text-foreground" />}
-              </button>
-            )}
-            
-            {content?.mobileMenu?.enabled && (
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden p-2 hover:bg-accent rounded-lg transition-colors"
-                aria-label="Open menu"
-              >
-                <Menu className="w-5 h-5 text-foreground" />
               </button>
             )}
           </div>
