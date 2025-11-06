@@ -230,6 +230,41 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ===== Header Configs Collection =====
+    match /headerConfigs/{configId} {
+      allow read: if true; // Public reading for frontend display
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ===== Footer Configs Collection =====
+    match /footerConfigs/{configId} {
+      allow read: if true; // Public reading for frontend display
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ===== Site Pages Collection =====
+    match /sitePages/{pageId} {
+      allow read: if true; // Public reading for navigation
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ===== Enrollments Collection =====
+    match /enrollments/{enrollmentId} {
+      allow read: if isSignedIn() && 
+                     (isOwner(resource.data.userId) || isAdmin());
+      allow create: if isSignedIn() && 
+                       isOwner(request.resource.data.userId);
+      allow update: if isSignedIn() && 
+                       (isOwner(resource.data.userId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
     // ===== Default Deny All =====
     // Any collection not explicitly listed above will be denied
     match /{document=**} {
