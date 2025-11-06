@@ -24,18 +24,19 @@ import { useAuth } from "../contexts/AuthContext"
 import { useTheme } from "../contexts/ThemeContext"
 import { collection, getDocs, query, where } from "firebase/firestore"
 import { db } from "../lib/firebase"
-import { fetchActiveHeaderConfig } from "../lib/headerFooterUtils"
+// Utility function to fetch header configuration from Firestore
+import { fetchActiveHeaderConfig } from "../lib/headerFooterUtils" 
+
+
+// Define default navigation links: Only Home and Courses
+const DEFAULT_NAV_LINKS = [
+    { name: "Home", path: "/", icon: Home, type: "internal" },
+    { name: "Courses", path: "/courses", icon: BookOpen, type: "internal" },
+]
 
 // CRITICAL: Define deferredPrompt at module level to capture event early
 let deferredPrompt = null
 let isInstallListenerSet = false
-
-// Define default navigation links outside the component
-const DEFAULT_NAV_LINKS = [
-    { name: "Home", path: "/", icon: Home, type: "internal" },
-    { name: "Courses", path: "/courses", icon: BookOpen, type: "internal" },
-    // Removed Community/Announcement as user only wants Home/Courses by default
-]
 
 export default function Header() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -51,9 +52,8 @@ export default function Header() {
   const [isIOS, setIsIOS] = useState(false)
   const [canInstall, setCanInstall] = useState(false)
   const [headerConfig, setHeaderConfig] = useState(null)
-  
-  // Initialize with DEFAULT_NAV_LINKS
-  const [navLinks, setNavLinks] = useState(DEFAULT_NAV_LINKS)
+  // 1. Initialize navigation links state with default links
+  const [navLinks, setNavLinks] = useState(DEFAULT_NAV_LINKS) 
 
   // Set up beforeinstallprompt listener IMMEDIATELY (before any other effects)
   useEffect(() => {
@@ -87,7 +87,7 @@ export default function Header() {
     const fetchSettings = async () => {
       try {
         if (!db) {
-          console.warn("Firebase not available, skipping settings fetch")
+          console.warn(" Firebase not available, skipping settings fetch")
           return
         }
         const settingsQuery = query(collection(db, "settings"), where("type", "==", "general"))
@@ -97,19 +97,18 @@ export default function Header() {
           setCommunityEnabled(settings.communityEnabled !== false)
         }
       } catch (error) {
-        console.error("Error fetching settings:", error)
+        console.error(" Error fetching settings:", error)
       }
     }
     fetchSettings()
   }, [])
 
-  // 🛠️ CRITICAL FIX: Ensure proper fallback and link filtering
+  // 2. Dynamic Header Config Loader
   useEffect(() => {
     const loadHeaderConfig = async () => {
       // Start with a clone of the default links to ensure Home and Courses are always present
       let finalNavLinks = [...DEFAULT_NAV_LINKS] 
-      const existingLinkNames = new Set(DEFAULT_NAV_LINKS.map(link => link.name))
-
+      
       try {
         const config = await fetchActiveHeaderConfig()
         console.log('🔍 Header Config:', config)
@@ -131,38 +130,44 @@ export default function Header() {
             .filter(item => item.isVisible !== false) // Only take visible items
             .sort((a, b) => (a.order || 0) - (b.order || 0)) // Sort by order
             .map(item => {
-              // Default icon based on label or use Home as fallback
-              let defaultIcon = Home
-              if (item.label?.toLowerCase().includes('course')) defaultIcon = BookOpen
-              else if (item.label?.toLowerCase().includes('news') || item.label?.toLowerCase().includes('blog')) defaultIcon = Newspaper
-              else if (item.label?.toLowerCase().includes('community') || item.label?.toLowerCase().includes('user')) defaultIcon = Users
-              else if (item.label?.toLowerCase().includes('payment') || item.label?.toLowerCase().includes('price')) defaultIcon = CreditCard
+              // Determine icon based on item.icon or item.label
+              const Icon = item.icon ? (iconMap[item.icon] || Home) : (
+                item.label?.toLowerCase().includes('course') ? BookOpen : 
+                item.label?.toLowerCase().includes('news') ? Newspaper : 
+                item.label?.toLowerCase().includes('community') ? Users : Home
+              )
               
-              const link = {
+              return {
                 name: item.label,
                 path: item.url,
-                icon: item.icon ? (iconMap[item.icon] || defaultIcon) : defaultIcon,
+                icon: Icon,
                 openInNewTab: item.openInNewTab || false,
                 type: item.type || 'internal'
               }
-              
-              // Only add dynamic link if it's not a duplicate of a default link
-              // This ensures the default Home/Courses are not duplicated, but can be customized if they are in config.
-              if (!existingLinkNames.has(link.name)) {
-                  return link
-              }
-              
-              // If it's a duplicate, we allow the dynamic one to overwrite the properties, 
-              // but we rely on the final combination logic below.
-              return link
             })
-            .filter(link => !existingLinkNames.has(link.name)); // Filter out Home/Courses if they are dynamically loaded
+            
+            // Map existing default links by path
+            const pathMap = new Map(finalNavLinks.map(link => [link.path, link]))
+            
+            dynamicNavLinks.forEach(link => {
+                if (pathMap.has(link.path)) {
+                    // Update existing default link (e.g., if Firestore changes the label of '/')
+                    pathMap.set(link.path, link)
+                } else {
+                    // Add new unique link
+                    pathMap.set(link.path, link)
+                }
+            })
 
-          
-          // Combine: Default links + unique dynamic links
-          finalNavLinks = [...DEFAULT_NAV_LINKS, ...dynamicNavLinks];
+            // Convert map back to array
+            finalNavLinks = Array.from(pathMap.values());
+            
+            // CRITICAL: Filter out unwanted links like Community/Announcement, if they exist
+            const unwantedNames = new Set(["Community", "Announcement"]) 
+            finalNavLinks = finalNavLinks.filter(link => !unwantedNames.has(link.name));
 
-          console.log('🔍 Dynamic Nav Links (Combined):', finalNavLinks)
+
+          console.log('🔍 Dynamic Nav Links (Combined & Filtered):', finalNavLinks)
           
         } else {
           // If no valid config is found, finalNavLinks remains as DEFAULT_NAV_LINKS (Home, Courses)
@@ -178,7 +183,7 @@ export default function Header() {
 
     }
     loadHeaderConfig()
-  }, [])
+  }, []) // Empty dependency array ensures it runs once on mount
 
   useEffect(() => {
     const checkIfInstalled = () => {
@@ -210,6 +215,7 @@ export default function Header() {
       deferredPromptExists: !!deferredPrompt
     })
 
+    // If already installed, hide button and clear dismiss flag for future use
     if (isInstalled) {
       console.log('✅ App is already installed - hiding install button')
       setShowInstallButton(false)
@@ -217,10 +223,12 @@ export default function Header() {
       return
     }
 
+    // Check dismiss status - only hide for 1 hour instead of 7 days
     const dismissed = localStorage.getItem('pwaInstallDismissed')
     const dismissTime = dismissed ? parseInt(dismissed) : 0
     const hoursSinceDismiss = (Date.now() - dismissTime) / (1000 * 60 * 60)
     
+    // For iOS, show button if not installed
     if (iosDevice) {
       if (!dismissed || hoursSinceDismiss >= 1) {
         console.log('📱 Showing iOS install button')
@@ -232,9 +240,12 @@ export default function Header() {
       }
     }
 
+    // For non-iOS devices: show button after delay if not dismissed
+    // This ensures the button appears even in iframes or if beforeinstallprompt doesn't fire
     if (!iosDevice) {
       if (!dismissed || hoursSinceDismiss >= 1) {
         console.log('📱 Showing install button (non-iOS)')
+        // Wait brief moment to give beforeinstallprompt a chance to fire first
         setTimeout(() => {
           if (!deferredPrompt) {
             console.log('🔔 No beforeinstallprompt received - showing button anyway')
@@ -247,8 +258,10 @@ export default function Header() {
       }
     }
     
+    // Add window function for manual reset (accessible via browser console)
     window.resetPWAInstall = handleResetInstallPrompt
 
+    // Listen for successful installation
     const handleAppInstalled = () => {
       console.log('✅ PWA was installed')
       setShowInstallButton(false)
@@ -282,6 +295,7 @@ export default function Header() {
   const handleInstallConfirm = async () => {
     if (!deferredPrompt) {
       console.log('❌ No deferred prompt available - showing manual instructions')
+      // Keep modal open to show manual instructions
       return
     }
 
@@ -313,14 +327,18 @@ export default function Header() {
   }
 
   const handleInstallDismiss = () => {
+    // Don't save dismiss permanently - just close the modal
+    // This allows users to reinstall anytime they want
     setShowInstallModal(false)
     setShowInstallButton(false)
     
+    // Set a short-term dismiss (only for current session or 1 hour)
     const dismissedAt = Date.now()
     localStorage.setItem('pwaInstallDismissed', dismissedAt.toString())
   }
   
   const handleResetInstallPrompt = () => {
+    // Manual reset function for debugging
     localStorage.removeItem('pwaInstallDismissed')
     setShowInstallButton(true)
     console.log('✅ Install prompt reset - button will show again')
@@ -337,7 +355,9 @@ export default function Header() {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (searchRef.current && !searchRef.current.contains(event.target)) {
+      // 3. FIX: Only close search if the clicked target is not the search toggle button itself
+      const searchToggleButton = document.querySelector('[aria-label="Search"]')
+      if (searchRef.current && !searchRef.current.contains(event.target) && event.target !== searchToggleButton) {
         setSearchOpen(false)
       }
     }
@@ -363,81 +383,144 @@ export default function Header() {
     }
   }, [sidebarOpen])
 
+
   return (
     <>
-      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border shadow-sm">
-        <nav className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
+      <header className="sticky top-0 z-50 dark:bg-black/95 backdrop-blur-xl border-b border-border/50">
+        <nav className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 lg:flex-1">
+              {/* This is the MOBILE MENU TOGGLE BUTTON (CRITICAL) */}
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-2 hover:bg-accent rounded-lg transition-colors"
+                className="lg:hidden p-2 hover:bg-primary/10 rounded-lg smooth-transition hover:scale-105 active:scale-95"
                 aria-label="Open menu"
               >
-                <Menu className="w-5 h-5 text-foreground" />
+                <Menu className="w-5 h-5 sm:w-6 sm:h-6 text-foreground" />
               </button>
 
               <Link to="/" className="flex items-center">
-                <div className="text-xl sm:text-2xl font-bold text-primary">
-                  All Vip Courses
-                </div>
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="text-xl sm:text-2xl font-bold dark:text-white"
+                >
+                  Easy Education
+                </motion.div>
               </Link>
             </div>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center gap-2">
-              {navLinks && navLinks.length > 0 && navLinks.map((link, index) => {
+            {/* Desktop Navigation - now uses dynamic navLinks */}
+            <nav className="hidden lg:flex items-center gap-1 justify-center lg:flex-1">
+              {navLinks.map((link, index) => {
+                const Icon = link.icon
                 const isExternal = link.type === 'external'
-                const linkClassName = "px-4 py-2 rounded-lg hover:bg-accent transition-colors text-sm font-medium text-foreground hover:text-primary"
                 
-                if (isExternal) {
-                  return (
-                    <a
-                      key={`desktop-${link.path}-${index}`}
-                      href={link.path}
-                      className={linkClassName}
-                      target={link.openInNewTab ? "_blank" : "_self"}
-                      rel={link.openInNewTab ? "noopener noreferrer" : undefined}
-                    >
-                      {link.name}
-                    </a>
-                  )
-                }
+                const linkContent = (
+                  <>
+                    <Icon className="w-4 h-4" />
+                    <span>{link.name}</span>
+                  </>
+                )
                 
-                return (
+                return isExternal ? (
+                  <a
+                    key={`desktop-${link.path}-${index}`}
+                    href={link.path}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-primary/10 transition-colors font-medium text-sm"
+                    target={link.openInNewTab ? "_blank" : "_self"}
+                    rel={link.openInNewTab ? "noopener noreferrer" : undefined}
+                  >
+                    {linkContent}
+                  </a>
+                ) : (
                   <Link
                     key={`desktop-${link.path}-${index}`}
                     to={link.path}
-                    className={linkClassName}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-primary/10 transition-colors font-medium text-sm"
                   >
-                    {link.name}
+                    {linkContent}
                   </Link>
                 )
               })}
             </nav>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 lg:flex-1 justify-end">
+              {showInstallButton && (
+                <button
+                  onClick={handleInstallClick}
+                  className="p-2 hover:bg-primary/10 rounded-lg smooth-transition hover:scale-105 active:scale-95"
+                  aria-label="Install App"
+                  title="Install App"
+                >
+                  <Download className="w-5 h-5 text-primary animate-bounce" />
+                </button>
+              )}
+              
+              
+              <div className="relative" ref={searchRef}>
+                <button
+                  onClick={() => setSearchOpen(!searchOpen)}
+                  className="p-2 hover:bg-primary/10 rounded-lg smooth-transition hover:scale-105 active:scale-95"
+                  aria-label="Search"
+                >
+                  <Search className="w-5 h-5 text-foreground" />
+                </button>
+
+                <AnimatePresence>
+                  {searchOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="fixed sm:absolute left-4 right-4 sm:left-auto sm:right-0 top-20 sm:top-full sm:mt-2 w-auto sm:w-96 bg-card border border-primary/30 rounded-xl shadow-2xl glow-pink p-4 z-50"
+                    >
+                      <form onSubmit={handleSearch} className="w-full">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search courses..."
+                            className="w-full pl-10 pr-4 py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-foreground placeholder:text-muted-foreground text-sm smooth-transition"
+                            autoFocus
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          className="w-full mt-3 px-4 py-2 bg-gradient-pink-purple text-white rounded-lg hover:opacity-90 smooth-transition font-medium"
+                        >
+                          Search
+                        </button>
+                      </form>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               {currentUser ? (
                 <>
                   <Link
                     to={isAdmin ? "/admin" : "/dashboard"}
-                    className="hidden sm:flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors text-sm font-medium shadow-sm"
+                    className="hidden sm:flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white dark:text-black rounded-lg smooth-transition text-sm font-medium hover:scale-105 active:scale-95"
                   >
                     <LayoutDashboard className="w-4 h-4" />
                     Dashboard
                   </Link>
                   <button
                     onClick={handleSignOut}
-                    className="hidden sm:flex items-center gap-2 px-4 py-2 hover:bg-accent rounded-lg transition-colors text-sm font-medium text-foreground"
+                    className="hidden sm:flex items-center gap-2 px-4 py-2 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-lg smooth-transition text-sm font-medium hover:scale-105 active:scale-95"
                   >
                     <LogOut className="w-4 h-4" />
-                    Sign Out
+                    Logout
                   </button>
                 </>
               ) : (
                 <Link
                   to="/login"
-                  className="hidden sm:flex items-center px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors text-sm font-medium shadow-sm"
+                  className="hidden sm:block px-4 py-2 bg-primary hover:bg-primary/90 text-white dark:text-black rounded-lg smooth-transition text-sm font-medium hover:scale-105 active:scale-95"
                 >
                   Login
                 </Link>
@@ -445,7 +528,7 @@ export default function Header() {
 
               <button
                 onClick={toggleTheme}
-                className="p-2 hover:bg-accent rounded-lg transition-colors"
+                className="p-2 hover:bg-primary/10 rounded-lg smooth-transition hover:scale-105 active:scale-95"
                 aria-label="Toggle theme"
               >
                 {isDark ? <Sun className="w-5 h-5 text-foreground" /> : <Moon className="w-5 h-5 text-foreground" />}
@@ -455,7 +538,7 @@ export default function Header() {
         </nav>
       </header>
 
-      {/* Mobile Sidebar */}
+      {/* Mobile Sidebar - now uses dynamic navLinks */}
       <AnimatePresence>
         {sidebarOpen && (
           <>
@@ -471,17 +554,18 @@ export default function Header() {
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="fixed left-0 top-0 bottom-0 w-full sm:w-80 bg-card border-r border-border z-50 overflow-y-auto shadow-2xl"
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed left-0 top-0 bottom-0 w-full sm:w-80 bg-card border-r border-border z-50 overflow-y-auto"
             >
+              {/* Keep all existing sidebar content */}
               <div className="flex items-center justify-between p-4 border-b border-border/50 bg-primary/5">
                 <Link to="/" onClick={() => setSidebarOpen(false)}>
                   <motion.div
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="text-2xl font-bold text-primary"
+                    className="text-2xl font-bold text-white"
                   >
-                    All Vip Courses
+                    Easy Education
                   </motion.div>
                 </Link>
                 <button
@@ -515,38 +599,38 @@ export default function Header() {
                 </div>
               )}
 
-              {/* Mobile Main Navigation Links (Now guaranteed to have Home/Courses) */}
               <div className="p-4 space-y-1">
-                {navLinks && navLinks.length > 0 && navLinks.map((link, index) => {
-                  const Icon = link.icon || Home
+                {navLinks.map((link, index) => {
+                  const Icon = link.icon
                   const isExternal = link.type === 'external'
                   const linkClassName = "flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 smooth-transition group hover:scale-[1.02] active:scale-[0.98]"
+
+                  const linkContent = (
+                    <>
+                      <Icon className="w-5 h-5 text-muted-foreground group-hover:text-primary smooth-transition" />
+                      <span className="font-medium group-hover:text-primary smooth-transition">{link.name}</span>
+                    </>
+                  )
                   
-                  if (isExternal) {
-                    return (
-                      <a
-                        key={`mobile-${link.path}-${index}`}
-                        href={link.path}
-                        target={link.openInNewTab ? "_blank" : "_self"}
-                        rel={link.openInNewTab ? "noopener noreferrer" : undefined}
-                        onClick={() => setSidebarOpen(false)}
-                        className={linkClassName}
-                      >
-                        <Icon className="w-5 h-5 text-muted-foreground group-hover:text-primary smooth-transition" />
-                        <span className="font-medium group-hover:text-primary smooth-transition">{link.name}</span>
-                      </a>
-                    )
-                  }
-                  
-                  return (
+                  return isExternal ? (
+                    <a
+                      key={`mobile-${link.path}-${index}`}
+                      href={link.path}
+                      target={link.openInNewTab ? "_blank" : "_self"}
+                      rel={link.openInNewTab ? "noopener noreferrer" : undefined}
+                      onClick={() => setSidebarOpen(false)}
+                      className={linkClassName}
+                    >
+                      {linkContent}
+                    </a>
+                  ) : (
                     <Link
                       key={`mobile-${link.path}-${index}`}
                       to={link.path}
                       onClick={() => setSidebarOpen(false)}
                       className={linkClassName}
                     >
-                      <Icon className="w-5 h-5 text-muted-foreground group-hover:text-primary smooth-transition" />
-                      <span className="font-medium group-hover:text-primary smooth-transition">{link.name}</span>
+                      {linkContent}
                     </Link>
                   )
                 })}
@@ -614,7 +698,7 @@ export default function Header() {
         )}
       </AnimatePresence>
 
-      {/* Install Modal (rest of the component is unchanged) */}
+      {/* Install Modal */}
       <AnimatePresence>
         {showInstallModal && (
           <motion.div
@@ -649,7 +733,7 @@ export default function Header() {
                       <Download className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                     </div>
                     <div className="flex-1">
-                      <h2 className="text-lg sm:text-xl font-bold mb-0.5">Install All Vip Courses</h2>
+                      <h2 className="text-lg sm:text-xl font-bold mb-0.5">Install Easy Education</h2>
                       <p className="text-sm text-muted-foreground">
                         Quick access & offline learning
                       </p>
