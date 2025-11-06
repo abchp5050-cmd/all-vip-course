@@ -158,8 +158,86 @@ export default function FooterContentEditor({ config, onChange, sitePages }) {
     })
   }
   
+  const updateColumnCount = (device, value) => {
+    onChange({
+      ...config,
+      styling: {
+        ...config.styling,
+        layout: {
+          ...config.styling.layout,
+          columns: {
+            ...config.styling.layout.columns,
+            [device]: parseInt(value)
+          }
+        }
+      }
+    })
+  }
+  
   return (
     <div className="space-y-6">
+      {/* Layout Configuration */}
+      <div className="space-y-4">
+        <h4 className="font-medium text-sm">Footer Layout</h4>
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <Label htmlFor="mobile-columns" className="text-xs">Mobile Columns</Label>
+            <Select 
+              value={config.styling?.layout?.columns?.mobile?.toString() || "1"}
+              onValueChange={(value) => updateColumnCount('mobile', value)}
+            >
+              <SelectTrigger id="mobile-columns">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 Column</SelectItem>
+                <SelectItem value="2">2 Columns</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <Label htmlFor="tablet-columns" className="text-xs">Tablet Columns</Label>
+            <Select 
+              value={config.styling?.layout?.columns?.tablet?.toString() || "2"}
+              onValueChange={(value) => updateColumnCount('tablet', value)}
+            >
+              <SelectTrigger id="tablet-columns">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 Column</SelectItem>
+                <SelectItem value="2">2 Columns</SelectItem>
+                <SelectItem value="3">3 Columns</SelectItem>
+                <SelectItem value="4">4 Columns</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <Label htmlFor="desktop-columns" className="text-xs">Desktop Columns</Label>
+            <Select 
+              value={config.styling?.layout?.columns?.desktop?.toString() || "4"}
+              onValueChange={(value) => updateColumnCount('desktop', value)}
+            >
+              <SelectTrigger id="desktop-columns">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2">2 Columns</SelectItem>
+                <SelectItem value="3">3 Columns</SelectItem>
+                <SelectItem value="4">4 Columns</SelectItem>
+                <SelectItem value="5">5 Columns</SelectItem>
+                <SelectItem value="6">6 Columns</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Configure how many columns the footer should display on different screen sizes. This includes brand section, footer sections, and social links.
+        </p>
+      </div>
+      
       {/* Brand Section */}
       <div className="space-y-4">
         <h4 className="font-medium text-sm">Brand Section</h4>

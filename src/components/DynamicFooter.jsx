@@ -95,13 +95,28 @@ export default function DynamicFooter() {
     return <Footer />
   }
   
-  const { content } = config
+  const { content, styling } = config
   const currentYear = new Date().getFullYear()
+  
+  const columns = styling?.layout?.columns || { mobile: 1, tablet: 2, desktop: 4 }
+  
+  const gridColsMap = {
+    1: 'grid-cols-1',
+    2: 'grid-cols-2',
+    3: 'grid-cols-3',
+    4: 'grid-cols-4',
+    5: 'grid-cols-5',
+    6: 'grid-cols-6'
+  }
+  
+  const mobileClass = gridColsMap[columns.mobile] || 'grid-cols-1'
+  const tabletClass = gridColsMap[columns.tablet] || 'grid-cols-2'
+  const desktopClass = gridColsMap[columns.desktop] || 'grid-cols-4'
   
   return (
     <footer className="bg-card border-t border-border/50 mt-auto">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+        <div className={`grid ${mobileClass} md:${tabletClass} lg:${desktopClass} gap-10`}>
           {/* Brand Section */}
           {content?.brand?.enabled && (
             <div>

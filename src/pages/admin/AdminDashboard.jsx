@@ -68,7 +68,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Mobile Header */}
-      <div className="lg:hidden flex items-center justify-between p-4 bg-card border-b border-border sticky top-[57px] z-40 shadow-sm">
+      <div className="lg:hidden flex items-center justify-between p-4 bg-card border-b border-border sticky top-0 z-40 shadow-sm">
         <div>
           <h1 className="text-base font-bold text-foreground">Admin Panel</h1>
           <p className="text-xs text-muted-foreground font-medium">{currentPage}</p>
@@ -112,6 +112,19 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* Mobile Menu Backdrop */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="lg:hidden fixed inset-0 bg-black/60 z-[60] backdrop-blur-sm"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+          )}
+        </AnimatePresence>
+
         {/* Mobile Menu */}
         <AnimatePresence>
           {mobileMenuOpen && (
@@ -120,9 +133,13 @@ export default function AdminDashboard() {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="lg:hidden fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border shadow-lg overflow-y-auto"
+              className="lg:hidden fixed inset-y-0 left-0 z-[70] w-72 bg-card border-r border-border shadow-2xl overflow-y-auto"
             >
-              <div className="p-4">
+              <div className="p-4 pt-6">
+                <div className="mb-6 pb-4 border-b border-border">
+                  <h2 className="text-lg font-bold text-primary">Admin Panel</h2>
+                  <p className="text-xs text-muted-foreground mt-1">Header & Footer Builder</p>
+                </div>
                 <nav className="space-y-1">
                   {navItems.map((item) => {
                     const isActive = location.pathname === item.path
@@ -131,7 +148,7 @@ export default function AdminDashboard() {
                         key={item.path}
                         to={item.path}
                         onClick={() => setMobileMenuOpen(false)}
-                        className={`relative flex items-center gap-3 px-3 py-2.5 rounded-md transition-all text-sm ${
+                        className={`relative flex items-center gap-3 px-3 py-3 rounded-lg transition-all text-sm ${
                           isActive
                             ? "bg-primary text-primary-foreground shadow-sm font-medium"
                             : "hover:bg-muted text-foreground hover:text-primary font-normal"
@@ -152,14 +169,6 @@ export default function AdminDashboard() {
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Backdrop */}
-        {mobileMenuOpen && (
-          <div
-            className="lg:hidden fixed inset-0 bg-black/50 z-40"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-        )}
 
         {/* Main Content */}
         <div className="flex-1 overflow-y-auto pb-20 lg:pb-0">

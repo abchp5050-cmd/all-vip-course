@@ -246,7 +246,11 @@ export const createDefaultFooterConfig = (userId) => ({
   },
   styling: {
     layout: {
-      columns: 4,
+      columns: {
+        mobile: 1,
+        tablet: 2,
+        desktop: 4
+      },
       gap: "2rem",
       padding: {
         top: "2rem",
