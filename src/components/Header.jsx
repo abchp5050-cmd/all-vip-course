@@ -45,8 +45,8 @@ export default function Header() {
   const [canInstall, setCanInstall] = useState(false)
   const [headerConfig, setHeaderConfig] = useState(null)
   const [navLinks, setNavLinks] = useState([
-    { name: "Home", path: "/", icon: Home },
-    { name: "Courses", path: "/courses", icon: BookOpen },
+    { name: "Home", path: "/", icon: Home, type: "internal" },
+    { name: "Courses", path: "/courses", icon: BookOpen, type: "internal" },
   ])
 
   // Set up beforeinstallprompt listener IMMEDIATELY (before any other effects)
@@ -81,7 +81,7 @@ export default function Header() {
     const fetchSettings = async () => {
       try {
         if (!db) {
-          console.warn(" Firebase not available, skipping settings fetch")
+          console.warn("Firebase not available, skipping settings fetch")
           return
         }
         const settingsQuery = query(collection(db, "settings"), where("type", "==", "general"))
@@ -91,7 +91,7 @@ export default function Header() {
           setCommunityEnabled(settings.communityEnabled !== false)
         }
       } catch (error) {
-        console.error(" Error fetching settings:", error)
+        console.error("Error fetching settings:", error)
       }
     }
     fetchSettings()
@@ -101,6 +101,8 @@ export default function Header() {
     const loadHeaderConfig = async () => {
       try {
         const config = await fetchActiveHeaderConfig()
+        console.log('🔍 Header Config:', config)
+        
         if (config && config.content && config.content.navigation) {
           setHeaderConfig(config)
           
@@ -117,18 +119,30 @@ export default function Header() {
           const dynamicNavLinks = config.content.navigation
             .filter(item => item.isVisible !== false)
             .sort((a, b) => (a.order || 0) - (b.order || 0))
-            .map(item => ({
-              name: item.label,
-              path: item.url,
-              icon: item.icon ? iconMap[item.icon] || Home : Home,
-              openInNewTab: item.openInNewTab || false,
-              type: item.type || 'internal'
-            }))
+            .map(item => {
+              // Default icon based on label or use Home as fallback
+              let defaultIcon = Home
+              if (item.label?.toLowerCase().includes('course')) defaultIcon = BookOpen
+              else if (item.label?.toLowerCase().includes('news') || item.label?.toLowerCase().includes('blog')) defaultIcon = Newspaper
+              else if (item.label?.toLowerCase().includes('community') || item.label?.toLowerCase().includes('user')) defaultIcon = Users
+              else if (item.label?.toLowerCase().includes('payment') || item.label?.toLowerCase().includes('price')) defaultIcon = CreditCard
+              
+              return {
+                name: item.label,
+                path: item.url,
+                icon: item.icon ? (iconMap[item.icon] || defaultIcon) : defaultIcon,
+                openInNewTab: item.openInNewTab || false,
+                type: item.type || 'internal'
+              }
+            })
           
+          console.log('🔍 Dynamic Nav Links:', dynamicNavLinks)
           setNavLinks(dynamicNavLinks)
+        } else {
+          console.log('⚠️ No config found, using default navLinks')
         }
       } catch (error) {
-        console.error("Error loading header config:", error)
+        console.error("❌ Error loading header config:", error)
       }
     }
     loadHeaderConfig()
@@ -164,7 +178,6 @@ export default function Header() {
       deferredPromptExists: !!deferredPrompt
     })
 
-    // If already installed, hide button and clear dismiss flag for future use
     if (isInstalled) {
       console.log('✅ App is already installed - hiding install button')
       setShowInstallButton(false)
@@ -172,12 +185,10 @@ export default function Header() {
       return
     }
 
-    // Check dismiss status - only hide for 1 hour instead of 7 days
     const dismissed = localStorage.getItem('pwaInstallDismissed')
     const dismissTime = dismissed ? parseInt(dismissed) : 0
     const hoursSinceDismiss = (Date.now() - dismissTime) / (1000 * 60 * 60)
     
-    // For iOS, show button if not installed
     if (iosDevice) {
       if (!dismissed || hoursSinceDismiss >= 1) {
         console.log('📱 Showing iOS install button')
@@ -189,12 +200,9 @@ export default function Header() {
       }
     }
 
-    // For non-iOS devices: show button after delay if not dismissed
-    // This ensures the button appears even in iframes or if beforeinstallprompt doesn't fire
     if (!iosDevice) {
       if (!dismissed || hoursSinceDismiss >= 1) {
         console.log('📱 Showing install button (non-iOS)')
-        // Wait brief moment to give beforeinstallprompt a chance to fire first
         setTimeout(() => {
           if (!deferredPrompt) {
             console.log('🔔 No beforeinstallprompt received - showing button anyway')
@@ -207,10 +215,8 @@ export default function Header() {
       }
     }
     
-    // Add window function for manual reset (accessible via browser console)
     window.resetPWAInstall = handleResetInstallPrompt
 
-    // Listen for successful installation
     const handleAppInstalled = () => {
       console.log('✅ PWA was installed')
       setShowInstallButton(false)
@@ -244,7 +250,6 @@ export default function Header() {
   const handleInstallConfirm = async () => {
     if (!deferredPrompt) {
       console.log('❌ No deferred prompt available - showing manual instructions')
-      // Keep modal open to show manual instructions
       return
     }
 
@@ -276,18 +281,14 @@ export default function Header() {
   }
 
   const handleInstallDismiss = () => {
-    // Don't save dismiss permanently - just close the modal
-    // This allows users to reinstall anytime they want
     setShowInstallModal(false)
     setShowInstallButton(false)
     
-    // Set a short-term dismiss (only for current session or 1 hour)
     const dismissedAt = Date.now()
     localStorage.setItem('pwaInstallDismissed', dismissedAt.toString())
   }
   
   const handleResetInstallPrompt = () => {
-    // Manual reset function for debugging
     localStorage.removeItem('pwaInstallDismissed')
     setShowInstallButton(true)
     console.log('✅ Install prompt reset - button will show again')
@@ -445,7 +446,7 @@ export default function Header() {
                   <motion.div
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="text-2xl font-bold text-white"
+                    className="text-2xl font-bold text-primary"
                   >
                     All Vip Courses
                   </motion.div>
@@ -680,69 +681,4 @@ export default function Header() {
                       {deferredPrompt ? (
                         <button
                           onClick={handleInstallConfirm}
-                          className="w-full py-3 px-4 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white rounded-lg transition-all font-medium flex items-center justify-center gap-2 text-sm shadow-lg hover:shadow-xl"
-                        >
-                          <Download className="w-4 h-4" />
-                          এখনই Install করুন
-                        </button>
-                      ) : (
-                        <>
-                          {window.self !== window.top && (
-                            <button
-                              onClick={handleOpenInNewTab}
-                              className="w-full py-3 px-4 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 text-white rounded-lg transition-all font-medium flex items-center justify-center gap-2 text-sm shadow-lg hover:shadow-xl"
-                            >
-                              <Download className="w-4 h-4" />
-                              নতুন Tab এ খুলুন
-                            </button>
-                          )}
-                          <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg space-y-3">
-                            <p className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                              📱 Android Phone এ App Install করার নিয়ম:
-                            </p>
-                            <ol className="text-sm space-y-2.5 text-foreground">
-                              <li className="flex items-start gap-3">
-                                <span className="font-bold text-blue-600 dark:text-blue-400 text-base flex-shrink-0">১.</span>
-                                <span>Browser এর উপরে ডান কোণায় <strong className="text-blue-600 dark:text-blue-400">তিন বিন্দু (⋮)</strong> বা <strong className="text-blue-600 dark:text-blue-400">তিন লাইন (≡)</strong> মেনুতে ক্লিক করুন</span>
-                              </li>
-                              <li className="flex items-start gap-2">
-                                <span className="font-bold text-blue-600 dark:text-blue-400 text-base flex-shrink-0">২.</span>
-                                <div className="flex-1">
-                                  <p><strong className="text-blue-600 dark:text-blue-400">"Add to Home Screen"</strong> অপশন খুঁজুন</p>
-                                  <p className="text-xs mt-1 text-muted-foreground">(Chrome: "Install App" / "Add to Home Screen")</p>
-                                  <p className="text-xs text-muted-foreground">(Firefox: "Install" / "Add to Home Screen")</p>
-                                </div>
-                              </li>
-                              <li className="flex items-start gap-3">
-                                <span className="font-bold text-blue-600 dark:text-blue-400 text-base flex-shrink-0">৩.</span>
-                                <span>পপআপে <strong className="text-blue-600 dark:text-blue-400">"Install"</strong> বা <strong className="text-blue-600 dark:text-blue-400">"Add"</strong> বাটনে ক্লিক করুন</span>
-                              </li>
-                            </ol>
-                            <div className="pt-2 border-t border-blue-500/20 space-y-1">
-                              <p className="text-xs text-blue-600 dark:text-blue-400">
-                                ✅ সফলভাবে install হলে আপনার Home Screen এ App icon দেখতে পাবেন
-                              </p>
-                              <p className="text-xs text-blue-600 dark:text-blue-400">
-                                💡 <strong>Best Browser:</strong> Chrome, Edge, বা Samsung Internet
-                              </p>
-                            </div>
-                          </div>
-                        </>
-                      )}
-                      <button
-                        onClick={handleInstallDismiss}
-                        className="w-full py-2.5 px-4 bg-muted/50 hover:bg-muted text-foreground rounded-lg transition-colors font-medium text-sm"
-                      >
-                        পরে করব
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
-  )
-}
+                          className="w-full py-3 px-4 bg-gradient-
