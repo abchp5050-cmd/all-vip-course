@@ -1,7 +1,22 @@
 import { useState, useEffect } from "react"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { motion } from "framer-motion"
-import { Menu, X, User, LogOut, LayoutDashboard, Sun, Moon, Search } from "lucide-react"
+import { 
+  Menu, 
+  X, 
+  User, 
+  LogOut, 
+  LayoutDashboard, 
+  Sun, 
+  Moon, 
+  Search,
+  Home,
+  BookOpen,
+  Newspaper,
+  Users,
+  CreditCard,
+  BarChart3
+} from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 import { useTheme } from "../contexts/ThemeContext"
 import { fetchActiveHeaderConfig } from "../lib/headerFooterUtils"
@@ -19,6 +34,24 @@ const getPaddingValue = (value) => {
     }
   }
   return '4'
+}
+
+// Helper function to get icon component by label or icon name
+const getIconComponent = (label) => {
+  const iconMap = {
+    Home,
+    Courses: BookOpen,
+    BookOpen,
+    Community: Users,
+    Announcements: Newspaper,
+    Newspaper,
+    Users,
+    CreditCard,
+    BarChart3,
+    "New Link": BookOpen
+  }
+  
+  return iconMap[label] || Home
 }
 
 // Default configuration when Firestore config is not available
@@ -249,16 +282,20 @@ export default function DynamicHeader() {
               </div>
               
               <div className="space-y-1">
-                {visibleNavItems.map((item) => (
-                  <Link
-                    key={item.id}
-                    to={item.url}
-                    onClick={() => setSidebarOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-colors group"
-                  >
-                    <span className="font-medium group-hover:text-primary transition-colors">{item.label}</span>
-                  </Link>
-                ))}
+                {visibleNavItems.map((item) => {
+                  const Icon = getIconComponent(item.label)
+                  return (
+                    <Link
+                      key={item.id}
+                      to={item.url}
+                      onClick={() => setSidebarOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-colors group"
+                    >
+                      <Icon className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                      <span className="font-medium group-hover:text-primary transition-colors">{item.label}</span>
+                    </Link>
+                  )
+                })}
               </div>
               
               {currentUser && (
