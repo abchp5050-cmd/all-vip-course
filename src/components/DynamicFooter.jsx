@@ -13,8 +13,52 @@ const iconMap = {
   MessageCircle
 }
 
+// Default configuration when Firestore config is not available
+const DEFAULT_FOOTER_CONFIG = {
+  content: {
+    brand: {
+      enabled: true,
+      text: "All Vip Courses",
+      description: "HSC academic & admission courses at low price."
+    },
+    sections: [
+      {
+        id: "section-quick-links",
+        title: "Quick Links",
+        links: [
+          { id: "link-home", label: "Home", type: "internal", url: "/", isVisible: true },
+          { id: "link-courses", label: "Courses", type: "internal", url: "/courses", isVisible: true },
+          { id: "link-community", label: "Community", type: "internal", url: "/community", isVisible: true },
+          { id: "link-announcements", label: "Announcements", type: "internal", url: "/announcements", isVisible: true }
+        ]
+      },
+      {
+        id: "section-contact",
+        title: "Contact",
+        links: [
+          { id: "contact-email", label: "Email", type: "email", value: "easyeducation556644@gmail.com", icon: "Mail", isVisible: true },
+          { id: "contact-phone", label: "Phone", type: "phone", value: "+8801969752197", icon: "Phone", isVisible: true }
+        ]
+      }
+    ],
+    socialLinks: {
+      enabled: true,
+      title: "Connect",
+      links: [
+        { id: "social-telegram", platform: "telegram", url: "https://t.me/Chatbox67_bot", icon: "Send", isVisible: true },
+        { id: "social-youtube", platform: "youtube", url: "https://youtube.com/@allvipcourses", icon: "Youtube", isVisible: true },
+        { id: "social-whatsapp", platform: "whatsapp", url: "https://wa.me/8801969752197", icon: "MessageCircle", isVisible: true }
+      ]
+    },
+    copyright: {
+      enabled: true,
+      text: "© {year} All Vip Courses. All rights reserved."
+    }
+  }
+}
+
 export default function DynamicFooter() {
-  const [config, setConfig] = useState(null)
+  const [config, setConfig] = useState(DEFAULT_FOOTER_CONFIG)
   const [loading, setLoading] = useState(true)
   const { currentUser, isAdmin } = useAuth()
   const location = useLocation()
@@ -28,20 +72,26 @@ export default function DynamicFooter() {
       const userRole = currentUser ? (isAdmin ? 'admin' : 'user') : 'guest'
       const deviceType = window.innerWidth >= 1024 ? 'desktop' : window.innerWidth >= 768 ? 'tablet' : 'mobile'
       
+      console.log('🔍 Loading footer config from Firestore...')
       const footerConfig = await fetchActiveFooterConfig(location.pathname, userRole, deviceType)
       
       if (footerConfig) {
+        console.log('✅ Firestore footer config loaded')
         setConfig(footerConfig)
+      } else {
+        console.log('⚠️ No Firestore footer config found, using default config')
+        // Keep using DEFAULT_FOOTER_CONFIG (already set in state)
       }
     } catch (error) {
-      console.error("Error loading footer config:", error)
+      console.error("❌ Error loading footer config:", error)
+      // Keep using DEFAULT_FOOTER_CONFIG on error
     } finally {
       setLoading(false)
     }
   }
   
-  // Fallback to original Footer if no config or still loading
-  if (loading || !config) {
+  // Show loading state briefly
+  if (loading) {
     return <Footer />
   }
   

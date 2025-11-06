@@ -7,8 +7,33 @@ import { useTheme } from "../contexts/ThemeContext"
 import { fetchActiveHeaderConfig } from "../lib/headerFooterUtils"
 import Header from "./Header"
 
+// Default configuration when Firestore config is not available
+const DEFAULT_CONFIG = {
+  content: {
+    logo: {
+      type: "text",
+      text: "All Vip Courses",
+      link: "/",
+      alt: "All Vip Courses Logo"
+    },
+    navigation: [
+      { id: "nav-home", label: "Home", url: "/", isVisible: true, openInNewTab: false },
+      { id: "nav-courses", label: "Courses", url: "/courses", isVisible: true, openInNewTab: false },
+      { id: "nav-community", label: "Community", url: "/community", isVisible: true, openInNewTab: false },
+      { id: "nav-announcements", label: "Announcements", url: "/announcements", isVisible: true, openInNewTab: false }
+    ],
+    elements: {
+      showThemeToggle: true,
+      showUserMenu: true
+    },
+    mobileMenu: {
+      enabled: true
+    }
+  }
+}
+
 export default function DynamicHeader() {
-  const [config, setConfig] = useState(null)
+  const [config, setConfig] = useState(DEFAULT_CONFIG)
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { currentUser, userProfile, signOut, isAdmin } = useAuth()
@@ -25,13 +50,19 @@ export default function DynamicHeader() {
       const userRole = currentUser ? (isAdmin ? 'admin' : 'user') : 'guest'
       const deviceType = window.innerWidth >= 1024 ? 'desktop' : window.innerWidth >= 768 ? 'tablet' : 'mobile'
       
+      console.log('🔍 Loading header config from Firestore...')
       const headerConfig = await fetchActiveHeaderConfig(location.pathname, userRole, deviceType)
       
       if (headerConfig) {
+        console.log('✅ Firestore config loaded, navigation items:', headerConfig.content?.navigation?.length)
         setConfig(headerConfig)
+      } else {
+        console.log('⚠️ No Firestore config found, using default config')
+        // Keep using DEFAULT_CONFIG (already set in state)
       }
     } catch (error) {
-      console.error("Error loading header config:", error)
+      console.error("❌ Error loading header config:", error)
+      // Keep using DEFAULT_CONFIG on error
     } finally {
       setLoading(false)
     }
@@ -46,12 +77,12 @@ export default function DynamicHeader() {
     }
   }
   
-  // Fallback to original Header if no config or still loading
-  if (loading || !config) {
+  // Show loading state briefly
+  if (loading) {
     return <Header />
   }
   
-  const { content, styling } = config
+  const { content } = config
   
   const visibleNavItems = (content.navigation || []).filter(item => item.isVisible)
   
