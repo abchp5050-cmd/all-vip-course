@@ -90,6 +90,7 @@ export default function DynamicHeader() {
   }, [location.pathname, currentUser])
   
   const loadHeaderConfig = async () => {
+    setLoading(false) // Don't block rendering
     try {
       const userRole = currentUser ? (isAdmin ? 'admin' : 'user') : 'guest'
       const deviceType = window.innerWidth >= 1024 ? 'desktop' : window.innerWidth >= 768 ? 'tablet' : 'mobile'
@@ -107,8 +108,6 @@ export default function DynamicHeader() {
     } catch (error) {
       console.error("❌ Error loading header config:", error)
       // Keep using DEFAULT_CONFIG on error
-    } finally {
-      setLoading(false)
     }
   }
   
@@ -121,13 +120,11 @@ export default function DynamicHeader() {
     }
   }
   
-  // Show loading state briefly
-  if (loading) {
-    return <Header />
-  }
-  
   const { content, styling } = config
   const visibleNavItems = (content.navigation || []).filter(item => item.isVisible)
+  
+  // Debug logging
+  console.log('🔎 DynamicHeader render - visibleNavItems:', visibleNavItems.length, visibleNavItems)
   
   // Build dynamic classes from styling config
   const headerClass = `${styling?.layout?.sticky ? 'sticky top-0' : ''} ${styling?.layout?.zIndex ? `z-${styling.layout.zIndex}` : 'z-50'} ${styling?.colors?.background || 'bg-card/95'} ${styling?.effects?.backdropBlur || 'backdrop-blur-md'} border-b ${styling?.colors?.border || 'border-border'} ${styling?.effects?.shadow || 'shadow-sm'}`
