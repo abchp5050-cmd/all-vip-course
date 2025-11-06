@@ -99,17 +99,24 @@ export default function TelegramJoinButton({ enrollmentId, telegramLink, courseN
   }
 
   return (
-    <button
-      onClick={handleJoinTelegram}
-      disabled={hasJoined}
-      className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition w-full ${
-        hasJoined
-          ? "bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 cursor-not-allowed"
-          : "bg-blue-600 hover:bg-blue-700 text-white active:scale-95"
-      }`}
-    >
-      {hasJoined ? <Check className="w-4 h-4" /> : <Send className="w-4 h-4" />}
-      <span>{hasJoined ? "Joined Telegram Group" : "Join Telegram Group"}</span>
-    </button>
+    <div className="space-y-2">
+      <button
+        onClick={handleJoinTelegram}
+        disabled={hasJoined}
+        className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition w-full ${
+          hasJoined
+            ? "bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 border border-green-200 dark:border-green-800 cursor-not-allowed"
+            : "bg-blue-600 hover:bg-blue-700 text-white active:scale-95"
+        }`}
+      >
+        {hasJoined ? <Check className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+        <span>{hasJoined ? "Joined Telegram Group" : "Join Telegram Group"}</span>
+      </button>
+      {!hasJoined && (
+        <p className="text-xs text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 p-2 rounded border border-yellow-200 dark:border-yellow-800">
+          <span className="font-semibold">Warning:</span> এই লিংকে ক্লিক করলে তোমাকে সরাসরি পেইড চ্যনেলে নিয়ে যাবে, সেখানে জয়েন করে নিবে! এই Button এক বার ক্লিক করলে পরে আর কাজ করবে না! তাই ১ম ক্লিকেই প্রাইভেট চ্যানেলে জয়েন হয়ে যাবে।
+        </p>
+      )}
+    </div>
   )
 }
