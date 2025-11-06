@@ -54,155 +54,179 @@ export default function DynamicHeader() {
   const { content, styling } = config
   
   return (
-    <header 
-      className={`${styling.colors.background} ${styling.colors.border} border-b ${styling.effects.shadow} ${styling.layout.sticky ? 'sticky top-0' : ''} z-${styling.layout.zIndex}`}
-    >
-      <div className={`${styling.layout.maxWidth === 'container' ? 'container' : ''} mx-auto px-${styling.layout.padding.left} py-${styling.layout.padding.top}`}>
-        <div className="flex items-center justify-between">
+    <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border shadow-sm">
+      <nav className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
+        <div className="flex items-center justify-between gap-4">
           {/* Logo */}
-          <Link to={content.logo.link} className={`${styling.typography.logoFont} ${styling.typography.logoSize} ${styling.colors.text} bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent`}>
-            {content.logo.type === 'text' ? content.logo.text : (
-              <img src={content.logo.imageUrl} alt={content.logo.alt} className="h-8" />
+          <Link to={content.logo.link || "/"} className="flex items-center">
+            {content.logo.type === 'image' && content.logo.imageUrl ? (
+              <img src={content.logo.imageUrl} alt={content.logo.alt || "Logo"} className="h-8 sm:h-10 object-contain" />
+            ) : (
+              <div className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary via-blue-600 to-purple-600 bg-clip-text text-transparent">
+                {content.logo.text || "All Vip Courses"}
+              </div>
             )}
           </Link>
           
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden lg:flex items-center gap-2">
             {content.navigation.filter(item => item.isVisible).map((item) => (
               <Link
                 key={item.id}
                 to={item.url}
                 target={item.openInNewTab ? "_blank" : undefined}
                 rel={item.openInNewTab ? "noopener noreferrer" : undefined}
-                className={`${styling.typography.navFont} ${styling.typography.navSize} ${styling.colors.text} ${styling.colors.hoverText} transition-colors`}
+                className="px-4 py-2 rounded-lg hover:bg-accent transition-colors text-sm font-medium text-foreground hover:text-primary"
               >
                 {item.label}
               </Link>
             ))}
           </nav>
+
           
           {/* Right Section */}
-          <div className="flex items-center gap-3">
-            {/* Theme Toggle */}
-            {content.elements.showThemeToggle && (
-              <button
-                onClick={toggleTheme}
-                className={`p-2 ${styling.colors.hoverBackground} rounded-lg transition-colors`}
-                aria-label="Toggle theme"
-              >
-                {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-              </button>
-            )}
-            
-            {/* User Menu */}
-            {content.elements.showUserMenu && currentUser && (
-              <div className="hidden md:flex items-center gap-2">
-                <Link to="/profile" className={`p-2 ${styling.colors.hoverBackground} rounded-lg transition-colors`}>
-                  <User className="w-5 h-5" />
+          <div className="flex items-center gap-2">
+            {currentUser ? (
+              <>
+                <Link
+                  to={isAdmin ? "/admin" : "/dashboard"}
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors text-sm font-medium shadow-sm"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  Dashboard
                 </Link>
-                {isAdmin && (
-                  <Link to="/admin" className={`p-2 ${styling.colors.hoverBackground} rounded-lg transition-colors`}>
-                    <LayoutDashboard className="w-5 h-5" />
-                  </Link>
-                )}
-                <button onClick={handleSignOut} className={`p-2 ${styling.colors.hoverBackground} rounded-lg transition-colors`}>
-                  <LogOut className="w-5 h-5" />
+                <button
+                  onClick={handleSignOut}
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 hover:bg-accent rounded-lg transition-colors text-sm font-medium text-foreground"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
                 </button>
-              </div>
-            )}
-            
-            {!currentUser && (
+              </>
+            ) : (
               <Link
                 to="/login"
-                className="hidden md:block px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                className="hidden sm:flex items-center px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors text-sm font-medium shadow-sm"
               >
                 Login
               </Link>
             )}
             
-            {/* Mobile Menu Button */}
+            {content.elements.showThemeToggle && (
+              <button
+                onClick={toggleTheme}
+                className="p-2 hover:bg-accent rounded-lg transition-colors"
+                aria-label="Toggle theme"
+              >
+                {isDark ? <Sun className="w-5 h-5 text-foreground" /> : <Moon className="w-5 h-5 text-foreground" />}
+              </button>
+            )}
+            
             {content.mobileMenu.enabled && (
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className={`md:hidden p-2 ${styling.colors.hoverBackground} rounded-lg transition-colors`}
+                className="lg:hidden p-2 hover:bg-accent rounded-lg transition-colors"
+                aria-label="Open menu"
               >
-                {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                <Menu className="w-5 h-5 text-foreground" />
               </button>
             )}
           </div>
         </div>
-      </div>
+      </nav>
       
-      {/* Mobile Sidebar */}
-      {content.mobileMenu.enabled && sidebarOpen && (
-        <motion.div
-          initial={{ x: content.mobileMenu.position === 'left' ? -300 : 300 }}
-          animate={{ x: 0 }}
-          exit={{ x: content.mobileMenu.position === 'left' ? -300 : 300 }}
-          className="md:hidden fixed inset-y-0 left-0 w-64 bg-card border-r border-border shadow-lg z-50"
-        >
-          <div className="p-4 space-y-4">
-            {content.navigation.filter(item => item.isVisible).map((item) => (
-              <Link
-                key={item.id}
-                to={item.url}
+      {/* Mobile Sidebar - Using AnimatePresence for smooth exit */}
+      {content.mobileMenu.enabled && (
+        <>
+          {sidebarOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 onClick={() => setSidebarOpen(false)}
-                className={`block ${styling.typography.navFont} ${styling.typography.navSize} ${styling.colors.text} ${styling.colors.hoverText} transition-colors p-2`}
+                className="fixed inset-0 bg-black/80 z-50 backdrop-blur-sm lg:hidden"
+              />
+              
+              <motion.div
+                initial={{ x: "-100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "-100%" }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="fixed left-0 top-0 bottom-0 w-full sm:w-80 bg-card border-r border-border z-50 overflow-y-auto shadow-2xl lg:hidden"
               >
-                {item.label}
-              </Link>
-            ))}
-            
-            {content.elements.showUserMenu && currentUser && (
-              <>
-                <hr className="border-border" />
-                <Link
-                  to="/profile"
-                  onClick={() => setSidebarOpen(false)}
-                  className="block p-2"
-                >
-                  Profile
-                </Link>
-                {isAdmin && (
-                  <Link
-                    to="/admin"
-                    onClick={() => setSidebarOpen(false)}
-                    className="block p-2"
-                  >
-                    Admin Dashboard
-                  </Link>
-                )}
-                <button
-                  onClick={() => {
-                    setSidebarOpen(false)
-                    handleSignOut()
-                  }}
-                  className="block w-full text-left p-2"
-                >
-                  Sign Out
-                </button>
-              </>
-            )}
-            
-            {!currentUser && (
-              <Link
-                to="/login"
-                onClick={() => setSidebarOpen(false)}
-                className="block px-4 py-2 bg-primary text-primary-foreground rounded-lg text-center"
-              >
-                Login
-              </Link>
-            )}
-          </div>
-        </motion.div>
-      )}
-      
-      {/* Backdrop */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+                <div className="p-4 space-y-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-xl font-bold bg-gradient-to-r from-primary via-blue-600 to-purple-600 bg-clip-text text-transparent">
+                      Menu
+                    </span>
+                    <button
+                      onClick={() => setSidebarOpen(false)}
+                      className="p-2 hover:bg-muted rounded-lg transition-colors"
+                      aria-label="Close menu"
+                    >
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
+                  
+                  {content.navigation.filter(item => item.isVisible).map((item) => (
+                    <Link
+                      key={item.id}
+                      to={item.url}
+                      onClick={() => setSidebarOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-colors group"
+                    >
+                      <span className="font-medium group-hover:text-primary transition-colors">{item.label}</span>
+                    </Link>
+                  ))}
+                  
+                  {currentUser && (
+                    <div className="border-t border-border pt-4 space-y-1">
+                      <Link
+                        to={isAdmin ? "/admin" : "/dashboard"}
+                        onClick={() => setSidebarOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-colors group"
+                      >
+                        <LayoutDashboard className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                        <span className="font-medium group-hover:text-primary transition-colors">Dashboard</span>
+                      </Link>
+                      <Link
+                        to="/profile"
+                        onClick={() => setSidebarOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 transition-colors group"
+                      >
+                        <User className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                        <span className="font-medium group-hover:text-primary transition-colors">Profile</span>
+                      </Link>
+                      <button
+                        onClick={() => {
+                          setSidebarOpen(false)
+                          handleSignOut()
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-destructive/10 hover:text-destructive transition-colors group"
+                      >
+                        <LogOut className="w-5 h-5" />
+                        <span className="font-medium">Sign Out</span>
+                      </button>
+                    </div>
+                  )}
+                  
+                  {!currentUser && (
+                    <div className="border-t border-border pt-4">
+                      <Link
+                        to="/login"
+                        onClick={() => setSidebarOpen(false)}
+                        className="block w-full px-4 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-center font-medium transition-colors"
+                      >
+                        Login
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </>
+          )}
+        </>
       )}
     </header>
   )

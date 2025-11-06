@@ -82,7 +82,11 @@ export default function CourseDetail() {
             )
             const enrollmentsSnapshot = await getDocs(enrollmentsQuery)
             if (!enrollmentsSnapshot.empty) {
-              setEnrollmentId(enrollmentsSnapshot.docs[0].id)
+              const enrollId = enrollmentsSnapshot.docs[0].id
+              console.log("✅ Enrollment ID found:", enrollId)
+              setEnrollmentId(enrollId)
+            } else {
+              console.log("⚠️ No enrollment found for this course")
             }
           }
 
@@ -283,13 +287,14 @@ export default function CourseDetail() {
                     </p>
                   </div>
                   
-                  {enrollmentId && (
+                  <div className="mt-4">
+                    {console.log("🔍 Debug - enrollmentId:", enrollmentId, "telegramLink:", course.telegramLink, "link:", course.link)}
                     <TelegramJoinButton 
                       enrollmentId={enrollmentId}
-                      telegramLink={course.telegramLink || course.link}
+                      telegramLink={course.telegramLink || course.link || ""}
                       courseName={course.title}
                     />
-                  )}
+                  </div>
                 </div>
               ) : hasPendingPayment ? (
                 <div className="space-y-4">

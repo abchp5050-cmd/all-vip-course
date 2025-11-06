@@ -3,9 +3,12 @@ import { Button } from "../../../components/ui/button"
 import { Input } from "../../../components/ui/input"
 import { Label } from "../../../components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select"
-import { Plus, Trash2, GripVertical } from "lucide-react"
+import { Plus, Trash2, GripVertical, Upload } from "lucide-react"
+import { toast } from "sonner"
 
 export default function HeaderContentEditor({ config, onChange, sitePages }) {
+  const [uploading, setUploading] = useState(false)
+  
   if (!config) return null
   
   const updateLogo = (field, value) => {
@@ -77,6 +80,41 @@ export default function HeaderContentEditor({ config, onChange, sitePages }) {
     })
   }
   
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please upload an image file")
+      return
+    }
+    
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+      
+      const response = await fetch('https://api.imgbb.com/1/upload?key=a89c3caf5dad89237292eb634d6a0c8e', {
+        method: 'POST',
+        body: formData
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        updateLogo('imageUrl', data.data.url)
+        toast.success("Logo uploaded successfully!")
+      } else {
+        toast.error("Failed to upload logo")
+      }
+    } catch (error) {
+      console.error("Error uploading logo:", error)
+      toast.error("Failed to upload logo")
+    } finally {
+      setUploading(false)
+    }
+  }
+  
   return (
     <div className="space-y-6">
       {/* Logo Section */}
@@ -111,14 +149,48 @@ export default function HeaderContentEditor({ config, onChange, sitePages }) {
               />
             </div>
           ) : (
-            <div>
-              <Label htmlFor="logo-image">Logo Image URL</Label>
-              <Input
-                id="logo-image"
-                value={config.content.logo.imageUrl || ''}
-                onChange={(e) => updateLogo('imageUrl', e.target.value)}
-                placeholder="https://example.com/logo.png"
-              />
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="logo-image">Logo Image URL</Label>
+                <Input
+                  id="logo-image"
+                  value={config.content.logo.imageUrl || ''}
+                  onChange={(e) => updateLogo('imageUrl', e.target.value)}
+                  placeholder="https://example.com/logo.png"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="logo-upload">Or Upload Logo</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="logo-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    disabled={uploading}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={uploading}
+                    onClick={() => document.getElementById('logo-upload').click()}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {uploading ? "Uploading..." : "Upload"}
+                  </Button>
+                </div>
+                {config.content.logo.imageUrl && (
+                  <div className="mt-2">
+                    <img 
+                      src={config.content.logo.imageUrl} 
+                      alt="Logo preview" 
+                      className="h-12 object-contain border border-border rounded p-1"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           )}
           
