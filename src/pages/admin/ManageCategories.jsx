@@ -295,7 +295,7 @@ export default function ManageCategories() {
                 <div>
                   <label className="block text-sm font-medium mb-2 text-card-foreground">Category Image (optional)</label>
                   <div className="space-y-3">
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <input
                         type="url"
                         value={categoryForm.imageURL}
@@ -303,16 +303,16 @@ export default function ManageCategories() {
                         className="flex-1 px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
                         placeholder="Paste image URL"
                       />
-                      <label className="relative inline-flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition cursor-pointer">
+                      <label className="relative inline-flex items-center justify-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition cursor-pointer whitespace-nowrap">
                         {uploadingCategoryImage ? (
                           <>
                             <Loader className="w-4 h-4 animate-spin" />
-                            Uploading...
+                            <span className="hidden sm:inline">Uploading...</span>
                           </>
                         ) : (
                           <>
                             <Upload size={18} />
-                            Upload
+                            <span className="hidden sm:inline">Upload</span>
                           </>
                         )}
                         <input
@@ -474,7 +474,7 @@ export default function ManageCategories() {
                 <div>
                   <label className="block text-sm font-medium mb-2 text-card-foreground">Subcategory Image (optional)</label>
                   <div className="space-y-3">
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <input
                         type="url"
                         value={subcategoryForm.imageURL}
@@ -482,16 +482,16 @@ export default function ManageCategories() {
                         className="flex-1 px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
                         placeholder="Paste image URL"
                       />
-                      <label className="relative inline-flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition cursor-pointer">
+                      <label className="relative inline-flex items-center justify-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/90 transition cursor-pointer whitespace-nowrap">
                         {uploadingSubcategoryImage ? (
                           <>
                             <Loader className="w-4 h-4 animate-spin" />
-                            Uploading...
+                            <span className="hidden sm:inline">Uploading...</span>
                           </>
                         ) : (
                           <>
                             <Upload size={18} />
-                            Upload
+                            <span className="hidden sm:inline">Upload</span>
                           </>
                         )}
                         <input
