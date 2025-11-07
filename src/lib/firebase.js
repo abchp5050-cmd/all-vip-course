@@ -6,13 +6,13 @@ import { getMessaging, isSupported } from "firebase/messaging"
 console.log(" Initializing Firebase...")
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+  apiKey: "AIzaSyBcpwkIYw3EdSkcPlXwjNxIg0zYg_lsOf4",
+  authDomain: "all-vip-2c6de.firebaseapp.com",
+  projectId: "all-vip-2c6de",
+  storageBucket: "all-vip-2c6de.firebasestorage.app",
+  messagingSenderId: "449861479970",
+  appId: "1:449861479970:web:167773229b6f2cfcb6247b",
+  measurementId: "G-QQDGPW8SM2"
 };
 
 let app
