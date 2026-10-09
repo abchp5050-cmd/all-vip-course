@@ -1,66 +1,8 @@
-import { useState, useEffect } from "react"
-import { useNavigate, Link } from "react-router-dom"
-import { motion } from "framer-motion"
-import { Chrome } from "lucide-react"
-import { useAuth } from "../contexts/AuthContext"
+import fs from 'fs';
 
-export default function Login() {
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
-  const { signInWithGoogle, userProfile, currentUser } = useAuth()
-  const navigate = useNavigate()
+let content = fs.readFileSync('src/pages/Login.jsx', 'utf8');
 
-  useEffect(() => {
-    if (currentUser && userProfile) {
-      console.log(" User already logged in, redirecting...")
-      if (userProfile.role === "admin") {
-        navigate("/admin", { replace: true })
-      } else {
-        navigate("/dashboard", { replace: true })
-      }
-    }
-  }, [currentUser, userProfile, navigate])
-
-  const handleGoogleSignIn = async () => {
-    setError("")
-    setLoading(true)
-
-    try {
-      console.log(" Attempting Google login...")
-      const { profile } = await signInWithGoogle()
-      console.log(" Google login successful, profile:", profile)
-
-      setTimeout(() => {
-        if (profile?.role === "admin") {
-          console.log(" Redirecting to admin dashboard")
-          navigate("/admin", { replace: true })
-        } else {
-          console.log(" Redirecting to user dashboard")
-          navigate("/dashboard", { replace: true })
-        }
-      }, 200)
-    } catch (err) {
-      console.error(" Google login error:", err)
-      if (err.message === "BANNED_USER") {
-        setError("Your account has been banned. Please contact support.")
-      } else if (err.code === "auth/popup-closed-by-user") {
-        setError("Sign-in popup was closed. Please try again.")
-      } else if (err.code === "auth/popup-blocked") {
-        setError("Sign-in popup was blocked by your browser. Please allow popups and try again.")
-      } else if (err.code === "auth/cancelled-popup-request") {
-        setError("Another sign-in popup is already open.")
-      } else if (err.code === "auth/network-request-failed") {
-        setError("Network error. Please check your internet connection.")
-      } else if (err.code === "auth/internal-error") {
-        setError("Google Sign-in is not configured properly. Please contact support.")
-      } else {
-        setError(`Failed to sign in with Google: ${err.message || "Unknown error"}`)
-      }
-      setLoading(false)
-    }
-  }
-
-
+const newLogin = `
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#050816] relative overflow-hidden">
       {/* Premium Background Effects */}
@@ -126,5 +68,11 @@ export default function Login() {
       </motion.div>
     </div>
   )
+`
 
+const returnIndex = content.indexOf('  return (');
+if (returnIndex !== -1) {
+  content = content.substring(0, returnIndex) + newLogin + '\n}\n';
 }
+
+fs.writeFileSync('src/pages/Login.jsx', content);

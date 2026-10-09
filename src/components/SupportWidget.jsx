@@ -87,7 +87,7 @@ export default function SupportWidget() {
   ]
 
   return (
-    <div className="fixed bottom-24 sm:bottom-12 right-4 sm:right-6 z-[60] flex flex-col items-end" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+    <div className="fixed bottom-[112px] sm:bottom-8 right-4 sm:right-6 z-[60] flex flex-col items-end" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {/* Quick Help Popup */}
       <AnimatePresence>
         {isOpen && (
@@ -141,11 +141,11 @@ export default function SupportWidget() {
             initial={{ opacity: 0, y: 10, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.9 }}
-            className="mb-2 sm:mb-3 mr-1 max-w-[200px] sm:max-w-[220px] bg-white dark:bg-slate-800 p-2.5 sm:p-3 rounded-2xl rounded-br-sm shadow-xl border border-slate-100 dark:border-slate-700 cursor-pointer relative"
+            className="mb-2 mr-1 max-w-[170px] sm:max-w-[200px] bg-white/90 dark:bg-[#111827]/90 backdrop-blur-md py-2 px-3.5 rounded-[14px] rounded-br-sm shadow-[0_4px_12px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.3)] border border-slate-200/50 dark:border-slate-700/50 cursor-pointer relative"
             onClick={() => setIsOpen(true)}
           >
-            <div className="absolute right-3 sm:right-4 -bottom-1.5 w-3 h-3 bg-white dark:bg-slate-800 border-r border-b border-slate-100 dark:border-slate-700 rotate-45 rounded-sm z-[-1]" />
-            <p className="text-[11px] sm:text-xs text-slate-700 dark:text-slate-200 font-medium leading-relaxed">
+            <div className="absolute right-3 -bottom-1 w-2 h-2 bg-white/90 dark:bg-[#111827]/90 border-r border-b border-slate-200/50 dark:border-slate-700/50 rotate-45 z-[-1]" />
+            <p className="text-[13px] sm:text-[14px] text-slate-700 dark:text-slate-200 font-medium leading-[1.3] tracking-tight">
               {messages[messageIndex]}
             </p>
           </motion.div>
@@ -154,25 +154,25 @@ export default function SupportWidget() {
 
       {/* Main Floating Button */}
       <motion.button
-        animate={{ boxShadow: ["0px 0px 0px 0px rgba(59,130,246,0.5)", "0px 0px 15px 5px rgba(59,130,246,0)", "0px 0px 0px 0px rgba(59,130,246,0)"] }}
-        transition={{ duration: 2, repeat: Infinity }}
+        animate={{ y: [0, -4, 0], boxShadow: ["0px 0px 0px 0px rgba(99,102,241,0.5)", "0px 0px 15px 4px rgba(99,102,241,0)", "0px 0px 0px 0px rgba(99,102,241,0)"] }}
+        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="relative group flex items-center justify-center gap-1.5 px-3 h-[42px] bg-gradient-to-r from-slate-900 to-[#111827] text-white rounded-full shadow-lg shadow-blue-500/10 hover:shadow-xl border border-blue-500/20 backdrop-blur-md w-auto min-w-[140px] max-w-[150px]"
+        className="relative group flex items-center justify-center w-10 h-10 sm:w-auto sm:px-3 sm:h-[36px] bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-full shadow-lg shadow-indigo-500/30 border border-white/20 backdrop-blur-md"
       >
-        <div className="absolute inset-0 rounded-full bg-blue-500/10 animate-pulse pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="absolute inset-0 rounded-full bg-white/10 animate-pulse pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
         <div className="relative flex items-center gap-1.5">
           {isOpen ? (
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
           ) : (
             <>
               <div className="relative flex-shrink-0">
-                <MessageCircle className="w-4 h-4 text-blue-400" />
-                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 border border-slate-900 rounded-full animate-ping" />
-                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 border border-slate-900 rounded-full" />
+                <MessageCircle className="w-5 h-5 sm:w-3.5 sm:h-3.5 text-white" />
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 border-2 border-indigo-600 rounded-full animate-ping" />
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 border-2 border-indigo-600 rounded-full" />
               </div>
-              <span className="text-xs font-semibold tracking-wide whitespace-nowrap text-blue-50">Support</span>
+              <span className="hidden sm:inline-block text-[13px] font-semibold tracking-wide whitespace-nowrap text-white">Chat</span>
             </>
           )}
         </div>

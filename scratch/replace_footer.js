@@ -1,119 +1,13 @@
-import { useState, useEffect } from "react"
-import { Link, useLocation } from "react-router-dom"
-import {  Mail, Phone, Send, Youtube, MessageCircle , ChevronRight } from "lucide-react"
-import { fetchActiveFooterConfig } from "../lib/headerFooterUtils"
-import { useAuth } from "../contexts/AuthContext"
-import Footer from "./Footer"
+import fs from 'fs';
 
-const iconMap = {
-  Mail,
-  Phone,
-  Send,
-  Youtube,
-  MessageCircle
+let content = fs.readFileSync('src/components/DynamicFooter.jsx', 'utf8');
+
+// I also need to ensure ChevronRight is imported if I use it
+if (!content.includes('ChevronRight')) {
+  content = content.replace(/import \{([^}]+)\} from "lucide-react"/, 'import { $1, ChevronRight } from "lucide-react"');
 }
 
-// Default configuration when Firestore config is not available
-const DEFAULT_FOOTER_CONFIG = {
-  content: {
-    brand: {
-      enabled: true,
-      text: "All Vip Courses",
-      description: "HSC academic & admission courses at low price."
-    },
-    sections: [
-      {
-        id: "section-quick-links",
-        title: "Quick Links",
-        links: [
-          { id: "link-home", label: "Home", type: "internal", url: "/", isVisible: true },
-          { id: "link-courses", label: "Courses", type: "internal", url: "/courses", isVisible: true },
-          { id: "link-community", label: "Community", type: "internal", url: "/community", isVisible: true },
-          { id: "link-announcements", label: "Announcements", type: "internal", url: "/announcements", isVisible: true }
-        ]
-      },
-      {
-        id: "section-contact",
-        title: "Contact",
-        links: [
-          { id: "contact-email", label: "Email", type: "email", value: "easyeducation556644@gmail.com", icon: "Mail", isVisible: true },
-          { id: "contact-phone", label: "Phone", type: "phone", value: "+8801969752197", icon: "Phone", isVisible: true }
-        ]
-      }
-    ],
-    socialLinks: {
-      enabled: true,
-      title: "Connect",
-      links: [
-        { id: "social-telegram", platform: "telegram", url: "https://t.me/Chatbox67_bot", icon: "Send", isVisible: true },
-        { id: "social-youtube", platform: "youtube", url: "https://youtube.com/@allvipcourses", icon: "Youtube", isVisible: true },
-        { id: "social-whatsapp", platform: "whatsapp", url: "https://wa.me/8801969752197", icon: "MessageCircle", isVisible: true }
-      ]
-    },
-    copyright: {
-      enabled: true,
-      text: "© {year} All Vip Courses. All rights reserved."
-    }
-  }
-}
-
-export default function DynamicFooter() {
-  const [config, setConfig] = useState(DEFAULT_FOOTER_CONFIG)
-  const [loading, setLoading] = useState(true)
-  const { currentUser, isAdmin } = useAuth()
-  const location = useLocation()
-  
-  useEffect(() => {
-    loadFooterConfig()
-  }, [location.pathname, currentUser])
-  
-  const loadFooterConfig = async () => {
-    try {
-      const userRole = currentUser ? (isAdmin ? 'admin' : 'user') : 'guest'
-      const deviceType = window.innerWidth >= 1024 ? 'desktop' : window.innerWidth >= 768 ? 'tablet' : 'mobile'
-      
-      console.log('🔍 Loading footer config from Firestore...')
-      const footerConfig = await fetchActiveFooterConfig(location.pathname, userRole, deviceType)
-      
-      if (footerConfig) {
-        console.log('✅ Firestore footer config loaded')
-        setConfig(footerConfig)
-      } else {
-        console.log('⚠️ No Firestore footer config found, using default config')
-        // Keep using DEFAULT_FOOTER_CONFIG (already set in state)
-      }
-    } catch (error) {
-      console.error("❌ Error loading footer config:", error)
-      // Keep using DEFAULT_FOOTER_CONFIG on error
-    } finally {
-      setLoading(false)
-    }
-  }
-  
-  // Show loading state briefly
-  if (loading) {
-    return <Footer />
-  }
-  
-  const { content, styling } = config
-  const currentYear = new Date().getFullYear()
-  
-  const columns = styling?.layout?.columns || { mobile: 1, tablet: 2, desktop: 4 }
-  
-  const gridColsMap = {
-    1: 'grid-cols-1',
-    2: 'grid-cols-2',
-    3: 'grid-cols-3',
-    4: 'grid-cols-4',
-    5: 'grid-cols-5',
-    6: 'grid-cols-6'
-  }
-  
-  const mobileClass = gridColsMap[columns.mobile] || 'grid-cols-1'
-  const tabletClass = gridColsMap[columns.tablet] || 'grid-cols-2'
-  const desktopClass = gridColsMap[columns.desktop] || 'grid-cols-4'
-  
-
+const newReturn = `
   return (
     <footer className="mt-auto relative overflow-hidden bg-[#050816] pt-1">
       {/* Premium Top Divider */}
@@ -124,8 +18,8 @@ export default function DynamicFooter() {
       <div className="absolute inset-0 bg-gradient-to-b from-[#111827]/50 to-[#050816] pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-full h-full opacity-20 pointer-events-none" style={{ background: 'radial-gradient(ellipse at bottom, rgba(249,115,22,0.15) 0%, transparent 60%)' }} />
 
-      <div className="container mx-auto px-5 sm:px-8 pt-12 pb-[140px] sm:pb-12 relative z-10">
-        <div className={`grid ${mobileClass} md:${tabletClass} lg:${desktopClass} gap-10 sm:gap-12`}>
+      <div className="container mx-auto px-5 sm:px-8 pt-12 pb-32 sm:pb-12 relative z-10">
+        <div className={\`grid \${mobileClass} md:\${tabletClass} lg:\${desktopClass} gap-10 sm:gap-12\`}>
           
           {/* Brand Section */}
           {content?.brand?.enabled && (
@@ -161,7 +55,7 @@ export default function DynamicFooter() {
                     return (
                       <a
                         key={link.id}
-                        href={link.type === 'email' ? `mailto:${link.value}` : `tel:${link.value}`}
+                        href={link.type === 'email' ? \`mailto:\${link.value}\` : \`tel:\${link.value}\`}
                         className="group flex items-center justify-center sm:justify-start gap-3 p-3 rounded-xl bg-slate-800/30 hover:bg-slate-800/80 border border-slate-700/30 hover:border-orange-500/30 transition-all duration-300"
                       >
                         <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-400 group-hover:bg-orange-500 group-hover:text-white transition-colors">
@@ -251,5 +145,13 @@ export default function DynamicFooter() {
       </div>
     </footer>
   )
+`
 
+const returnIdx = content.indexOf('  return (\n    <footer');
+if (returnIdx !== -1) {
+  content = content.substring(0, returnIdx) + newReturn + '\n}\n';
+  fs.writeFileSync('src/components/DynamicFooter.jsx', content);
+  console.log("Replaced DynamicFooter successfully.");
+} else {
+  console.log("Could not find return statement");
 }

@@ -1,8 +1,12 @@
-import { Link } from "react-router-dom"
-import {  Send, Youtube, MessageCircle, Mail, Phone , ChevronRight } from "lucide-react"
+import fs from 'fs';
 
-export default function Footer() {
+let content = fs.readFileSync('src/components/Footer.jsx', 'utf8');
 
+if (!content.includes('ChevronRight')) {
+  content = content.replace(/import \{([^}]+)\} from "lucide-react"/, 'import { $1, ChevronRight } from "lucide-react"');
+}
+
+const newReturn = `
   return (
     <footer className="mt-auto relative overflow-hidden bg-[#050816] pt-1">
       <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-orange-500/50 to-transparent shadow-[0_0_10px_rgba(249,115,22,0.8)]" />
@@ -11,7 +15,7 @@ export default function Footer() {
       <div className="absolute inset-0 bg-gradient-to-b from-[#111827]/50 to-[#050816] pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-full h-full opacity-20 pointer-events-none" style={{ background: 'radial-gradient(ellipse at bottom, rgba(249,115,22,0.15) 0%, transparent 60%)' }} />
 
-      <div className="container mx-auto px-5 sm:px-8 pt-12 pb-[140px] sm:pb-12 relative z-10">
+      <div className="container mx-auto px-5 sm:px-8 pt-12 pb-32 sm:pb-12 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 sm:gap-12">
           
           <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
@@ -92,5 +96,13 @@ export default function Footer() {
       </div>
     </footer>
   )
+`
 
+const returnIdx = content.indexOf('  return (\n    <footer');
+if (returnIdx !== -1) {
+  content = content.substring(0, returnIdx) + newReturn + '\n}\n';
+  fs.writeFileSync('src/components/Footer.jsx', content);
+  console.log("Replaced Footer successfully.");
+} else {
+  console.log("Could not find return statement");
 }
