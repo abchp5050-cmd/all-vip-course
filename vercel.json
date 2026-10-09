@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/manifest.json",
+      "destination": "/api/dynamic-manifest"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
