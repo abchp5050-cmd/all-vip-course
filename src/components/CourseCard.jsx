@@ -98,7 +98,7 @@ export default function CourseCard({ course, paymentStatus, showButton = false }
       >
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 pointer-events-none" />
         
-        <div className="relative overflow-hidden bg-slate-100 dark:bg-slate-800 aspect-[16/10] m-2 rounded-2xl">
+        <div className="relative overflow-hidden bg-slate-100 dark:bg-slate-800 aspect-video w-full">
           {course.thumbnailURL ? (
             <img
               src={course.thumbnailURL || "/placeholder.svg"}
@@ -114,7 +114,7 @@ export default function CourseCard({ course, paymentStatus, showButton = false }
             </div>
           )}
           
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/0 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent opacity-60 group-hover/card:opacity-80 transition-opacity duration-500" />
 
           {!showButton && hasPendingPayment && (
             <div className="absolute top-3 right-3 bg-amber-500 text-white px-3 py-1 rounded-full text-[10px] uppercase font-extrabold flex items-center gap-1.5 shadow-lg backdrop-blur-md">
@@ -153,7 +153,7 @@ export default function CourseCard({ course, paymentStatus, showButton = false }
             </div>
           </div>
 
-          <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white line-clamp-2 mb-1.5 sm:mb-2 group-hover/card:text-indigo-600 dark:group-hover/card:text-indigo-400 transition-colors leading-snug">
+          <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white line-clamp-2 mb-2 sm:mb-3 group-hover/card:text-indigo-600 dark:group-hover/card:text-indigo-400 transition-colors leading-tight">
             {course.title}
           </h3>
 

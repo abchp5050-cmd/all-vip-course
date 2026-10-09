@@ -253,7 +253,7 @@ const testimonials = [
       </div>
 
       {/* 2. TRUST SECTION */}
-      <section id="explore-courses" className="pt-16 sm:pt-24 pb-8 sm:pb-12 border-y border-border bg-muted/10">
+      <section id="explore-courses" className="py-12 sm:py-16 border-y border-border bg-muted/10">
         <div className="container mx-auto max-w-6xl px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
             {trustStats.map((stat, index) => (
@@ -278,14 +278,14 @@ const testimonials = [
 
       {/* 3. COURSE CATEGORIES */}
       {categories.length > 0 && (
-        <section className="py-12 sm:py-20 px-4">
+        <section className="py-16 sm:py-24 px-4">
           <div className="container mx-auto max-w-6xl">
             <div className="text-center mb-8 sm:mb-12">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Top Categories</h2>
               <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto">Explore our wide range of professional courses designed to elevate your expertise.</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 min-[380px]:grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-5">
               {categories.map((category, index) => (
                 <motion.div
                   key={category.id}
@@ -293,32 +293,27 @@ const testimonials = [
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.05 }}
+                  className="h-full"
                 >
                   <button 
                     onClick={() => handleCategoryClick(category)} 
-                    className="w-full text-left group block h-full"
+                    className="w-full h-full text-left group block focus:outline-none"
                   >
-                    <div className="relative h-40 sm:h-48 rounded-xl overflow-hidden shadow-lg border border-border">
-                      {category.imageURL ? (
-                        <img 
-                          src={category.imageURL} 
-                          alt={category.title}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-muted flex items-center justify-center">
-                          <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-muted-foreground/30" />
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent group-hover:from-primary/90 transition-colors duration-300" />
-                      <div className="absolute bottom-0 left-0 p-4 sm:p-5">
-                        <h3 className="text-base sm:text-lg font-bold text-white mb-1 group-hover:translate-x-2 transition-transform duration-300 flex items-center gap-2">
-                          {category.title}
-                        </h3>
-                        <p className="text-xs sm:text-sm text-white/70 opacity-0 group-hover:opacity-100 group-hover:translate-x-2 transition-all duration-300 delay-75 flex items-center gap-1">
-                          Explore <ArrowRight className="w-3 h-3" />
-                        </p>
+                    <div className="flex flex-col items-center justify-center p-3 sm:p-5 h-full rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-300 hover:border-indigo-500/50 relative overflow-hidden group-hover:-translate-y-1">
+                      {/* Soft glass effect background */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-transparent dark:from-indigo-900/10 dark:to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-3 sm:mb-4 group-hover:scale-110 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-500/20 transition-all duration-300 z-10">
+                        {category.imageURL ? (
+                           <img src={category.imageURL} alt={category.title} className="w-full h-full object-cover rounded-full p-0.5 bg-white/50 dark:bg-slate-800/50" />
+                        ) : (
+                           <BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />
+                        )}
                       </div>
+                      
+                      <h3 className="text-[11px] sm:text-sm font-bold text-center text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2 leading-tight z-10 px-1">
+                        {category.title}
+                      </h3>
                     </div>
                   </button>
                 </motion.div>
@@ -352,7 +347,7 @@ const testimonials = [
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="bg-card border border-border rounded-xl p-4 animate-pulse h-80">
                   <div className="aspect-video bg-muted rounded-lg mb-4"></div>
@@ -363,7 +358,7 @@ const testimonials = [
               ))}
             </div>
           ) : trendingCourses.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-8 sm:mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10 mb-8 sm:mb-12">
               {trendingCourses.map((course, index) => (
                 <motion.div
                   key={course.id}

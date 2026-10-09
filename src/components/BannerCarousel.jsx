@@ -130,7 +130,7 @@ export default function BannerCarousel() {
   }
 
   return (
-    <section className="relative w-full h-[60vh] min-h-[500px] max-h-[800px] overflow-hidden bg-background border-b border-border group">
+    <section className="relative w-full h-[100svh] sm:h-[70vh] min-h-[600px] overflow-hidden bg-background border-b border-border group">
       
       <AnimatePresence initial={false} custom={direction} mode="wait">
         <motion.div
@@ -227,10 +227,10 @@ export default function BannerCarousel() {
                   >
                     <Link
                       to={currentBanner.buttonLink || "/courses"}
-                      className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl transition-all font-bold text-lg shadow-xl shadow-orange-500/30 hover:shadow-orange-500/50 hover:-translate-y-1 hover:scale-105 border border-white/10 backdrop-blur-md"
+                      className="inline-flex items-center justify-center gap-2 sm:gap-3 px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl transition-all font-bold text-sm sm:text-lg shadow-xl shadow-orange-500/30 hover:shadow-orange-500/50 hover:-translate-y-1 hover:scale-105 border border-white/10 backdrop-blur-md"
                     >
                       {currentBanner.buttonText}
-                      <ArrowRight className="w-5 h-5" />
+                      <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
                     </Link>
                   </motion.div>
                 )}
