@@ -1,181 +1,12 @@
-"use client"
+const fs = require('fs');
+const file = 'src/pages/Checkout.jsx';
+let lines = fs.readFileSync(file, 'utf8').split('\n');
 
-import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
-import { motion } from "framer-motion"
-import { ShoppingCart, ArrowLeft, BookOpen, Copy, ShieldCheck, BadgeCheck, Lock, Phone, Loader2, CheckCircle2 } from "lucide-react"
-import { useAuth } from "../contexts/AuthContext"
-import { collection, addDoc, serverTimestamp, getDocs, query, where } from "firebase/firestore"
-import { db } from "../lib/firebase"
-import { toast } from "../hooks/use-toast"
+const startIndex = lines.findIndex(l => l.includes('<div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">'));
+const endIndex = lines.findIndex((l, i) => i > startIndex && l.includes('</form>')) + 4; // closing tags
 
-export default function Checkout() {
-  const navigate = useNavigate()
-  const { currentUser, userProfile } = useAuth()
-  const [cartItems, setCartItems] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [phoneNumber, setPhoneNumber] = useState("")
-  const [telegramId, setTelegramId] = useState("")
-  const [telegramLink, setTelegramLink] = useState("")
-  const [customerName, setCustomerName] = useState("")
-  const [copied, setCopied] = useState(null)
-  
-
-  
-
-  const getTotal = () => {
-    return cartItems.reduce((total, item) => total + (item.price || 0), 0)
-  }
-
-  const clearCart = () => {
-    localStorage.removeItem("tempCheckoutItem")
-  }
-
-  const handleCopy = (text) => {
-    navigator.clipboard.writeText(text)
-    setCopied(text)
-    setTimeout(() => setCopied(null), 2000)
-    toast({
-      title: "Copied!",
-      description: "Number copied to clipboard.",
-    })
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    
-    if (!phoneNumber.trim() || !customerName.trim() || !telegramId.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Missing Information",
-        description: "Please fill in all required fields",
-      })
-      return
-    }
-
-    const phoneRegex = /^(?:\+88|88)?(01[3-9]\d{8})$/;
-    if (!phoneRegex.test(phoneNumber.replace(/\s+/g, ''))) {
-      toast({
-        variant: "destructive",
-        title: "Invalid Phone Number",
-        description: "Please enter a valid Bangladeshi phone number (e.g. 018XXXXXXXX)",
-      })
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      const subtotal = getTotal()
-
-      
-      // Create payment record
-      await addDoc(collection(db, "payments"), {
-        userId: currentUser.uid,
-        userName: customerName.trim(),
-        userEmail: userProfile?.email || currentUser.email,
-        phoneNumber: phoneNumber.trim(),
-        telegramId: telegramId.trim(),
-        telegramLink: telegramLink.trim() || "",
-        courses: cartItems.map((item) => ({
-          id: item.id,
-          title: item.title,
-          price: parseFloat(item.price) || 0,
-        })),
-        subtotal: parseFloat(subtotal.toFixed(2)),
-        discount: 0,
-        finalAmount: parseFloat(subtotal.toFixed(2)),
-        status: "pending",
-        submittedAt: serverTimestamp(),
-      })
-
-      // Create PENDING enrollment for each course
-      for (const course of cartItems) {
-        await addDoc(collection(db, "enrollments"), {
-          userId: currentUser.uid,
-          courseId: course.id,
-          status: "PENDING",
-          paymentInfo: {
-            phoneNumber: phoneNumber.trim(),
-            amount: parseFloat(course.price) || 0,
-            telegramId: telegramId.trim(),
-            telegramLink: telegramLink.trim() || "",
-            customerName: customerName.trim()
-          },
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          telegramJoinedAt: null
-        })
-      }
-
-      clearCart()
-      toast({
-        variant: "success",
-        title: "Payment Submitted!",
-        description: "Your payment is pending admin approval. You'll get access once approved.",
-      })
-      
-      navigate("/checkout-complete", {
-        state: {
-          phoneNumber: phoneNumber.trim(),
-          amount: subtotal.toFixed(2),
-          courses: cartItems
-        }
-      })
-    } catch (error) {
-      console.error("Error submitting payment:", error)
-      toast({
-        variant: "destructive",
-        title: "Submission Failed",
-        description: "Failed to submit payment information. Please try again.",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const subtotal = getTotal()
-
-  return (
-    <div className="min-h-screen bg-[#0a0f1c] text-slate-200 py-6 lg:py-16 relative overflow-hidden font-sans">
-      {/* Background ambient glowing gradients */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-amber-500/10 rounded-full blur-[100px] pointer-events-none" />
-      
-      <div className="container max-w-6xl mx-auto px-5 lg:px-8 relative z-10">
-        
-        {/* HEADER SECTION */}
-        <div id="enrollment-section" className="mb-8 lg:mb-10 pt-4">
-          <button
-            onClick={() => navigate("/courses")}
-            className="flex items-center gap-2 text-sm text-slate-400 hover:text-amber-500 mb-6 transition-all hover:-translate-x-1 w-fit"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Courses
-          </button>
-          
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }} 
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col gap-2"
-          >
-            <div className="flex items-start lg:items-center gap-3">
-              <div className="p-2.5 lg:p-3 bg-blue-500/10 rounded-xl border border-blue-500/20 shrink-0 mt-0.5 lg:mt-0">
-                <Lock className="w-5 h-5 lg:w-6 lg:h-6 text-blue-400" />
-              </div>
-              <div>
-                <h1 className="text-2xl lg:text-4xl font-extrabold tracking-tight text-white leading-tight">
-                  Complete Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">Enrollment</span>
-                </h1>
-                <p className="text-slate-400 max-w-xl text-[13px] lg:text-base mt-2 lg:mt-1.5 leading-relaxed">
-                  Submit your payment details securely to get instant access to your premium course materials.
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-
-        <div className="max-w-3xl mx-auto space-y-6 lg:space-y-8 pb-10">
+if (startIndex !== -1 && endIndex !== -1) {
+  const replacement = `        <div className="max-w-3xl mx-auto space-y-6 lg:space-y-8 pb-10">
           
           {/* 1. ORDER SUMMARY (TOP) */}
           <motion.div 
@@ -397,8 +228,11 @@ export default function Checkout() {
               </div>
             </form>
           </motion.div>
-        </div>
-      </div>
-    </div>
-  )
+        </div>`;
+  
+  lines.splice(startIndex, endIndex - startIndex + 1, replacement);
+  fs.writeFileSync(file, lines.join('\n'));
+  console.log("Successfully replaced layout");
+} else {
+  console.log("Could not find start or end index", {startIndex, endIndex});
 }
