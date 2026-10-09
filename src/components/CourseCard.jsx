@@ -137,37 +137,37 @@ export default function CourseCard({ course, paymentStatus, showButton = false }
           )}
         </div>
 
-        <div className="flex-1 p-5 flex flex-col relative z-10">
-          <div className="flex items-center gap-3 mb-3 text-xs text-slate-500 dark:text-slate-400 font-medium">
-            <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-500/10 px-2.5 py-1 rounded-md border border-amber-200 dark:border-amber-500/20">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
-                <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+        <div className="flex-1 p-4 sm:p-5 flex flex-col relative z-10">
+          <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3 text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium flex-wrap">
+            <div className="flex items-center gap-1 sm:gap-1.5 text-amber-600 dark:text-amber-500 bg-amber-50 dark:bg-amber-500/10 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border border-amber-200 dark:border-amber-500/20">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 sm:w-3.5 sm:h-3.5">
+                <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.966.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
               </svg>
               {rating}
             </div>
-            <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-1 rounded-md border border-indigo-200 dark:border-indigo-500/20">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+            <div className="flex items-center gap-1 sm:gap-1.5 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md border border-indigo-200 dark:border-indigo-500/20">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 sm:w-3.5 sm:h-3.5">
                 <path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z" />
               </svg>
               {students} Students
             </div>
           </div>
 
-          <h3 className="text-lg font-extrabold text-slate-900 dark:text-white line-clamp-2 mb-2 group-hover/card:text-indigo-600 dark:group-hover/card:text-indigo-400 transition-colors leading-snug">
+          <h3 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white line-clamp-2 mb-1.5 sm:mb-2 group-hover/card:text-indigo-600 dark:group-hover/card:text-indigo-400 transition-colors leading-snug">
             {course.title}
           </h3>
 
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-5 line-clamp-2 flex-1 leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mb-4 sm:mb-5 line-clamp-2 flex-1 leading-relaxed">
             {course.description || "Comprehensive curriculum designed by experts to help you master the skills."}
           </p>
 
-          <div className="flex items-end justify-between mt-auto pt-5 border-t border-slate-100 dark:border-slate-800">
+          <div className="flex items-end justify-between mt-auto pt-4 sm:pt-5 border-t border-slate-100 dark:border-slate-800">
             {course.instructorName ? (
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/50 dark:to-purple-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm border border-indigo-200 dark:border-indigo-800/50 shadow-sm">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/50 dark:to-purple-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-xs sm:text-sm border border-indigo-200 dark:border-indigo-800/50 shadow-sm">
                   {course.instructorName.charAt(0)}
                 </div>
-                <div className="text-xs">
+                <div className="text-[10px] sm:text-xs">
                   <span className="block text-slate-400 font-medium">Instructor</span>
                   <span className="font-bold text-slate-700 dark:text-slate-300 line-clamp-1">{course.instructorName}</span>
                 </div>
@@ -178,11 +178,11 @@ export default function CourseCard({ course, paymentStatus, showButton = false }
             
             {course.price !== undefined && (
               <div className="text-right">
-                <span className="text-[10px] tracking-wider text-slate-400 font-bold uppercase block mb-0.5">Price</span>
+                <span className="text-[9px] sm:text-[10px] tracking-wider text-slate-400 font-bold uppercase block mb-0.5">Price</span>
                 {course.price > 0 ? (
-                   <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300 whitespace-nowrap">৳{course.price}</span>
+                   <span className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300 whitespace-nowrap">৳{course.price}</span>
                 ) : (
-                   <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500 whitespace-nowrap">Free</span>
+                   <span className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500 whitespace-nowrap">Free</span>
                 )}
               </div>
             )}

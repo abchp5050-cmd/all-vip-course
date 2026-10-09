@@ -170,7 +170,7 @@ export default function BannerCarousel() {
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.3, duration: 0.6 }}
                 >
-                  <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white mb-6 leading-tight tracking-tight drop-shadow-lg">
+                  <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold text-white mb-4 sm:mb-6 leading-tight tracking-tight drop-shadow-lg">
                     {currentBanner.title}
                   </h1>
                 </motion.div>
@@ -181,7 +181,7 @@ export default function BannerCarousel() {
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.5, duration: 0.6 }}
                   >
-                    <p className="text-lg md:text-xl text-white/90 mb-6 max-w-lg leading-relaxed drop-shadow-md font-medium">
+                    <p className="text-base sm:text-lg md:text-xl text-white/90 mb-4 sm:mb-6 max-w-lg leading-relaxed drop-shadow-md font-medium">
                       {currentBanner.subtitle}
                     </p>
                   </motion.div>
@@ -191,31 +191,31 @@ export default function BannerCarousel() {
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.6, duration: 0.6 }}
-                  className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8 w-full"
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mb-6 sm:mb-8 w-full"
                 >
-                  <div className="flex items-start gap-3 text-white/90 bg-black/20 p-2.5 rounded-lg border border-white/10 backdrop-blur-sm shadow-sm">
+                  <div className="flex items-start gap-2 sm:gap-3 text-white/90 bg-black/20 p-2 sm:p-2.5 rounded-lg border border-white/10 backdrop-blur-sm shadow-sm">
                     <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 shrink-0 mt-0.5" />
-                    <span className="text-xs sm:text-sm font-medium leading-snug">প্রায় ৩ বছর ধরে বিশ্বস্ততার সাথে নিরবিচ্ছিন্ন সার্ভিস দিয়ে আসছে আমাদের টিম।</span>
+                    <span className="text-[11px] sm:text-sm font-medium leading-snug">প্রায় ৩ বছর ধরে বিশ্বস্ততার সাথে নিরবিচ্ছিন্ন সার্ভিস দিয়ে আসছে আমাদের টিম।</span>
                   </div>
-                  <div className="flex items-start gap-3 text-white/90 bg-black/20 p-2.5 rounded-lg border border-white/10 backdrop-blur-sm shadow-sm">
+                  <div className="flex items-start gap-2 sm:gap-3 text-white/90 bg-black/20 p-2 sm:p-2.5 rounded-lg border border-white/10 backdrop-blur-sm shadow-sm">
                     <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 shrink-0 mt-0.5" />
-                    <span className="text-xs sm:text-sm font-medium leading-snug">আমরাই নিশ্চিত করে থাকি টেলিগ্রামের মাঝে সব থেকে কম টাকায় বেস্ট সার্ভিস।</span>
+                    <span className="text-[11px] sm:text-sm font-medium leading-snug">আমরাই নিশ্চিত করে থাকি টেলিগ্রামের মাঝে সব থেকে কম টাকায় বেস্ট সার্ভিস।</span>
                   </div>
-                  <div className="flex items-start gap-3 text-white/90 bg-black/20 p-2.5 rounded-lg border border-white/10 backdrop-blur-sm shadow-sm">
+                  <div className="flex items-start gap-2 sm:gap-3 text-white/90 bg-black/20 p-2 sm:p-2.5 rounded-lg border border-white/10 backdrop-blur-sm shadow-sm">
                     <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 shrink-0 mt-0.5" />
-                    <span className="text-xs sm:text-sm font-medium leading-snug">হাজারো শিক্ষার্থীর আস্থার সাথে নিয়মিত সেবা দিয়ে যাচ্ছে আমাদের প্ল্যাটফর্ম।</span>
+                    <span className="text-[11px] sm:text-sm font-medium leading-snug">হাজারো শিক্ষার্থীর আস্থার সাথে নিয়মিত সেবা দিয়ে যাচ্ছে আমাদের প্ল্যাটফর্ম।</span>
                   </div>
-                  <div className="flex items-start gap-3 text-white/90 bg-black/20 p-2.5 rounded-lg border border-white/10 backdrop-blur-sm shadow-sm">
+                  <div className="flex items-start gap-2 sm:gap-3 text-white/90 bg-black/20 p-2 sm:p-2.5 rounded-lg border border-white/10 backdrop-blur-sm shadow-sm">
                     <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 shrink-0 mt-0.5" />
-                    <span className="text-xs sm:text-sm font-medium leading-snug">দ্রুত ডেলিভারি, নির্ভরযোগ্য সার্ভিস এবং সেরা দামের নিশ্চয়তা আমাদের প্রতিশ্রুতি।</span>
+                    <span className="text-[11px] sm:text-sm font-medium leading-snug">দ্রুত ডেলিভারি, নির্ভরযোগ্য সার্ভিস এবং সেরা দামের নিশ্চয়তা আমাদের প্রতিশ্রুতি।</span>
                   </div>
-                  <div className="flex items-start gap-3 text-white/90 bg-black/20 p-2.5 rounded-lg border border-white/10 backdrop-blur-sm shadow-sm">
+                  <div className="flex items-start gap-2 sm:gap-3 text-white/90 bg-black/20 p-2 sm:p-2.5 rounded-lg border border-white/10 backdrop-blur-sm shadow-sm">
                     <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 shrink-0 mt-0.5" />
-                    <span className="text-xs sm:text-sm font-medium leading-snug">সহজ পেমেন্ট, দ্রুত অ্যাক্সেস এবং ঝামেলামুক্ত অভিজ্ঞতা নিশ্চিত করি আমরা।</span>
+                    <span className="text-[11px] sm:text-sm font-medium leading-snug">সহজ পেমেন্ট, দ্রুত অ্যাক্সেস এবং ঝামেলামুক্ত অভিজ্ঞতা নিশ্চিত করি আমরা।</span>
                   </div>
-                  <div className="flex items-start gap-3 text-white/90 bg-black/20 p-2.5 rounded-lg border border-white/10 backdrop-blur-sm shadow-sm">
+                  <div className="flex items-start gap-2 sm:gap-3 text-white/90 bg-black/20 p-2 sm:p-2.5 rounded-lg border border-white/10 backdrop-blur-sm shadow-sm">
                     <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 shrink-0 mt-0.5" />
-                    <span className="text-xs sm:text-sm font-medium leading-snug">শিক্ষার্থীদের প্রয়োজন অনুযায়ী সঠিক সমাধান দিতে সবসময় প্রস্তুত আমাদের টিম।</span>
+                    <span className="text-[11px] sm:text-sm font-medium leading-snug">শিক্ষার্থীদের প্রয়োজন অনুযায়ী সঠিক সমাধান দিতে সবসময় প্রস্তুত আমাদের টিম।</span>
                   </div>
                 </motion.div>
 

@@ -87,7 +87,7 @@ export default function SupportWidget() {
   ]
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div className="fixed bottom-6 sm:bottom-8 right-4 sm:right-6 z-50 flex flex-col items-end">
       {/* Quick Help Popup */}
       <AnimatePresence>
         {isOpen && (
@@ -96,12 +96,12 @@ export default function SupportWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="mb-4 w-72 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden backdrop-blur-xl"
+            className="mb-3 sm:mb-4 w-[280px] sm:w-72 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden backdrop-blur-xl"
           >
-            <div className="bg-gradient-to-r from-blue-600 to-cyan-500 p-4 text-white flex items-center justify-between">
+            <div className="bg-gradient-to-r from-blue-600 to-cyan-500 p-3 sm:p-4 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Bot className="w-5 h-5" />
-                <h4 className="font-bold">Chat Support</h4>
+                <Bot className="w-4 h-4 sm:w-5 sm:h-5" />
+                <h4 className="font-bold text-sm sm:text-base">Chat Support</h4>
               </div>
               <button 
                 onClick={() => setIsOpen(false)}
@@ -111,21 +111,21 @@ export default function SupportWidget() {
               </button>
             </div>
             <div className="p-2">
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-3 py-2">Quick Help Options</p>
+              <p className="text-[10px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-3 py-1 sm:py-2">Quick Help Options</p>
               <div className="space-y-1">
                 {quickOptions.map((opt, i) => (
                   <button
                     key={i}
                     onClick={handleOpenTelegram}
-                    className="w-full flex items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors group"
+                    className="w-full flex items-center justify-between p-2 sm:p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors group"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <opt.icon className="w-4 h-4" />
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <opt.icon className="w-3 h-3 sm:w-4 sm:h-4" />
                       </div>
-                      <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{opt.text}</span>
+                      <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200">{opt.text}</span>
                     </div>
-                    <ExternalLink className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-blue-500 transition-colors" />
+                    <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 text-slate-300 dark:text-slate-600 group-hover:text-blue-500 transition-colors" />
                   </button>
                 ))}
               </div>
@@ -141,11 +141,11 @@ export default function SupportWidget() {
             initial={{ opacity: 0, y: 10, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.9 }}
-            className="mb-4 mr-2 max-w-[250px] bg-white dark:bg-slate-800 p-3.5 rounded-2xl rounded-br-sm shadow-xl border border-slate-100 dark:border-slate-700 cursor-pointer relative"
+            className="mb-2 sm:mb-3 mr-1 max-w-[200px] sm:max-w-[220px] bg-white dark:bg-slate-800 p-2.5 sm:p-3 rounded-2xl rounded-br-sm shadow-xl border border-slate-100 dark:border-slate-700 cursor-pointer relative"
             onClick={() => setIsOpen(true)}
           >
-            <div className="absolute -right-2 bottom-0 w-4 h-4 bg-white dark:bg-slate-800 border-r border-b border-slate-100 dark:border-slate-700 rotate-45 transform translate-y-1/2 -translate-x-1/2 rounded-sm z-[-1]" />
-            <p className="text-sm text-slate-700 dark:text-slate-200 font-medium leading-relaxed">
+            <div className="absolute right-3 sm:right-4 -bottom-1.5 w-3 h-3 bg-white dark:bg-slate-800 border-r border-b border-slate-100 dark:border-slate-700 rotate-45 rounded-sm z-[-1]" />
+            <p className="text-[11px] sm:text-xs text-slate-700 dark:text-slate-200 font-medium leading-relaxed">
               {messages[messageIndex]}
             </p>
           </motion.div>
@@ -157,20 +157,20 @@ export default function SupportWidget() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="relative group flex items-center gap-3 px-5 py-3.5 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-full shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 border border-white/20 backdrop-blur-md"
+        className="relative group flex items-center justify-center gap-1.5 sm:gap-2.5 px-4 py-2.5 sm:px-6 sm:py-3.5 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-full shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 border border-white/20 backdrop-blur-md max-w-[220px] sm:max-w-[250px] max-h-[55px] sm:max-h-[60px]"
       >
         <div className="absolute inset-0 rounded-full bg-white/20 animate-pulse pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
-        <div className="relative flex items-center gap-2">
+        <div className="relative flex items-center gap-1.5 sm:gap-2">
           {isOpen ? (
-            <X className="w-6 h-6" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5" />
           ) : (
             <>
-              <div className="relative">
-                <MessageCircle className="w-6 h-6" />
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-ping" />
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full" />
+              <div className="relative flex-shrink-0">
+                <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-red-500 border border-white rounded-full animate-ping" />
+                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-red-500 border border-white rounded-full" />
               </div>
-              <span className="font-bold tracking-wide">Chat With Admin</span>
+              <span className="text-xs sm:text-sm font-bold tracking-wide whitespace-nowrap">Chat With Admin</span>
             </>
           )}
         </div>

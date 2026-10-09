@@ -445,11 +445,11 @@ export default function Header() {
               })}
             </nav>
 
-            <div className="flex items-center gap-2 lg:flex-1 justify-end">
+            <div className="flex items-center gap-1 sm:gap-2 lg:flex-1 justify-end">
               {showInstallButton && (
                 <button
                   onClick={handleInstallClick}
-                  className="p-2 hover:bg-primary/10 rounded-lg smooth-transition hover:scale-105 active:scale-95"
+                  className="p-1.5 sm:p-2 hover:bg-primary/10 rounded-lg smooth-transition hover:scale-105 active:scale-95"
                   aria-label="Install App"
                   title="Install App"
                 >
