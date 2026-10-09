@@ -22,7 +22,7 @@ import {
 } from "lucide-react"
 import CourseCard from "../components/CourseCard"
 import BannerCarousel from "../components/BannerCarousel"
-import { collection, query, where, getDocs } from "firebase/firestore"
+import { collection, query, where, getDocs, orderBy } from "firebase/firestore"
 import { db } from "../lib/firebase"
 import { useAuth } from "../contexts/AuthContext"
 
@@ -60,6 +60,13 @@ export default function Home() {
       if (!isAdmin) {
         coursesData = coursesData.filter((course) => course.publishStatus !== "draft")
       }
+
+      // Sort courses by creation date (newest to oldest)
+      coursesData.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds * 1000 || 0);
+        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds * 1000 || 0);
+        return timeB - timeA;
+      })
 
       setTrendingCourses(coursesData.slice(0, 6))
 
@@ -326,7 +333,7 @@ const testimonials = [
                       <motion.div 
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        className="relative flex flex-col items-center justify-center p-6 sm:p-8 h-full rounded-[27px] bg-[#111827]/95 backdrop-blur-xl overflow-hidden z-20"
+                        className="relative flex flex-col items-center p-4 sm:p-5 h-full rounded-[27px] bg-[#111827]/95 backdrop-blur-xl overflow-hidden z-20"
                       >
                         {/* Shimmer Light Sweep */}
                         <motion.div
@@ -339,28 +346,27 @@ const testimonials = [
                         <div className="absolute -top-12 -right-12 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
                         <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
                         
-                        {/* Image Container with Pulse Glow */}
-                        <div className="relative w-24 h-24 sm:w-32 sm:h-32 mb-5 sm:mb-7 z-10 flex items-center justify-center">
-                          {/* Ambient glow behind image */}
-                          <div className="absolute inset-0 bg-orange-400/5 blur-xl rounded-full group-hover:bg-orange-400/15 transition-colors duration-500" />
+                        {/* Image Container with Glow */}
+                        <div className="relative w-full max-w-[150px] sm:max-w-[220px] aspect-[5/4] mb-4 sm:mb-5 z-10 mx-auto rounded-xl">
+                          {/* Animated Gradient border effect */}
+                          <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-500/30 via-purple-500/30 to-orange-500/30 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm" />
+                          <div className="absolute -inset-[1px] bg-gradient-to-r from-orange-500/40 via-purple-500/40 to-orange-500/40 rounded-xl opacity-40 group-hover:opacity-100 group-hover:animate-[pulse_2s_ease-in-out_infinite] transition-all duration-500" />
                           
-                          {/* Pulse ring */}
-                          <div className="absolute inset-2 border border-orange-500/20 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping" style={{ animationDuration: '3s' }} />
-                          
-                          <div className="relative w-full h-full rounded-[22px] bg-gradient-to-br from-slate-800/60 to-slate-900/60 flex items-center justify-center group-hover:scale-105 transition-transform duration-500 border border-slate-700/50 shadow-inner p-3 sm:p-4 backdrop-blur-sm">
+                          {/* Image Wrapper */}
+                          <div className="relative w-full h-full bg-slate-900/40 rounded-xl flex items-center justify-center p-1.5 sm:p-2 border border-slate-700/40 group-hover:border-orange-500/30 transition-colors duration-500 shadow-[0_4px_20px_rgba(0,0,0,0.3)] group-hover:shadow-[0_4px_25px_rgba(249,115,22,0.2)] z-10 group-hover:scale-[1.03]">
                             {category.imageURL ? (
                               <img 
                                 src={category.imageURL} 
                                 alt={category.title} 
-                                className="w-full h-full object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] group-hover:drop-shadow-[0_0px_15px_rgba(249,115,22,0.3)] transition-all duration-500" 
+                                className="w-full h-full object-contain filter drop-shadow-md group-hover:drop-shadow-[0_0px_10px_rgba(249,115,22,0.4)] transition-all duration-500" 
                               />
                             ) : (
-                              <BookOpen className="w-10 h-10 sm:w-12 sm:h-12 text-orange-400/80 group-hover:text-orange-400 transition-colors" />
+                              <BookOpen className="w-12 h-12 sm:w-16 sm:h-16 text-orange-400/80 group-hover:text-orange-400 transition-colors" />
                             )}
                           </div>
                         </div>
                         
-                        <h3 className="text-[15px] sm:text-[17px] font-bold text-center text-slate-200 group-hover:text-white transition-colors line-clamp-2 leading-[1.3] z-10 px-2 tracking-tight w-full">
+                        <h3 className="text-[15px] sm:text-[17px] font-bold text-center text-slate-200 group-hover:text-white transition-colors line-clamp-2 leading-[1.3] z-10 px-1 w-full mt-auto">
                           {category.title}
                         </h3>
                       </motion.div>

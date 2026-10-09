@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { ShoppingCart, ArrowLeft, BookOpen, Copy, ShieldCheck, BadgeCheck, Lock, Phone, Loader2, CheckCircle2 } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
-import { collection, addDoc, serverTimestamp } from "firebase/firestore"
+import { collection, addDoc, serverTimestamp, getDocs, query, where } from "firebase/firestore"
 import { db } from "../lib/firebase"
 import { toast } from "../hooks/use-toast"
 
@@ -13,6 +13,8 @@ export default function Checkout() {
   const navigate = useNavigate()
   const { currentUser, userProfile } = useAuth()
   const [cartItems, setCartItems] = useState([])
+  const [paymentMethods, setPaymentMethods] = useState([])
+  const [paymentInstructions, setPaymentInstructions] = useState("")
   const [loading, setLoading] = useState(false)
   const [phoneNumber, setPhoneNumber] = useState("")
   const [telegramId, setTelegramId] = useState("")
@@ -45,6 +47,59 @@ export default function Checkout() {
     }
   }, [currentUser, navigate])
 
+  useEffect(() => {
+    // Scroll to enrollment section on load with offset for fixed header
+    const element = document.getElementById('enrollment-section');
+    if (element) {
+      setTimeout(() => {
+        const y = element.getBoundingClientRect().top + window.scrollY - 100;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }, 100);
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }, []);
+
+  
+  useEffect(() => {
+    const fetchPaymentSettings = async () => {
+      try {
+        const paymentSettingsRef = query(collection(db, "settings"), where("type", "==", "payment"))
+        const snapshot = await getDocs(paymentSettingsRef)
+        if (!snapshot.empty) {
+          const data = snapshot.docs[0].data()
+          setPaymentInstructions(data.instructions || "")
+          // Filter to only active methods
+          const activeMethods = (data.methods || []).filter(m => m.isActive)
+          
+          if (activeMethods.length === 0) {
+            // Fallback if none configured
+            setPaymentMethods([
+              { id: "1", provider: "bKash", number: "01831952349", type: "Personal" },
+              { id: "2", provider: "Nagad", number: "01831952349", type: "Personal" }
+            ])
+          } else {
+            setPaymentMethods(activeMethods)
+          }
+        } else {
+          // Fallback if no doc exists
+          setPaymentMethods([
+            { id: "1", provider: "bKash", number: "01831952349", type: "Personal" },
+            { id: "2", provider: "Nagad", number: "01831952349", type: "Personal" }
+          ])
+        }
+      } catch (error) {
+        console.error("Error fetching payment settings:", error)
+        // Fallback
+        setPaymentMethods([
+          { id: "1", provider: "bKash", number: "01831952349", type: "Personal" },
+          { id: "2", provider: "Nagad", number: "01831952349", type: "Personal" }
+        ])
+      }
+    }
+    fetchPaymentSettings()
+  }, [])
+
   const getTotal = () => {
     return cartItems.reduce((total, item) => total + (item.price || 0), 0)
   }
@@ -75,10 +130,21 @@ export default function Checkout() {
       return
     }
 
+    const phoneRegex = /^(?:\+88|88)?(01[3-9]\d{8})$/;
+    if (!phoneRegex.test(phoneNumber.replace(/\s+/g, ''))) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Phone Number",
+        description: "Please enter a valid Bangladeshi phone number (e.g. 018XXXXXXXX)",
+      })
+      return
+    }
+
     setLoading(true)
 
     try {
       const subtotal = getTotal()
+
       
       // Create payment record
       await addDoc(collection(db, "payments"), {
@@ -145,6 +211,15 @@ export default function Checkout() {
     }
   }
 
+  const getProviderTheme = (provider) => {
+    const p = provider?.toLowerCase() || ''
+    if (p.includes('bkash')) return { bg: '#E2136E', text: 'text-white', border: 'border-[#E2136E]', name: 'বিকাশ' }
+    if (p.includes('nagad')) return { bg: '#F7931E', text: 'text-white', border: 'border-[#F7931E]', name: 'নগদ' }
+    if (p.includes('rocket')) return { bg: '#8C1590', text: 'text-white', border: 'border-[#8C1590]', name: 'রকেট' }
+    if (p.includes('upay')) return { bg: '#FDE300', text: 'text-black', border: 'border-[#FDE300]', name: 'উপায়' }
+    return { bg: '#3b82f6', text: 'text-white', border: 'border-blue-500', name: provider }
+  }
+
   const subtotal = getTotal()
 
   return (
@@ -156,7 +231,7 @@ export default function Checkout() {
       <div className="container max-w-6xl mx-auto px-5 lg:px-8 relative z-10">
         
         {/* HEADER SECTION */}
-        <div className="mb-8 lg:mb-10">
+        <div id="enrollment-section" className="mb-8 lg:mb-10 pt-4">
           <button
             onClick={() => navigate("/courses")}
             className="flex items-center gap-2 text-sm text-slate-400 hover:text-amber-500 mb-6 transition-all hover:-translate-x-1 w-fit"
@@ -283,53 +358,35 @@ export default function Checkout() {
               <p className="text-[13px] lg:text-sm text-slate-400 mb-5 lg:mb-6">Send the total amount to any of these accounts.</p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4 mb-6 lg:mb-8">
-                {/* bKash Card */}
-                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#E2136E]/10 to-transparent border border-[#E2136E]/20 p-4 lg:p-5 group hover:border-[#E2136E]/50 transition-colors">
-                  <div className="flex items-center gap-3 mb-3 lg:mb-4">
-                    <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-[#E2136E] flex items-center justify-center shadow-lg shrink-0">
-                      <span className="text-white font-bold text-[10px] lg:text-xs">bKash</span>
+                {paymentMethods.map((method) => {
+                  const theme = getProviderTheme(method.provider)
+                  return (
+                    <div key={method.id} className={`relative overflow-hidden rounded-2xl bg-gradient-to-br from-[${theme.bg}]/10 to-transparent border border-[${theme.bg}]/20 p-4 lg:p-5 group hover:border-[${theme.bg}]/50 transition-colors`}>
+                      <div className="flex items-center gap-3 mb-3 lg:mb-4">
+                        <div className={`w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-[${theme.bg}] flex items-center justify-center shadow-lg shrink-0`}>
+                          <span className={`${theme.text} font-bold text-[10px] lg:text-xs`}>{method.provider}</span>
+                        </div>
+                        <div>
+                          <h3 className="text-white font-bold text-[13px] lg:text-sm leading-tight">{theme.name} ({method.type})</h3>
+                          <p className="text-[11px] lg:text-xs text-slate-400 mt-0.5">
+                            {method.type === 'Merchant' ? 'পেমেন্ট (Payment)' : 'সেন্ড মানি/ক্যাশ ইন'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between bg-slate-950/50 p-2.5 lg:p-3 rounded-xl border border-slate-800">
+                        <span className="text-base lg:text-lg font-mono font-bold text-white tracking-widest">{method.number}</span>
+                        <button 
+                          type="button"
+                          onClick={() => handleCopy(method.number)}
+                          className="p-1.5 lg:p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors group-hover:text-white"
+                          title="Copy Number"
+                        >
+                          {copied === method.number ? <CheckCircle2 className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 lg:w-4 lg:h-4" />}
+                        </button>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-white font-bold text-[13px] lg:text-sm leading-tight">বিকাশ (Personal)</h3>
-                      <p className="text-[11px] lg:text-xs text-slate-400 mt-0.5">সেন্ড মানি/ক্যাশ ইন</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between bg-slate-950/50 p-2.5 lg:p-3 rounded-xl border border-slate-800">
-                    <span className="text-base lg:text-lg font-mono font-bold text-white tracking-widest">01831952349</span>
-                    <button 
-                      type="button"
-                      onClick={() => handleCopy("01831952349")}
-                      className="p-1.5 lg:p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors group-hover:text-white"
-                      title="Copy Number"
-                    >
-                      {copied === "01831952349" ? <CheckCircle2 className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 lg:w-4 lg:h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Nagad Card */}
-                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#F7931E]/10 to-transparent border border-[#F7931E]/20 p-4 lg:p-5 group hover:border-[#F7931E]/50 transition-colors">
-                  <div className="flex items-center gap-3 mb-3 lg:mb-4">
-                    <div className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-[#F7931E] flex items-center justify-center shadow-lg shrink-0">
-                      <span className="text-white font-bold text-[10px] lg:text-xs">নগদ</span>
-                    </div>
-                    <div>
-                      <h3 className="text-white font-bold text-[13px] lg:text-sm leading-tight">নগদ (Personal)</h3>
-                      <p className="text-[11px] lg:text-xs text-slate-400 mt-0.5">সেন্ড মানি/ক্যাশ ইন</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between bg-slate-950/50 p-2.5 lg:p-3 rounded-xl border border-slate-800">
-                    <span className="text-base lg:text-lg font-mono font-bold text-white tracking-widest">01815307903</span>
-                    <button 
-                      type="button"
-                      onClick={() => handleCopy("01815307903")}
-                      className="p-1.5 lg:p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors group-hover:text-white"
-                      title="Copy Number"
-                    >
-                      {copied === "01815307903" ? <CheckCircle2 className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 lg:w-4 lg:h-4" />}
-                    </button>
-                  </div>
-                </div>
+                  )
+                })}
               </div>
 
               {/* Form Section */}
@@ -337,7 +394,12 @@ export default function Checkout() {
                 <h2 className="text-lg lg:text-xl font-bold text-white mb-1.5 lg:mb-2">Payment Details</h2>
                 <p className="text-[13px] lg:text-sm text-slate-400 mb-6 lg:mb-8">Fill in your information carefully after completing the payment.</p>
                 
-                <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-5">
+                {paymentInstructions && (
+                <div className="p-3 lg:p-4 rounded-xl bg-slate-800/30 border border-slate-700/30 text-xs lg:text-sm text-slate-400 mb-6 whitespace-pre-wrap">
+                  {paymentInstructions}
+                </div>
+              )}
+              <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-5">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
                     {/* Name */}
                     <div className="space-y-1.5">
