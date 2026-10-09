@@ -70,16 +70,14 @@ if (IS_PRODUCTION) {
   });
 } else {
   const { createServer: createViteServer } = await import('vite');
+  const isReplit = Boolean(process.env.REPL_ID);
   const vite = await createViteServer({
     server: { 
       middlewareMode: true,
       host: '0.0.0.0',
       port: 5000,
       strictPort: true,
-      hmr: {
-        clientPort: 443,
-        protocol: 'wss',
-      }
+      hmr: isReplit ? { clientPort: 443, protocol: 'wss' } : undefined,
     },
     appType: 'spa',
   });

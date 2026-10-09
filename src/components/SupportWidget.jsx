@@ -87,7 +87,7 @@ export default function SupportWidget() {
   ]
 
   return (
-    <div className="fixed bottom-6 sm:bottom-8 right-4 sm:right-6 z-50 flex flex-col items-end">
+    <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-[60] flex flex-col items-end" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {/* Quick Help Popup */}
       <AnimatePresence>
         {isOpen && (
@@ -157,7 +157,7 @@ export default function SupportWidget() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="relative group flex items-center justify-center gap-1.5 sm:gap-2.5 px-4 py-2.5 sm:px-6 sm:py-3.5 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-full shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 border border-white/20 backdrop-blur-md max-w-[220px] sm:max-w-[250px] max-h-[55px] sm:max-h-[60px]"
+        className="relative group flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-5 h-[52px] bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-full shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 border border-white/20 backdrop-blur-md w-auto min-w-[200px] max-w-[200px]"
       >
         <div className="absolute inset-0 rounded-full bg-white/20 animate-pulse pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
         <div className="relative flex items-center gap-1.5 sm:gap-2">
@@ -170,7 +170,7 @@ export default function SupportWidget() {
                 <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-red-500 border border-white rounded-full animate-ping" />
                 <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-red-500 border border-white rounded-full" />
               </div>
-              <span className="text-xs sm:text-sm font-bold tracking-wide whitespace-nowrap">Chat With Admin</span>
+              <span className="text-[13px] sm:text-sm font-bold tracking-wide whitespace-nowrap">Chat With Admin</span>
             </>
           )}
         </div>

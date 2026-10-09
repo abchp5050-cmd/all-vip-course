@@ -338,12 +338,6 @@ const testimonials = [
                 Start your learning journey with our most popular and highly-rated premium courses.
               </p>
             </div>
-            <Link
-              to="/courses"
-              className="inline-flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm sm:text-base font-bold rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-indigo-500/50 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all group"
-            >
-              View All <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
           </div>
 
           {loading ? (
@@ -378,6 +372,55 @@ const testimonials = [
               <p className="text-base sm:text-lg text-muted-foreground">No courses available yet. Check back soon!</p>
             </div>
           )}
+        </div>
+
+        {/* PREMIUM VIEW ALL COURSES CTA */}
+        <div className="container mx-auto max-w-6xl mt-4 sm:mt-8">
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          >
+            <Link to="/courses" className="block relative group overflow-hidden rounded-[20px] sm:rounded-3xl bg-[#0a0f1c] border border-slate-800 shadow-2xl hover:shadow-[0_0_40px_rgba(79,70,229,0.2)] transition-all duration-500 hover:-translate-y-1 sm:hover:-translate-y-2">
+              
+              {/* Animated Background Gradients */}
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+              <div className="absolute -inset-x-40 -top-40 h-[300%] w-[300%] bg-gradient-to-tr from-transparent via-white/5 to-transparent -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out" />
+              
+              <div className="relative p-5 sm:p-8 md:p-10 flex flex-col sm:flex-row items-center justify-between gap-5 sm:gap-6 backdrop-blur-xl z-10">
+                <div className="flex flex-row items-center gap-4 sm:gap-6 w-full sm:w-auto">
+                  
+                  {/* Icon */}
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 p-[1px] shadow-lg shadow-indigo-500/30 flex-shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500">
+                    <div className="w-full h-full bg-[#0a0f1c] rounded-[15px] flex items-center justify-center">
+                      <BookOpen className="w-5 h-5 sm:w-8 sm:h-8 text-indigo-400 group-hover:text-white transition-colors duration-300" />
+                    </div>
+                  </div>
+                  
+                  {/* Text */}
+                  <div className="text-left flex-1 min-w-0 pr-8 sm:pr-0">
+                    <h3 className="text-[17px] sm:text-2xl md:text-3xl font-bold text-white mb-0.5 sm:mb-2 tracking-tight">
+                      Explore All Courses
+                    </h3>
+                    <p className="text-[12px] sm:text-base text-slate-400 line-clamp-2 sm:line-clamp-none max-w-lg leading-snug sm:leading-relaxed">
+                      Discover 100+ premium courses designed for your success
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Arrow Button - Desktop */}
+                <div className="hidden sm:flex items-center justify-center w-12 h-12 rounded-full bg-white/10 group-hover:bg-indigo-500 transition-colors duration-300 flex-shrink-0">
+                  <ArrowRight className="w-5 h-5 text-white group-hover:translate-x-1 transition-transform duration-300" />
+                </div>
+                
+                {/* Arrow - Mobile Absolute */}
+                <div className="absolute right-5 top-1/2 -translate-y-1/2 sm:hidden text-slate-500 group-hover:text-indigo-400 transition-colors">
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+                </div>
+              </div>
+            </Link>
+          </motion.div>
         </div>
       </section>
 

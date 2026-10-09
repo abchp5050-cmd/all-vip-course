@@ -28,16 +28,17 @@ export default function ManageEnrollments() {
       } else {
         enrollmentsQuery = query(
           collection(db, "enrollments"),
-          where("status", "==", filter),
-          orderBy("createdAt", "desc")
+          where("status", "==", filter)
         );
       }
       
       const enrollmentsSnapshot = await getDocs(enrollmentsQuery);
-      const enrollmentsData = enrollmentsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const enrollmentsData = enrollmentsSnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
       setEnrollments(enrollmentsData);
 
       // Fetch courses

@@ -386,14 +386,14 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 dark:bg-black/95 backdrop-blur-xl border-b border-border/50">
-        <nav className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 lg:flex-1">
+      <header className="sticky top-0 z-50 bg-white/95 dark:bg-[#0a0f1c]/95 backdrop-blur-xl border-b border-border/30 shadow-sm dark:shadow-[0_4px_20px_-10px_rgba(0,0,0,0.5)]">
+        <nav className="container mx-auto px-4 py-2 sm:py-3">
+          <div className="flex items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-3 lg:flex-1">
               {/* This is the MOBILE MENU TOGGLE BUTTON (CRITICAL) */}
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-2 hover:bg-primary/10 rounded-lg smooth-transition hover:scale-105 active:scale-95"
+                className="lg:hidden p-1.5 sm:p-2 hover:bg-primary/10 rounded-lg smooth-transition hover:scale-105 active:scale-95 flex-shrink-0"
                 aria-label="Open menu"
               >
                 <Menu className="w-5 h-5 sm:w-6 sm:h-6 text-foreground" />

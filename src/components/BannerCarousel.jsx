@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { collection, query, where, orderBy, getDocs } from "firebase/firestore"
+import { collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "../lib/firebase"
 import { ChevronLeft, ChevronRight, ArrowRight, Loader2, CheckCircle2 } from "lucide-react"
 import { Link } from "react-router-dom"
@@ -41,11 +41,12 @@ export default function BannerCarousel() {
     try {
       const q = query(
         collection(db, "banners"),
-        where("status", "==", "active"),
-        orderBy("displayOrder", "asc")
+        where("status", "==", "active")
       )
       const snapshot = await getDocs(q)
-      const bannersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      const bannersData = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
       
       if (bannersData.length > 0) {
         setBanners(bannersData)
