@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
-import { ShoppingCart, ArrowLeft, BookOpen, Copy, ShieldCheck, BadgeCheck, Lock, Phone, Loader2, CheckCircle2 } from "lucide-react"
+import { ShoppingCart, ArrowLeft, ArrowRight, BookOpen, Copy, ShieldCheck, BadgeCheck, Lock, Phone, Loader2, CheckCircle2 } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 import { collection, addDoc, serverTimestamp, getDocs, query, where } from "firebase/firestore"
 import { db } from "../lib/firebase"
@@ -19,6 +19,44 @@ export default function Checkout() {
   const [telegramLink, setTelegramLink] = useState("")
   const [customerName, setCustomerName] = useState("")
   const [copied, setCopied] = useState(null)
+
+  useEffect(() => {
+    if (userProfile?.name || currentUser?.displayName) {
+      setCustomerName(userProfile?.name || currentUser?.displayName || "")
+    }
+  }, [userProfile, currentUser])
+
+  useEffect(() => {
+    if (!currentUser) {
+      navigate("/login")
+      return
+    }
+
+    const tempItem = localStorage.getItem("tempCheckoutItem")
+    if (tempItem) {
+      try {
+        setCartItems(JSON.parse(tempItem))
+      } catch (error) {
+        console.error("Error loading checkout items:", error)
+        navigate("/courses")
+      }
+    } else {
+      navigate("/courses")
+    }
+  }, [currentUser, navigate])
+
+  useEffect(() => {
+    // Scroll to enrollment section on load with offset for fixed header
+    const element = document.getElementById('enrollment-section');
+    if (element) {
+      setTimeout(() => {
+        const y = element.getBoundingClientRect().top + window.scrollY - 100;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }, 100);
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }, []);
   
 
   
