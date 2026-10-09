@@ -114,8 +114,9 @@ export default function DynamicFooter() {
   const desktopClass = gridColsMap[columns.desktop] || 'grid-cols-4'
   
   return (
-    <footer className="bg-card border-t border-border/50 mt-auto">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <footer className="bg-background border-t border-border mt-auto relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent pointer-events-none" />
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16 relative z-10">
         <div className={`grid ${mobileClass} md:${tabletClass} lg:${desktopClass} gap-10`}>
           {/* Brand Section */}
           {content?.brand?.enabled && (
@@ -144,7 +145,7 @@ export default function DynamicFooter() {
                       <a
                         key={link.id}
                         href={`mailto:${link.value}`}
-                        className="text-muted-foreground hover:text-primary transition-colors text-sm flex items-center gap-2"
+                        className="text-muted-foreground hover:text-primary transition-all duration-300 text-sm flex items-center gap-2 hover:translate-x-1"
                       >
                         {IconComponent && <IconComponent className="w-4 h-4 flex-shrink-0" />}
                         <span className="break-all">{link.label || link.value}</span>
@@ -157,7 +158,7 @@ export default function DynamicFooter() {
                       <a
                         key={link.id}
                         href={`tel:${link.value}`}
-                        className="text-muted-foreground hover:text-primary transition-colors text-sm flex items-center gap-2"
+                        className="text-muted-foreground hover:text-primary transition-all duration-300 text-sm flex items-center gap-2 hover:translate-x-1"
                       >
                         {IconComponent && <IconComponent className="w-4 h-4 flex-shrink-0" />}
                         {link.label || link.value}
@@ -172,7 +173,7 @@ export default function DynamicFooter() {
                         href={link.url}
                         target={link.openInNewTab ? "_blank" : undefined}
                         rel={link.openInNewTab ? "noopener noreferrer" : undefined}
-                        className="text-muted-foreground hover:text-primary transition-colors text-sm"
+                        className="text-muted-foreground hover:text-primary transition-all duration-300 text-sm hover:translate-x-1 inline-block"
                       >
                         {link.label}
                       </a>
@@ -183,7 +184,7 @@ export default function DynamicFooter() {
                     <Link
                       key={link.id}
                       to={link.url}
-                      className="text-muted-foreground hover:text-primary transition-colors text-sm"
+                      className="text-muted-foreground hover:text-primary transition-all duration-300 text-sm hover:translate-x-1 inline-block"
                     >
                       {link.label}
                     </Link>
@@ -209,7 +210,7 @@ export default function DynamicFooter() {
                       href={link.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-2 bg-muted hover:bg-primary/20 rounded-lg transition-colors text-muted-foreground hover:text-primary"
+                      className="p-3 bg-muted/50 hover:bg-primary/10 hover:text-primary rounded-xl transition-all duration-300 text-muted-foreground hover:-translate-y-1 hover:shadow-lg"
                       aria-label={link.platform}
                     >
                       <IconComponent className="w-5 h-5" />
@@ -227,23 +228,6 @@ export default function DynamicFooter() {
             {content.copyright.text.replace('{year}', currentYear)}
           </div>
         )}
-        
-        {/* Developer Credit */}
-        <div className={`${content?.copyright?.enabled ? 'mt-6' : 'mt-10 pt-8 border-t border-border/50'}`}>
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">
-              Developed by{" "}
-              <a 
-                href="https://t.me/hermanoMayorBot" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:text-primary/80 transition-colors font-medium"
-              >
-                Hermano Mayor
-              </a>
-            </p>
-          </div>
-        </div>
       </div>
     </footer>
   )

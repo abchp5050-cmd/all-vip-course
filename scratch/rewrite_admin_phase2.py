@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react"
+import os
+
+courses_content = """import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore"
 import { db } from "../../lib/firebase"
@@ -608,3 +610,9 @@ export default function ManageCourses() {
     </div>
   )
 }
+"""
+
+with open("src/pages/admin/ManageCourses.jsx", "w") as f:
+    f.write(courses_content)
+
+print("ManageCourses.jsx rewritten.")

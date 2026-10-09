@@ -342,13 +342,20 @@ export default function DynamicHeader() {
   const { content, styling } = config
   const visibleNavItems = (content.navigation || []).filter(item => item.isVisible)
   
-  const headerClass = `${styling?.layout?.sticky ? 'sticky top-0' : ''} ${styling?.layout?.zIndex ? `z-${styling.layout.zIndex}` : 'z-50'} ${styling?.colors?.background || 'bg-card/95'} ${styling?.effects?.backdropBlur || 'backdrop-blur-md'} border-b ${styling?.colors?.border || 'border-border'} ${styling?.effects?.shadow || 'shadow-sm'}`
+  const headerClass = `sticky top-0 z-50 bg-background/70 backdrop-blur-xl border-b border-border shadow-sm transition-all duration-300`
   
   const containerClass = `container mx-auto max-w-7xl px-${getPaddingValue(styling?.layout?.padding?.left)} sm:px-6 lg:px-${getPaddingValue(styling?.layout?.padding?.right)} py-${getPaddingValue(styling?.layout?.padding?.top)}`
   
   const logoClass = `${styling?.typography?.logoSize || 'text-xl sm:text-2xl'} ${styling?.typography?.logoFont || 'font-bold'} ${content?.logo?.color || 'text-primary'}`
   
-  const navLinkClass = `px-4 py-2 rounded-lg ${styling?.colors?.hoverBackground || 'hover:bg-accent'} transition-colors ${styling?.typography?.navSize || 'text-sm'} ${styling?.typography?.navFont || 'font-medium'} ${styling?.colors?.text || 'text-foreground'} ${styling?.colors?.hoverText || 'hover:text-primary'}`
+  const getNavLinkClass = (path) => {
+    const isActive = location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
+    return `relative px-4 py-2 rounded-lg transition-all duration-300 text-sm font-medium ${
+      isActive 
+        ? 'text-primary' 
+        : 'text-foreground/80 hover:text-primary hover:bg-accent/50'
+    }`;
+  }
 
   return (
     <>
@@ -388,7 +395,7 @@ export default function DynamicHeader() {
                     <a
                       key={`desktop-${link.url}-${index}`}
                       href={link.url}
-                      className={navLinkClass}
+                      className={getNavLinkClass(link.url)}
                       target={link.openInNewTab ? "_blank" : "_self"}
                       rel={link.openInNewTab ? "noopener noreferrer" : undefined}
                     >
@@ -401,9 +408,16 @@ export default function DynamicHeader() {
                   <Link
                     key={`desktop-${link.url}-${index}`}
                     to={link.url}
-                    className={navLinkClass}
+                    className={getNavLinkClass(link.url)}
                   >
                     {link.label}
+                    {(location.pathname === link.url || (link.url !== '/' && location.pathname.startsWith(link.url))) && (
+                      <motion.div
+                        layoutId="navbar-active"
+                        className="absolute bottom-0 left-4 right-4 h-[3px] bg-primary rounded-t-full"
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      />
+                    )}
                   </Link>
                 )
               })}
@@ -427,7 +441,7 @@ export default function DynamicHeader() {
               {showInstallButton && (
                 <button
                   onClick={handleInstallClick}
-                  className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-sm font-medium shadow-md"
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl transition-all text-sm font-bold shadow-md hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 border border-white/10 backdrop-blur-sm"
                 >
                   <Download className="w-4 h-4" />
                   Install App
@@ -438,14 +452,14 @@ export default function DynamicHeader() {
                 <>
                   <Link
                     to={isAdmin ? "/admin" : "/dashboard"}
-                    className="hidden sm:flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors text-sm font-medium shadow-sm"
+                    className="hidden sm:flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl transition-all text-sm font-bold shadow-md hover:shadow-lg hover:shadow-orange-500/25 hover:-translate-y-0.5 border border-white/10 backdrop-blur-sm"
                   >
                     <LayoutDashboard className="w-4 h-4" />
                     Dashboard
                   </Link>
                   <button
                     onClick={handleSignOut}
-                    className="hidden sm:flex items-center gap-2 px-4 py-2 hover:bg-accent rounded-lg transition-colors text-sm font-medium text-foreground"
+                    className="hidden sm:flex items-center gap-2 px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-sm font-semibold text-slate-600 dark:text-slate-300"
                   >
                     <LogOut className="w-4 h-4" />
                     Sign Out
@@ -454,7 +468,7 @@ export default function DynamicHeader() {
               ) : (
                 <Link
                   to="/login"
-                  className="hidden sm:flex items-center px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors text-sm font-medium shadow-sm"
+                  className="hidden sm:flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl transition-all text-sm font-bold shadow-md hover:shadow-lg hover:shadow-indigo-500/25 hover:-translate-y-0.5 border border-white/10 backdrop-blur-sm"
                 >
                   Login
                 </Link>

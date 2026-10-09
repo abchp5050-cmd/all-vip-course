@@ -3,10 +3,12 @@ import { AuthProvider } from "./contexts/AuthContext"
 import { ThemeProvider } from "./contexts/ThemeContext"
 import { Toaster } from "./components/ui/toaster"
 import DynamicHeader from "./components/DynamicHeader"
+import AnnouncementBar from "./components/AnnouncementBar"
 import DynamicFooter from "./components/DynamicFooter"
 import ProtectedRoute from "./components/ProtectedRoute"
 import PWAInstallPrompt from "./components/PWAInstallPrompt"
 import SettingsLoader from "./components/SettingsLoader"
+import SupportWidget from "./components/SupportWidget"
 
 // Pages
 import Home from "./pages/Home"
@@ -36,6 +38,7 @@ function App() {
           <SettingsLoader />
           <div className="flex flex-col min-h-screen bg-background text-foreground">
             <DynamicHeader />
+            <AnnouncementBar />
             <main className="flex-1">
             <Routes>
               <Route path="/" element={<Home />} />
@@ -90,6 +93,7 @@ function App() {
             </Routes>
             </main>
             <PWAInstallPrompt />
+            <SupportWidget />
             <Toaster />
             <DynamicFooter />
           </div>

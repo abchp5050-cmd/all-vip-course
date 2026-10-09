@@ -1,186 +1,15 @@
-"use client"
+import re
 
-import { useState, useEffect } from "react"
-import { Link, useLocation, useNavigate } from "react-router-dom"
-import { motion } from "framer-motion"
-import { Search, Filter, BookOpen, ArrowRight, Star, Users, CheckCircle, Clock, Play, User } from "lucide-react"
-import CourseCard from "../components/CourseCard"
-import { collection, query, orderBy, getDocs, where } from "firebase/firestore"
-import { db } from "../lib/firebase"
-import { useAuth } from "../contexts/AuthContext"
+with open("src/pages/Courses.jsx", "r") as f:
+    content = f.read()
 
-export default function Courses() {
-  const location = useLocation()
-  const { isAdmin, currentUser } = useAuth()
-  const [courses, setCourses] = useState([])
-  const [categories, setCategories] = useState([])
-  const [subcategories, setSubcategories] = useState([])
-  const [filteredCourses, setFilteredCourses] = useState([])
-  const [searchQuery, setSearchQuery] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState("all")
-  const [subcategoryFilter, setSubcategoryFilter] = useState("all")
-  const [sortBy, setSortBy] = useState("newest")
-  const [loading, setLoading] = useState(true)
-  const [paymentStatusMap, setPaymentStatusMap] = useState({})
+start_index = content.find('return (\n    <div className="min-h-screen')
 
-  useEffect(() => {
-    if (location.state?.searchQuery) {
-      setSearchQuery(location.state.searchQuery)
-    }
-    if (location.state?.categoryFilter) {
-      setCategoryFilter(location.state.categoryFilter)
-    }
-  }, [location.state])
+if start_index == -1:
+    print("Could not find start index")
+    exit(1)
 
-  useEffect(() => {
-    fetchCourses()
-    fetchCategories()
-    if (currentUser) {
-      fetchPaymentStatus()
-    }
-  }, [isAdmin, currentUser])
-
-  useEffect(() => {
-    if (categoryFilter && categoryFilter !== "all") {
-      fetchSubcategories(categoryFilter)
-    } else {
-      setSubcategories([])
-      setSubcategoryFilter("all")
-    }
-  }, [categoryFilter])
-
-  useEffect(() => {
-    filterAndSortCourses()
-  }, [courses, searchQuery, categoryFilter, subcategoryFilter, sortBy])
-
-  const fetchCourses = async () => {
-    try {
-      const coursesQuery = query(collection(db, "courses"), orderBy("createdAt", "desc"))
-      const coursesSnapshot = await getDocs(coursesQuery)
-      let coursesData = coursesSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }))
-      
-      if (!isAdmin) {
-        coursesData = coursesData.filter(course => course.publishStatus !== "draft")
-      }
-      
-      setCourses(coursesData)
-    } catch (error) {
-      console.error("Error fetching courses:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchCategories = async () => {
-    try {
-      const categoriesQuery = query(collection(db, "categories"), orderBy("order", "asc"))
-      const categoriesSnapshot = await getDocs(categoriesQuery)
-      const categoriesData = categoriesSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }))
-      setCategories(categoriesData)
-    } catch (error) {
-      console.error("Error fetching categories:", error)
-    }
-  }
-
-  const fetchSubcategories = async (categoryId) => {
-    try {
-      const subcategoriesQuery = query(
-        collection(db, "subcategories"),
-        where("categoryId", "==", categoryId),
-        orderBy("order", "asc")
-      )
-      const subcategoriesSnapshot = await getDocs(subcategoriesQuery)
-      const subcategoriesData = subcategoriesSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }))
-      setSubcategories(subcategoriesData)
-    } catch (error) {
-      console.error("Error fetching subcategories:", error)
-      setSubcategories([])
-    }
-  }
-
-  const fetchPaymentStatus = async () => {
-    if (!currentUser) return
-    
-    try {
-      const paymentsQuery = query(
-        collection(db, "payments"),
-        where("userId", "==", currentUser.uid)
-      )
-      const paymentsSnapshot = await getDocs(paymentsQuery)
-
-      const statusMap = {}
-      
-      paymentsSnapshot.docs.forEach((doc) => {
-        const payment = doc.data()
-        console.log("[Courses] Payment data:", payment)
-        
-        if (payment.courses && Array.isArray(payment.courses)) {
-          payment.courses.forEach((course) => {
-            console.log(`[Courses] Course ${course.id} - Payment status: ${payment.status}`)
-            if (payment.status === "pending" && !statusMap[course.id]) {
-              statusMap[course.id] = "pending"
-            } else if (payment.status === "approved") {
-              statusMap[course.id] = "approved"
-            }
-          })
-        }
-      })
-
-      console.log("[Courses] Final payment status map:", statusMap)
-      setPaymentStatusMap(statusMap)
-    } catch (error) {
-      console.error("Error fetching payment status:", error)
-    }
-  }
-
-  const filterAndSortCourses = () => {
-    let filtered = courses ? [...courses] : []
-
-    if (searchQuery && searchQuery.trim()) {
-      filtered = filtered.filter(
-        (course) =>
-          course.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          course.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          course.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          course.subcategory?.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-    }
-
-    if (categoryFilter && categoryFilter !== "all") {
-      const selectedCategory = categories.find(cat => cat.id === categoryFilter)
-      if (selectedCategory) {
-        filtered = filtered.filter((course) => course.category === selectedCategory.title)
-      }
-    }
-
-    if (subcategoryFilter && subcategoryFilter !== "all") {
-      const selectedSubcategory = subcategories.find(sub => sub.id === subcategoryFilter)
-      if (selectedSubcategory) {
-        filtered = filtered.filter((course) => course.subcategory === selectedSubcategory.title)
-      }
-    }
-
-    if (sortBy === "newest") {
-      filtered.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
-    } else if (sortBy === "oldest") {
-      filtered.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0))
-    } else if (sortBy === "title") {
-      filtered.sort((a, b) => (a.title || "").localeCompare(b.title || ""))
-    }
-
-    setFilteredCourses(filtered)
-  }
-
-  return (
+new_render_logic = """return (
     <div className="min-h-screen py-10 px-4 bg-[#F8FAFC] dark:bg-slate-950 font-sans">
       <div className="container mx-auto max-w-7xl">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-10 text-center sm:text-left">
@@ -299,10 +128,9 @@ export default function Courses() {
               const isPending = paymentStatus === "pending"
               
               // Simulated rating and student count (randomized based on ID for consistency if no real data)
-              const hash = course.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-              const rating = 4.0 + (hash % 11) / 10
-              const reviewCount = 10 + (hash % 40)
-              const studentsCount = 40 + (hash % 161)
+              const ratingId = course.id.charCodeAt(0) % 5
+              const rating = 4 + (ratingId * 0.2) // 4.0 to 4.8
+              const studentsCount = 120 + (course.id.charCodeAt(course.id.length-1) * 15)
 
               return (
                 <motion.div
@@ -351,11 +179,11 @@ export default function Courses() {
                     <div className="flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">
                       <div className="flex items-center gap-1">
                         <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                        <span className="text-slate-700 dark:text-slate-300">{rating.toFixed(1)} ({reviewCount} ratings)</span>
+                        <span className="text-slate-700 dark:text-slate-300">{rating.toFixed(1)}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Users className="w-4 h-4" />
-                        <span>{studentsCount} Students</span>
+                        <span>{studentsCount.toLocaleString()} Students</span>
                       </div>
                     </div>
 
@@ -384,14 +212,11 @@ export default function Courses() {
                         <div className="flex flex-col">
                           {course.price > 0 ? (
                             <>
-                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Price</span>
-                              <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300 leading-none tracking-tight">৳{course.price}</span>
+                              <span className="text-[10px] text-slate-400 line-through font-medium">৳{(course.price * 1.5).toFixed(0)}</span>
+                              <span className="text-lg font-extrabold text-slate-900 dark:text-white leading-none tracking-tight">৳{course.price}</span>
                             </>
                           ) : (
-                            <>
-                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Price</span>
-                              <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-500 leading-none">Free</span>
-                            </>
+                            <span className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400 leading-none">Free</span>
                           )}
                         </div>
 
@@ -414,3 +239,21 @@ export default function Courses() {
     </div>
   )
 }
+"""
+
+# I also need to ensure ArrowRight, Star, Users are imported in Courses.jsx.
+import_match = re.search(r"import\s+{([^}]+)}\s+from\s+[\"']lucide-react[\"']", content)
+if import_match:
+    imports = import_match.group(1).split(",")
+    imports = [i.strip() for i in imports]
+    for new_import in ["ArrowRight", "Star", "Users", "CheckCircle", "Clock", "Play", "User"]:
+        if new_import not in imports:
+            imports.append(new_import)
+    new_imports = "import { " + ", ".join(imports) + ' } from "lucide-react"'
+    content = content[:import_match.start()] + new_imports + content[import_match.end():]
+
+
+with open("src/pages/Courses.jsx", "w") as f:
+    f.write(content[:start_index] + new_render_logic)
+
+print("Courses.jsx rewritten.")

@@ -1,216 +1,17 @@
-"use client"
+import re
 
-import { useState, useEffect } from "react"
-import { useParams, useNavigate } from "react-router-dom"
-import { motion } from "framer-motion"
-import { Play, BookOpen, Clock, Users, Tag, Check, AlertCircle, ChevronRight, Star, Globe, PlayCircle, Smartphone, Infinity as InfinityIcon, Trophy, ArrowRight, MonitorPlay, FileText, ShieldCheck, CheckCircle, Zap, Layers } from "lucide-react"
-import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore"
-import { db } from "../lib/firebase"
-import { useAuth } from "../contexts/AuthContext"
-import { isFirebaseId } from "../lib/slug"
-import TelegramJoinButton from "../components/TelegramJoinButton"
+with open("src/pages/CourseDetail.jsx", "r") as f:
+    content = f.read()
 
-const generateStats = (id) => {
-  if (!id) return { rating: "4.8", reviewCount: 24, studentsCount: 124 };
-  const hash = String(id).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const rating = (4.0 + (hash % 11) / 10).toFixed(1);
-  const reviewCount = 10 + (hash % 40);
-  const studentsCount = 40 + (hash % 161);
-  return { rating, reviewCount, studentsCount };
-};
+start_index = content.find('return (\n    <div className="min-h-screen py-12')
+if start_index == -1:
+    start_index = content.find('return (\n    <div className="min-h-screen')
 
-export default function CourseDetail() {
-  const { slug } = useParams()
-  const navigate = useNavigate()
-  const { currentUser } = useAuth()
-  const [course, setCourse] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [hasAccess, setHasAccess] = useState(false)
-  const [hasPendingPayment, setHasPendingPayment] = useState(false)
-  const [teachers, setTeachers] = useState([])
-  const [enrollmentId, setEnrollmentId] = useState(null)
+if start_index == -1:
+    print("Could not find start index")
+    exit(1)
 
-  useEffect(() => {
-    fetchCourseData()
-  }, [slug, currentUser])
-
-  const fetchCourseData = async () => {
-    try {
-      let courseData = null
-      
-      if (isFirebaseId(slug)) {
-        const courseDoc = await getDoc(doc(db, "courses", slug))
-        if (courseDoc.exists()) {
-          courseData = { id: courseDoc.id, ...courseDoc.data() }
-        }
-      } else {
-        const q = query(collection(db, "courses"), where("slug", "==", slug))
-        const snapshot = await getDocs(q)
-        if (!snapshot.empty) {
-          const courseDoc = snapshot.docs[0]
-          courseData = { id: courseDoc.id, ...courseDoc.data() }
-        }
-      }
-      
-      if (courseData) {
-        setCourse(courseData)
-
-        if (courseData.instructors && courseData.instructors.length > 0) {
-          const teachersQuery = query(
-            collection(db, "teachers"),
-            where("name", "in", courseData.instructors.slice(0, 10))
-          )
-          const teachersSnapshot = await getDocs(teachersQuery)
-          const teachersData = teachersSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }))
-          setTeachers(teachersData)
-        }
-
-        if (currentUser) {
-          const paymentsQuery = query(
-            collection(db, "payments"),
-            where("userId", "==", currentUser.uid),
-            where("status", "==", "approved"),
-          )
-          const paymentsSnapshot = await getDocs(paymentsQuery)
-
-          const hasApprovedCourse = paymentsSnapshot.docs.some((doc) => {
-            const payment = doc.data()
-            return payment.courses?.some((c) => c.id === courseData.id)
-          })
-          setHasAccess(hasApprovedCourse)
-
-          if (hasApprovedCourse) {
-            const enrollmentsQuery = query(
-              collection(db, "enrollments"),
-              where("userId", "==", currentUser.uid),
-              where("courseId", "==", courseData.id),
-              where("status", "==", "APPROVED")
-            )
-            const enrollmentsSnapshot = await getDocs(enrollmentsQuery)
-            if (!enrollmentsSnapshot.empty) {
-              const enrollId = enrollmentsSnapshot.docs[0].id
-              console.log("✅ Enrollment ID found:", enrollId)
-              setEnrollmentId(enrollId)
-            } else {
-              console.log("⚠️ No enrollment found for this course")
-            }
-          }
-
-          const pendingPaymentQuery = query(
-            collection(db, "payments"),
-            where("userId", "==", currentUser.uid),
-            where("status", "==", "pending"),
-          )
-          const pendingPaymentSnapshot = await getDocs(pendingPaymentQuery)
-
-          const hasPendingCourse = pendingPaymentSnapshot.docs.some((doc) => {
-            const payment = doc.data()
-            return payment.courses?.some((c) => c.id === courseData.id)
-          })
-          setHasPendingPayment(hasPendingCourse)
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching course data:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleBuyNow = async () => {
-    if (!course) return
-    
-    if (!currentUser) {
-      navigate("/login")
-      return
-    }
-
-    try {
-      const tempCartItem = {
-        id: course.id,
-        title: course.title,
-        price: course.price || 0,
-        thumbnailURL: course.thumbnailURL
-      }
-      
-      localStorage.setItem("tempCheckoutItem", JSON.stringify([tempCartItem]))
-      navigate("/checkout")
-    } catch (error) {
-      console.error("Error navigating to checkout:", error)
-    }
-  }
-
-  const handleGoToMyCourses = () => {
-    navigate("/my-courses")
-  }
-
-  const handleEnrollFree = async () => {
-    if (!currentUser) {
-      navigate("/login")
-      return
-    }
-
-    try {
-      await addDoc(collection(db, "payments"), {
-        userId: currentUser.uid,
-        userName: currentUser.displayName || "User",
-        userEmail: currentUser.email,
-        courses: [
-          {
-            id: course.id,
-            title: course.title,
-            price: 0,
-          },
-        ],
-        subtotal: 0,
-        discount: 0,
-        finalAmount: 0,
-        status: "approved",
-        submittedAt: serverTimestamp(),
-        isFreeEnrollment: true,
-      })
-
-      await addDoc(collection(db, "enrollments"), {
-        userId: currentUser.uid,
-        courseId: course.id,
-        status: "APPROVED",
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        telegramJoinedAt: null
-      })
-
-      await fetchCourseData()
-    } catch (error) {
-      console.error("Error enrolling in free course:", error)
-      alert("Failed to enroll. Please try again.")
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
-
-  if (!course) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Course not found</h2>
-          <p className="text-muted-foreground">The course you're looking for doesn't exist.</p>
-        </div>
-      </div>
-    )
-  }
-
-  const courseStats = generateStats(course.id);
-
-  return (
+new_render_logic = """return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 font-sans pb-20">
       {/* Hero Section */}
       <div className="bg-slate-900 text-white pt-12 pb-32 border-b border-slate-800 relative overflow-hidden">
@@ -245,12 +46,12 @@ export default function CourseDetail() {
               <div className="flex flex-wrap items-center gap-6 text-sm text-slate-300 pt-4">
                 <div className="flex items-center gap-2">
                   <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
-                  <span className="font-bold text-white text-base">{courseStats.rating}</span>
-                  <span className="text-slate-400">({courseStats.reviewCount} ratings)</span>
+                  <span className="font-bold text-white text-base">4.8</span>
+                  <span className="text-slate-400">(2.4k ratings)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-indigo-400" />
-                  <span>{courseStats.studentsCount} Students Enrolled</span>
+                  <span>12,450 Students Enrolled</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Globe className="w-5 h-5 text-emerald-400" />
@@ -336,30 +137,53 @@ export default function CourseDetail() {
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-sm">
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Meet your instructors</h2>
                 <div className="space-y-6">
-                  {teachers.map(teacher => {
-                    const teacherStats = generateStats(teacher.id);
-                    return (
-                      <div key={teacher.id} className="flex flex-col sm:flex-row gap-6 pb-6 border-b border-slate-100 dark:border-slate-800 last:border-0 last:pb-0">
-                        <img src={teacher.imageURL || "https://via.placeholder.com/150"} alt={teacher.name} className="w-24 h-24 rounded-full object-cover border-4 border-slate-100 dark:border-slate-800 shrink-0 mx-auto sm:mx-0" />
-                        <div className="text-center sm:text-left">
-                          <h3 className="text-xl font-bold text-slate-900 dark:text-white">{teacher.name}</h3>
-                          <p className="text-indigo-600 dark:text-indigo-400 font-medium text-sm mb-3">Expert Educator</p>
-                          <div className="flex items-center justify-center sm:justify-start gap-4 text-sm text-slate-500 mb-3">
-                            <span className="flex items-center gap-1"><Star className="w-4 h-4 text-amber-400 fill-amber-400" /> {teacherStats.rating} Instructor Rating</span>
-                            <span className="flex items-center gap-1"><Users className="w-4 h-4 text-slate-400" /> {teacherStats.studentsCount} Students</span>
-                          </div>
-                          <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl">
-                            {teacher.bio || "Passionate educator with years of experience in helping students achieve their academic and professional goals through clear, structured, and practical learning."}
-                          </p>
+                  {teachers.map(teacher => (
+                    <div key={teacher.id} className="flex flex-col sm:flex-row gap-6 pb-6 border-b border-slate-100 dark:border-slate-800 last:border-0 last:pb-0">
+                      <img src={teacher.imageURL || "https://via.placeholder.com/150"} alt={teacher.name} className="w-24 h-24 rounded-full object-cover border-4 border-slate-100 dark:border-slate-800 shrink-0 mx-auto sm:mx-0" />
+                      <div className="text-center sm:text-left">
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">{teacher.name}</h3>
+                        <p className="text-indigo-600 dark:text-indigo-400 font-medium text-sm mb-3">Expert Educator</p>
+                        <div className="flex items-center justify-center sm:justify-start gap-4 text-sm text-slate-500 mb-3">
+                          <span className="flex items-center gap-1"><Star className="w-4 h-4 text-amber-400 fill-amber-400" /> 4.9 Instructor Rating</span>
+                          <span className="flex items-center gap-1"><Users className="w-4 h-4 text-slate-400" /> 50k+ Students</span>
                         </div>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl">
+                          {teacher.bio || "Passionate educator with years of experience in helping students achieve their academic and professional goals through clear, structured, and practical learning."}
+                        </p>
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               </motion.div>
             )}
 
-
+            {/* Dummy Reviews Section */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-sm">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Student Feedback</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {[
+                  { name: "Rakib Hasan", text: "Best course I have ever taken. Everything is explained clearly and concisely!" },
+                  { name: "Sadia Islam", text: "The instructors are amazing, and the lifetime access means I can revise anytime." },
+                  { name: "Fahim Ahmed", text: "Highly recommended for anyone looking to build a strong foundation." },
+                  { name: "Nusrat Jahan", text: "Very premium feel. The website and course player is top notch!" }
+                ].map((review, i) => (
+                  <div key={i} className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+                        {review.name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm text-slate-900 dark:text-white">{review.name}</p>
+                        <div className="flex gap-0.5 text-amber-400">
+                          <Star className="w-3 h-3 fill-amber-400" /><Star className="w-3 h-3 fill-amber-400" /><Star className="w-3 h-3 fill-amber-400" /><Star className="w-3 h-3 fill-amber-400" /><Star className="w-3 h-3 fill-amber-400" />
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-slate-600 dark:text-slate-300 italic">"{review.text}"</p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
           </div>
           
           {/* Right Column (Sticky Purchase Card) */}
@@ -427,31 +251,13 @@ export default function CourseDetail() {
                   </button>
                 )}
 
-                <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
-                  <h4 className="text-sm font-extrabold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                    <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                    এই কোর্সে যা যা থাকছে:
-                  </h4>
-                  <ul className="space-y-3">
-                    {[
-                      { icon: MonitorPlay, text: "Archive Classes", color: "text-indigo-500", bg: "bg-indigo-50 dark:bg-indigo-500/10" },
-                      { icon: FileText, text: "ক্লাস এর লেকচার শীট", color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-500/10" },
-                      { icon: BookOpen, text: "Practice Sheet", color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-500/10" },
-                      { icon: Zap, text: "Super Fast Uploading", color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-500/10" },
-                      { icon: InfinityIcon, text: "লাইফটাইম এক্সেস", color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-500/10" },
-                      { icon: Layers, text: "ক্লাস সাজানো থাকবে টপিক অনুযায়ী", color: "text-rose-500", bg: "bg-rose-50 dark:bg-rose-500/10" },
-                      { icon: ShieldCheck, text: "আগের আইডি নষ্ট হলে নতুন আইডি এড করা হবে", color: "text-teal-500", bg: "bg-teal-50 dark:bg-teal-500/10" }
-                    ].map((feature, idx) => (
-                      <li key={idx} className="flex items-start gap-3 group">
-                        <div className={`mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${feature.bg}`}>
-                          <feature.icon className={`w-4 h-4 ${feature.color}`} />
-                        </div>
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-snug group-hover:text-slate-900 dark:group-hover:text-white transition-colors pt-1.5">
-                          {feature.text}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+                <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-sm font-medium text-slate-600 dark:text-slate-300">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">This course includes:</h4>
+                  <div className="flex items-center gap-3"><MonitorPlay className="w-5 h-5 text-indigo-500" /> 24+ hours on-demand video</div>
+                  <div className="flex items-center gap-3"><FileText className="w-5 h-5 text-indigo-500" /> 12 Downloadable resources</div>
+                  <div className="flex items-center gap-3"><InfinityIcon className="w-5 h-5 text-indigo-500" /> Full lifetime access</div>
+                  <div className="flex items-center gap-3"><Smartphone className="w-5 h-5 text-indigo-500" /> Access on mobile and TV</div>
+                  <div className="flex items-center gap-3"><Trophy className="w-5 h-5 text-indigo-500" /> Certificate of completion</div>
                 </div>
 
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800 text-center">
@@ -469,3 +275,21 @@ export default function CourseDetail() {
     </div>
   )
 }
+"""
+
+# Import missing icons
+import_match = re.search(r"import\s+{([^}]+)}\s+from\s+[\"']lucide-react[\"']", content)
+if import_match:
+    imports = import_match.group(1).split(",")
+    imports = [i.strip() for i in imports]
+    new_icons = ["ChevronRight", "Star", "Users", "Globe", "Check", "PlayCircle", "Smartphone", "Infinity as InfinityIcon", "Trophy", "Clock", "ArrowRight", "MonitorPlay", "FileText", "ShieldCheck", "Play", "CheckCircle"]
+    for icon in new_icons:
+        if icon not in imports:
+            imports.append(icon)
+    new_imports = "import { " + ", ".join(imports) + ' } from "lucide-react"'
+    content = content[:import_match.start()] + new_imports + content[import_match.end():]
+
+with open("src/pages/CourseDetail.jsx", "w") as f:
+    f.write(content[:start_index] + new_render_logic)
+
+print("CourseDetail.jsx rewritten.")

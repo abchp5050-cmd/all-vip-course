@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react"
+import os
+
+cats_content = """import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from "firebase/firestore"
 import { db } from "../../lib/firebase"
@@ -428,3 +430,9 @@ export default function ManageCategories() {
     </div>
   )
 }
+"""
+
+with open("src/pages/admin/ManageCategories.jsx", "w") as f:
+    f.write(cats_content)
+
+print("ManageCategories.jsx rewritten.")

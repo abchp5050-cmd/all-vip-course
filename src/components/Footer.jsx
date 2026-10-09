@@ -115,17 +115,6 @@ export default function Footer() {
             <p className="text-sm text-muted-foreground">
               © {new Date().getFullYear()} All Vip Courses. All rights reserved.
             </p>
-            <p className="text-sm text-muted-foreground">
-              Developed by{" "}
-              <a 
-                href="https://t.me/hermanoMayorBot" 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:text-primary/80 transition-colors font-medium"
-              >
-                Hermano Mayor
-              </a>
-            </p>
           </div>
         </div>
       </div>

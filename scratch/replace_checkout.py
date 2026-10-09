@@ -1,4 +1,6 @@
-"use client"
+import sys
+
+content = """"use client"
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
@@ -446,3 +448,8 @@ export default function Checkout() {
     </div>
   )
 }
+"""
+
+with open('src/pages/Checkout.jsx', 'w') as f:
+    f.write(content)
+

@@ -1,58 +1,29 @@
-"use client"
+import re
 
-import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
-import { motion } from "framer-motion"
-import { ShoppingCart, ArrowLeft, BookOpen, Copy, ShieldCheck, BadgeCheck, Lock, Phone, Loader2, CheckCircle2 } from "lucide-react"
-import { useAuth } from "../contexts/AuthContext"
-import { collection, addDoc, serverTimestamp } from "firebase/firestore"
-import { db } from "../lib/firebase"
-import { toast } from "../hooks/use-toast"
+with open('src/pages/Checkout.jsx', 'r') as f:
+    content = f.read()
 
-export default function Checkout() {
-  const navigate = useNavigate()
-  const { currentUser, userProfile } = useAuth()
-  const [cartItems, setCartItems] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [phoneNumber, setPhoneNumber] = useState("")
-  const [telegramId, setTelegramId] = useState("")
-  const [telegramLink, setTelegramLink] = useState("")
-  const [customerName, setCustomerName] = useState("")
-  const [copied, setCopied] = useState(null)
-  
-  useEffect(() => {
-    if (userProfile?.name || currentUser?.displayName) {
-      setCustomerName(userProfile?.name || currentUser?.displayName || "")
-    }
-  }, [userProfile, currentUser])
+# Add transactionId state
+content = content.replace(
+    'const [customerName, setCustomerName] = useState("")',
+    'const [customerName, setCustomerName] = useState("")\n  const [transactionId, setTransactionId] = useState("")\n  const [copied, setCopied] = useState(null)'
+)
 
-  useEffect(() => {
-    if (!currentUser) {
-      navigate("/login")
-      return
-    }
+# Add import for Copy icon
+if 'Copy,' not in content:
+    content = content.replace('ArrowLeft,', 'ArrowLeft, Copy, ShieldCheck, Clock, FileText, BadgeCheck, Lock,')
 
-    const tempItem = localStorage.getItem("tempCheckoutItem")
-    if (tempItem) {
-      try {
-        setCartItems(JSON.parse(tempItem))
-      } catch (error) {
-        console.error("Error loading checkout items:", error)
-        navigate("/courses")
-      }
-    } else {
-      navigate("/courses")
-    }
-  }, [currentUser, navigate])
+# Add transactionId to payment record
+payment_record_str = """telegramLink: telegramLink.trim() || "",
+        transactionId: transactionId.trim(),"""
+content = content.replace('telegramLink: telegramLink.trim() || "",\n        courses:', payment_record_str + '\n        courses:')
 
-  const getTotal = () => {
-    return cartItems.reduce((total, item) => total + (item.price || 0), 0)
-  }
+enrollment_record_str = """telegramLink: telegramLink.trim() || "",
+            transactionId: transactionId.trim(),"""
+content = content.replace('telegramLink: telegramLink.trim() || "",\n            customerName:', enrollment_record_str + '\n            customerName:')
 
-  const clearCart = () => {
-    localStorage.removeItem("tempCheckoutItem")
-  }
-
+# Handle copy function
+handle_copy_logic = """
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text)
     setCopied(text)
@@ -63,90 +34,12 @@ export default function Checkout() {
     })
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    
-    if (!phoneNumber.trim() || !customerName.trim() || !telegramId.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Missing Information",
-        description: "Please fill in all required fields",
-      })
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      const subtotal = getTotal()
-      
-      // Create payment record
-      await addDoc(collection(db, "payments"), {
-        userId: currentUser.uid,
-        userName: customerName.trim(),
-        userEmail: userProfile?.email || currentUser.email,
-        phoneNumber: phoneNumber.trim(),
-        telegramId: telegramId.trim(),
-        telegramLink: telegramLink.trim() || "",
-        courses: cartItems.map((item) => ({
-          id: item.id,
-          title: item.title,
-          price: parseFloat(item.price) || 0,
-        })),
-        subtotal: parseFloat(subtotal.toFixed(2)),
-        discount: 0,
-        finalAmount: parseFloat(subtotal.toFixed(2)),
-        status: "pending",
-        submittedAt: serverTimestamp(),
-      })
-
-      // Create PENDING enrollment for each course
-      for (const course of cartItems) {
-        await addDoc(collection(db, "enrollments"), {
-          userId: currentUser.uid,
-          courseId: course.id,
-          status: "PENDING",
-          paymentInfo: {
-            phoneNumber: phoneNumber.trim(),
-            amount: parseFloat(course.price) || 0,
-            telegramId: telegramId.trim(),
-            telegramLink: telegramLink.trim() || "",
-            customerName: customerName.trim()
-          },
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          telegramJoinedAt: null
-        })
-      }
-
-      clearCart()
-      toast({
-        variant: "success",
-        title: "Payment Submitted!",
-        description: "Your payment is pending admin approval. You'll get access once approved.",
-      })
-      
-      navigate("/checkout-complete", {
-        state: {
-          phoneNumber: phoneNumber.trim(),
-          amount: subtotal.toFixed(2),
-          courses: cartItems
-        }
-      })
-    } catch (error) {
-      console.error("Error submitting payment:", error)
-      toast({
-        variant: "destructive",
-        title: "Submission Failed",
-        description: "Failed to submit payment information. Please try again.",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const subtotal = getTotal()
+"""
+content = content.replace('const subtotal = getTotal()', handle_copy_logic)
 
+# Re-write the return block
+new_return = """
   return (
     <div className="min-h-screen bg-[#0a0f1c] text-slate-200 py-8 lg:py-16 relative overflow-hidden font-sans">
       {/* Background ambient glowing gradients */}
@@ -297,7 +190,6 @@ export default function Checkout() {
                   <div className="flex items-center justify-between bg-slate-950/50 p-3 rounded-xl border border-slate-800">
                     <span className="text-lg font-mono font-bold text-white tracking-widest">01831952349</span>
                     <button 
-                      type="button"
                       onClick={() => handleCopy("01831952349")}
                       className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors group-hover:text-white"
                       title="Copy Number"
@@ -323,7 +215,6 @@ export default function Checkout() {
                   <div className="flex items-center justify-between bg-slate-950/50 p-3 rounded-xl border border-slate-800">
                     <span className="text-lg font-mono font-bold text-white tracking-widest">01815307903</span>
                     <button 
-                      type="button"
                       onClick={() => handleCopy("01815307903")}
                       className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors group-hover:text-white"
                       title="Copy Number"
@@ -390,19 +281,34 @@ export default function Checkout() {
                       />
                     </div>
 
-                    {/* Telegram Link */}
+                    {/* Transaction ID */}
                     <div className="space-y-1.5">
                       <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                        Telegram Profile Link <span className="text-slate-500 normal-case font-normal">(Optional)</span>
+                        Transaction ID <span className="text-red-400">*</span>
                       </label>
                       <input
-                        type="url"
-                        value={telegramLink}
-                        onChange={(e) => setTelegramLink(e.target.value)}
-                        placeholder="https://t.me/yourusername"
-                        className="w-full px-4 py-3 bg-slate-950/50 border border-slate-700/50 rounded-xl focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 text-white placeholder:text-slate-600 transition-all text-sm font-mono"
+                        type="text"
+                        value={transactionId}
+                        onChange={(e) => setTransactionId(e.target.value)}
+                        placeholder="TrxID (e.g. 8A7B6C5D)"
+                        required
+                        className="w-full px-4 py-3 bg-slate-950/50 border border-slate-700/50 rounded-xl focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 text-white placeholder:text-slate-600 transition-all text-sm font-mono uppercase"
                       />
                     </div>
+                  </div>
+
+                  {/* Telegram Link */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                      Telegram Profile Link <span className="text-slate-500 normal-case font-normal">(Optional)</span>
+                    </label>
+                    <input
+                      type="url"
+                      value={telegramLink}
+                      onChange={(e) => setTelegramLink(e.target.value)}
+                      placeholder="https://t.me/yourusername"
+                      className="w-full px-4 py-3 bg-slate-950/50 border border-slate-700/50 rounded-xl focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 text-white placeholder:text-slate-600 transition-all text-sm font-mono"
+                    />
                   </div>
 
                   {/* Email Read-only */}
@@ -445,4 +351,10 @@ export default function Checkout() {
       </div>
     </div>
   )
-}
+"""
+
+content = re.sub(r'  return \(\n    <div className="min-h-screen.*', new_return, content, flags=re.DOTALL)
+
+with open('src/pages/Checkout.jsx', 'w') as f:
+    f.write(content)
+
