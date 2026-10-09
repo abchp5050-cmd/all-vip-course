@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { User, Building, Phone, Facebook, Linkedin, Github, Camera } from "lucide-react"
+import { User, Building, Phone, Facebook, Linkedin, Github, Camera, Shield, Mail, Edit3, ArrowRight } from "lucide-react"
 import { doc, updateDoc } from "firebase/firestore"
 import { db } from "../lib/firebase"
 import { uploadImageToImgBB } from "../lib/imgbb"
@@ -17,7 +17,7 @@ export default function Profile() {
     github: "",
   })
   const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState("")
+  const [message, setMessage] = useState({ type: "", text: "" })
   const [photoFile, setPhotoFile] = useState(null)
   const [photoPreview, setPhotoPreview] = useState(null)
 
@@ -57,31 +57,25 @@ export default function Profile() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!currentUser) {
-      setMessage("You must be logged in to update your profile.")
+      setMessage({ type: "error", text: "You must be logged in to update your profile." })
       return
     }
 
     setLoading(true)
-    setMessage("")
+    setMessage({ type: "", text: "" })
 
     try {
-      console.log(" Starting profile update for user:", currentUser.uid)
       let photoURL = userProfile?.photoURL || ""
 
       if (photoFile) {
-        console.log(" Uploading profile photo to imgbb...")
         try {
           photoURL = await uploadImageToImgBB(photoFile)
-          console.log(" Photo uploaded successfully:", photoURL)
         } catch (uploadError) {
-          console.error(" Photo upload error:", uploadError)
           throw new Error(uploadError.message || "Failed to upload photo. Please try again.")
         }
       }
 
-      console.log(" Updating user document...")
       const userRef = doc(db, "users", currentUser.uid)
-
       const updateData = {
         name: formData.name,
         institution: formData.institution,
@@ -97,214 +91,233 @@ export default function Profile() {
         updateData.photoURL = photoURL
       }
 
-      console.log(" Update data:", updateData)
-
       await updateDoc(userRef, updateData)
-      console.log(" User document updated successfully")
-
       await new Promise((resolve) => setTimeout(resolve, 500))
       await refreshUserProfile()
-      console.log(" Profile refreshed")
 
-      setMessage("Profile updated successfully!")
+      setMessage({ type: "success", text: "Profile updated successfully!" })
       setPhotoFile(null)
-      setTimeout(() => setMessage(""), 3000)
+      setTimeout(() => setMessage({ type: "", text: "" }), 3000)
     } catch (error) {
-      console.error(" Error updating profile:", error)
-      console.error(" Error code:", error.code)
-      console.error(" Error message:", error.message)
-
       let errorMessage = "Failed to update profile. "
       if (error.code === "permission-denied") {
-        errorMessage += "You don't have permission to update this profile. Check Firestore security rules."
+        errorMessage += "You don't have permission to update this profile."
       } else if (error.code === "not-found") {
-        errorMessage += "User profile not found. Please try logging out and back in."
-      } else if (error.code === "unavailable") {
-        errorMessage += "Cannot connect to database. Check your internet connection."
+        errorMessage += "User profile not found."
       } else if (error.message) {
         errorMessage += error.message
-      } else {
-        errorMessage += "Please try again."
       }
-
-      setMessage(errorMessage)
+      setMessage({ type: "error", text: errorMessage })
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen py-12 px-4">
-      <div className="container mx-auto max-w-3xl">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Profile Settings</h1>
-          <p className="text-muted-foreground">Manage your account information</p>
+    <div className="min-h-screen py-10 px-4 bg-[#050816] text-white relative overflow-hidden">
+      {/* Background Ambient Glow */}
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
+
+      <div className="max-w-3xl mx-auto relative z-10">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10 text-center">
+          <div className="inline-flex items-center justify-center p-3 bg-white/5 rounded-2xl mb-4 border border-white/10 shadow-[0_0_30px_rgba(249,115,22,0.1)]">
+            <User className="w-8 h-8 text-primary" />
+          </div>
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white mb-2">Profile Settings</h1>
+          <p className="text-gray-400">Manage your account information and preferences</p>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-card border border-border rounded-xl p-8"
+          transition={{ delay: 0.1, duration: 0.4 }}
+          className="bg-[#111827]/80 backdrop-blur-xl border border-white/5 rounded-3xl p-6 md:p-10 shadow-2xl relative overflow-hidden"
         >
-          {message && (
-            <div
-              className={`mb-6 p-4 rounded-lg ${
-                message.includes("success")
-                  ? "bg-green-500/10 border border-green-500/20 text-green-500"
-                  : "bg-red-500/10 border border-red-500/20 text-red-500"
+          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+
+          {message.text && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`mb-8 p-4 rounded-xl flex items-center gap-3 text-sm font-medium ${
+                message.type === "success"
+                  ? "bg-green-500/10 border border-green-500/20 text-green-400"
+                  : "bg-red-500/10 border border-red-500/20 text-red-400"
               }`}
             >
-              {message}
-            </div>
+              {message.type === "success" ? <Shield className="w-5 h-5" /> : <div className="w-5 h-5 rounded-full border-2 border-red-400 flex items-center justify-center">!</div>}
+              {message.text}
+            </motion.div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Profile Photo */}
-            <div className="flex flex-col items-center mb-8">
-              <div className="relative">
-                <div className="w-32 h-32 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
-                  {photoPreview ? (
-                    <img
-                      src={photoPreview || "/placeholder.svg"}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User className="w-16 h-16 text-primary" />
-                  )}
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Profile Photo Section */}
+            <div className="flex flex-col items-center">
+              <div className="relative group">
+                <div className="w-32 h-32 rounded-full p-1 bg-gradient-to-tr from-primary to-orange-400 shadow-[0_0_30px_rgba(249,115,22,0.2)]">
+                  <div className="w-full h-full rounded-full bg-[#111827] overflow-hidden flex items-center justify-center relative">
+                    {photoPreview ? (
+                      <img
+                        src={photoPreview || "/placeholder.svg"}
+                        alt="Profile"
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                    ) : (
+                      <User className="w-12 h-12 text-gray-500" />
+                    )}
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Camera className="w-8 h-8 text-white" />
+                    </div>
+                  </div>
                 </div>
-                <label className="absolute bottom-0 right-0 p-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full cursor-pointer transition-colors">
-                  <Camera className="w-5 h-5" />
+                <label className="absolute bottom-1 right-1 w-10 h-10 bg-primary hover:bg-primary/90 text-white rounded-full flex items-center justify-center cursor-pointer shadow-lg transition-transform hover:scale-110 border-2 border-[#111827]">
+                  <Edit3 className="w-4 h-4" />
                   <input type="file" accept="image/*" onChange={handlePhotoSelect} className="hidden" />
                 </label>
               </div>
-              <p className="text-sm text-muted-foreground mt-2">Click the camera icon to change photo</p>
-            </div>
-
-            {/* Name */}
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium mb-2">
-                Full Name
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  className="w-full pl-10 pr-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+              <div className="mt-4 text-center">
+                <p className="font-semibold text-lg">{userProfile?.name || "Student"}</p>
+                <div className="flex items-center gap-1.5 text-gray-400 text-sm mt-1 justify-center">
+                  <Mail className="w-3.5 h-3.5" />
+                  {currentUser?.email}
+                </div>
               </div>
             </div>
 
-            {/* Institution */}
-            <div>
-              <label htmlFor="institution" className="block text-sm font-medium mb-2">
-                Institution
-              </label>
-              <div className="relative">
-                <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <input
-                  id="institution"
-                  name="institution"
-                  type="text"
-                  value={formData.institution}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+              {/* Name */}
+              <div className="space-y-2">
+                <label htmlFor="name" className="text-sm font-medium text-gray-300 ml-1 block">
+                  Full Name
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <User className="w-5 h-5 text-gray-500 group-focus-within:text-primary transition-colors" />
+                  </div>
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                    className="w-full pl-11 pr-4 py-3.5 bg-white/[0.02] border border-white/10 rounded-xl focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 text-white transition-all placeholder:text-gray-600 hover:bg-white/[0.04]"
+                    placeholder="Enter your full name"
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Phone */}
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium mb-2">
-                Phone Number
-              </label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+              {/* Phone */}
+              <div className="space-y-2">
+                <label htmlFor="phone" className="text-sm font-medium text-gray-300 ml-1 block">
+                  Phone Number
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Phone className="w-5 h-5 text-gray-500 group-focus-within:text-primary transition-colors" />
+                  </div>
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className="w-full pl-11 pr-4 py-3.5 bg-white/[0.02] border border-white/10 rounded-xl focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 text-white transition-all placeholder:text-gray-600 hover:bg-white/[0.04]"
+                    placeholder="+880 1XXX-XXXXXX"
+                  />
+                </div>
+              </div>
+
+              {/* Institution */}
+              <div className="space-y-2 md:col-span-2">
+                <label htmlFor="institution" className="text-sm font-medium text-gray-300 ml-1 block">
+                  Institution
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Building className="w-5 h-5 text-gray-500 group-focus-within:text-primary transition-colors" />
+                  </div>
+                  <input
+                    id="institution"
+                    name="institution"
+                    type="text"
+                    value={formData.institution}
+                    onChange={handleChange}
+                    className="w-full pl-11 pr-4 py-3.5 bg-white/[0.02] border border-white/10 rounded-xl focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 text-white transition-all placeholder:text-gray-600 hover:bg-white/[0.04]"
+                    placeholder="College or University name"
+                  />
+                </div>
               </div>
             </div>
 
             {/* Social Links */}
-            <div className="pt-6 border-t border-border">
-              <h3 className="text-lg font-semibold mb-4">Social Links</h3>
+            <div className="pt-8 mt-8 border-t border-white/5 relative">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-4 bg-[#111827]">
+                <span className="text-xs font-semibold uppercase tracking-widest text-gray-500">Social Connections</span>
+              </div>
 
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="facebook" className="block text-sm font-medium mb-2">
-                    Facebook
-                  </label>
-                  <div className="relative">
-                    <Facebook className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <input
-                      id="facebook"
-                      name="facebook"
-                      type="url"
-                      value={formData.facebook}
-                      onChange={handleChange}
-                      placeholder="https://facebook.com/username"
-                      className="w-full pl-10 pr-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
+              <div className="space-y-5 mt-6">
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Facebook className="w-5 h-5 text-blue-500/70 group-focus-within:text-blue-500 transition-colors" />
                   </div>
+                  <input
+                    name="facebook"
+                    type="url"
+                    value={formData.facebook}
+                    onChange={handleChange}
+                    placeholder="Facebook Profile URL"
+                    className="w-full pl-11 pr-4 py-3.5 bg-white/[0.02] border border-white/10 rounded-xl focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 text-white transition-all placeholder:text-gray-600 hover:bg-white/[0.04]"
+                  />
                 </div>
 
-                <div>
-                  <label htmlFor="linkedin" className="block text-sm font-medium mb-2">
-                    LinkedIn
-                  </label>
-                  <div className="relative">
-                    <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <input
-                      id="linkedin"
-                      name="linkedin"
-                      type="url"
-                      value={formData.linkedin}
-                      onChange={handleChange}
-                      placeholder="https://linkedin.com/in/username"
-                      className="w-full pl-10 pr-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Linkedin className="w-5 h-5 text-blue-400/70 group-focus-within:text-blue-400 transition-colors" />
                   </div>
+                  <input
+                    name="linkedin"
+                    type="url"
+                    value={formData.linkedin}
+                    onChange={handleChange}
+                    placeholder="LinkedIn Profile URL"
+                    className="w-full pl-11 pr-4 py-3.5 bg-white/[0.02] border border-white/10 rounded-xl focus:outline-none focus:border-blue-400/50 focus:ring-1 focus:ring-blue-400/50 text-white transition-all placeholder:text-gray-600 hover:bg-white/[0.04]"
+                  />
                 </div>
 
-                <div>
-                  <label htmlFor="github" className="block text-sm font-medium mb-2">
-                    GitHub
-                  </label>
-                  <div className="relative">
-                    <Github className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <input
-                      id="github"
-                      name="github"
-                      type="url"
-                      value={formData.github}
-                      onChange={handleChange}
-                      placeholder="https://github.com/username"
-                      className="w-full pl-10 pr-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Github className="w-5 h-5 text-gray-400 group-focus-within:text-white transition-colors" />
                   </div>
+                  <input
+                    name="github"
+                    type="url"
+                    value={formData.github}
+                    onChange={handleChange}
+                    placeholder="GitHub Profile URL"
+                    className="w-full pl-11 pr-4 py-3.5 bg-white/[0.02] border border-white/10 rounded-xl focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 text-white transition-all placeholder:text-gray-600 hover:bg-white/[0.04]"
+                  />
                 </div>
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? "Saving..." : "Save Changes"}
-            </button>
+            <div className="pt-6">
+              <button
+                type="submit"
+                disabled={loading}
+                className="group w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white rounded-xl font-semibold shadow-[0_0_20px_rgba(249,115,22,0.25)] hover:shadow-[0_0_30px_rgba(249,115,22,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5"
+              >
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <>
+                    Save Profile Changes
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </button>
+            </div>
           </form>
         </motion.div>
       </div>

@@ -249,10 +249,17 @@ export default function DynamicHeader() {
       if (headerConfig) {
         // Map dynamic icon string to actual Lucide-react component
         const mappedNavigation = (headerConfig.content.navigation || [])
-          .map(item => ({
-            ...item,
-            Icon: iconMap[item.icon] || Home // Fallback to Home icon
-          }))
+          .map(item => {
+            const isHome = item.label?.toLowerCase() === 'home';
+            const isCourses = item.label?.toLowerCase() === 'courses';
+            return {
+              ...item,
+              url: isHome ? '/' : (isCourses ? '/courses' : item.url),
+              type: isHome || isCourses ? 'internal' : item.type,
+              openInNewTab: isHome || isCourses ? false : item.openInNewTab,
+              Icon: iconMap[item.icon] || Home // Fallback to Home icon
+            };
+          })
           .sort((a, b) => (a.order || 0) - (b.order || 0)) // Sort
           
         setConfig({

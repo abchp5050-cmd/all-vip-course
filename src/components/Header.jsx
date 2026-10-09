@@ -126,7 +126,7 @@ export default function Header() {
             BarChart3
           }
           
-          const dynamicNavLinks = config.content.navigation
+            const dynamicNavLinks = config.content.navigation
             .filter(item => item.isVisible !== false) // Only take visible items
             .sort((a, b) => (a.order || 0) - (b.order || 0)) // Sort by order
             .map(item => {
@@ -137,12 +137,15 @@ export default function Header() {
                 item.label?.toLowerCase().includes('community') ? Users : Home
               )
               
+              const isHome = item.label?.toLowerCase() === 'home';
+              const isCourses = item.label?.toLowerCase() === 'courses';
+              
               return {
                 name: item.label,
-                path: item.url,
+                path: isHome ? '/' : (isCourses ? '/courses' : item.url),
                 icon: Icon,
-                openInNewTab: item.openInNewTab || false,
-                type: item.type || 'internal'
+                openInNewTab: isHome || isCourses ? false : (item.openInNewTab || false),
+                type: isHome || isCourses ? 'internal' : (item.type || 'internal')
               }
             })
             
@@ -162,12 +165,9 @@ export default function Header() {
             // Convert map back to array
             finalNavLinks = Array.from(pathMap.values());
             
-            // CRITICAL: Filter out unwanted links like Community/Announcement, if they exist
-            const unwantedNames = new Set(["Community", "Announcement"]) 
-            finalNavLinks = finalNavLinks.filter(link => !unwantedNames.has(link.name));
+            // Note: Retaining Community/Telegram links as requested by user.
 
-
-          console.log('🔍 Dynamic Nav Links (Combined & Filtered):', finalNavLinks)
+          console.log('🔍 Dynamic Nav Links (Combined):', finalNavLinks)
           
         } else {
           // If no valid config is found, finalNavLinks remains as DEFAULT_NAV_LINKS (Home, Courses)

@@ -547,7 +547,12 @@ const testimonials = [
                 <p className="text-muted-foreground mb-6 sm:mb-8 text-sm sm:text-[15px] italic leading-relaxed font-bengali min-h-[80px] sm:min-h-[100px]">"{t.content}"</p>
                 <div className="flex items-center gap-3 sm:gap-4 mt-auto">
                   <div className="relative">
-                    <img src={t.image} alt={t.name} className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-primary/20" />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center bg-gradient-to-br from-[#1e293b] to-[#0f172a] border-2 border-primary/20 shadow-inner">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 sm:w-6 sm:h-6 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                      </svg>
+                    </div>
                     <CheckCircle2 className="absolute -bottom-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 text-green-500 bg-background rounded-full border-2 border-background" />
                   </div>
                   <div className="font-bengali">

@@ -1,13 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import { motion } from "framer-motion"
-import { CreditCard, ArrowLeft, Calendar, Banknote, CheckCircle, Clock, XCircle, BookOpen } from "lucide-react"
+import { CreditCard, ArrowLeft, Calendar, Banknote, CheckCircle, Clock, XCircle, BookOpen, Receipt } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore"
+import { collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "../lib/firebase"
-import { Link } from "react-router-dom"
 
 export default function PaymentHistory() {
   const navigate = useNavigate()
@@ -49,164 +48,172 @@ export default function PaymentHistory() {
     }
   }
 
-  const getStatusColor = (status) => {
+  const getStatusConfig = (status) => {
     switch (status) {
       case "approved":
-        return "bg-green-500/10 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800"
+        return {
+          bg: "bg-green-500/10",
+          text: "text-green-500",
+          border: "border-green-500/20",
+          glow: "shadow-[0_0_15px_rgba(34,197,94,0.15)]",
+          icon: <CheckCircle className="w-4 h-4" />
+        }
       case "pending":
-        return "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800"
+        return {
+          bg: "bg-orange-500/10",
+          text: "text-orange-500",
+          border: "border-orange-500/20",
+          glow: "shadow-[0_0_15px_rgba(249,115,22,0.15)]",
+          icon: <Clock className="w-4 h-4 animate-pulse" />
+        }
       case "rejected":
-        return "bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800"
+        return {
+          bg: "bg-red-500/10",
+          text: "text-red-500",
+          border: "border-red-500/20",
+          glow: "shadow-[0_0_15px_rgba(239,68,68,0.15)]",
+          icon: <XCircle className="w-4 h-4" />
+        }
       default:
-        return "bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-800"
-    }
-  }
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "approved":
-        return <CheckCircle className="w-5 h-5" />
-      case "pending":
-        return <Clock className="w-5 h-5" />
-      case "rejected":
-        return <XCircle className="w-5 h-5" />
-      default:
-        return null
+        return {
+          bg: "bg-gray-500/10",
+          text: "text-gray-400",
+          border: "border-gray-500/20",
+          glow: "",
+          icon: <Clock className="w-4 h-4" />
+        }
     }
   }
 
   return (
-    <div className="min-h-screen py-8 px-4 bg-gradient-to-br from-background via-primary/5 to-background">
-      <div className="container-balanced">
+    <div className="min-h-screen py-10 px-4 bg-[#050816] text-white overflow-hidden relative">
+      {/* Background Ambient Glow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[100px] pointer-events-none" />
+
+      <div className="max-w-4xl mx-auto relative z-10">
         <button
           onClick={() => navigate("/dashboard")}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors group"
+          className="flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors group text-sm font-medium"
         >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+          <div className="p-2 bg-white/5 rounded-full group-hover:bg-white/10 transition-colors">
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+          </div>
           Back to Dashboard
         </button>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="mb-8">
-            <h1 className="text-4xl md:text-5xl font-bold mb-2 flex items-center gap-3 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              <CreditCard className="w-10 h-10 text-primary" />
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
+          <div className="flex items-center gap-4 mb-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-orange-500/10 flex items-center justify-center border border-primary/20 shadow-[0_0_20px_rgba(249,115,22,0.1)]">
+              <Receipt className="w-6 h-6 text-primary" />
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
               Payment History
             </h1>
-            <p className="text-muted-foreground text-lg">Track all your payment transactions and status</p>
           </div>
+          <p className="text-gray-400 text-lg ml-16">Track your purchases and transaction status</p>
+        </motion.div>
 
-          {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-accent"></div>
-            </div>
-          ) : payments.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4">
-              {payments.map((payment, index) => (
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary/20 border-t-primary shadow-[0_0_15px_rgba(249,115,22,0.3)]"></div>
+          </div>
+        ) : payments.length > 0 ? (
+          <div className="space-y-6">
+            {payments.map((payment, index) => {
+              const statusConfig = getStatusConfig(payment.status)
+              
+              return (
                 <motion.div
                   key={payment.id}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="bg-card border border-border rounded-xl p-6 hover:border-primary/50 hover:shadow-lg transition-all"
+                  transition={{ delay: index * 0.1, duration: 0.4 }}
+                  className="bg-[#111827]/80 backdrop-blur-md border border-white/5 rounded-2xl p-6 hover:border-primary/30 transition-all duration-300 hover:shadow-[0_8px_30px_rgba(249,115,22,0.08)] group overflow-hidden relative"
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-                    {/* Date */}
-                    <div className="bg-muted/50 rounded-lg p-4">
-                      <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wide font-semibold">Date</p>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-primary" />
-                        <p className="font-semibold">
-                          {payment.submittedAt?.toDate?.()?.toLocaleDateString() || "N/A"}
-                        </p>
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/5 to-transparent rounded-bl-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                        <Banknote className="w-5 h-5 text-gray-300 group-hover:text-primary transition-colors" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-white tracking-tight">৳{payment.finalAmount?.toFixed(2) || 0}</p>
+                        <div className="flex items-center gap-2 text-sm text-gray-400 mt-1">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>{payment.submittedAt?.toDate?.()?.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) || "N/A"}</span>
+                        </div>
                       </div>
                     </div>
-
-                    {/* Amount */}
-                    <div className="bg-muted/50 rounded-lg p-4">
-                      <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wide font-semibold">Amount</p>
-                      <div className="flex items-center gap-2">
-                        <Banknote className="w-5 h-5 text-primary" />
-                        <p className="font-semibold">৳{payment.finalAmount?.toFixed(2) || 0}</p>
-                      </div>
-                    </div>
-
-                    {/* Status */}
-                    <div className="bg-muted/50 rounded-lg p-4">
-                      <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wide font-semibold">Status</p>
-                      <div
-                        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border font-medium text-sm ${getStatusColor(payment.status)}`}
-                      >
-                        {getStatusIcon(payment.status)}
+                    
+                    <div className="flex flex-col items-start md:items-end gap-2">
+                      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium ${statusConfig.bg} ${statusConfig.border} ${statusConfig.text} ${statusConfig.glow}`}>
+                        {statusConfig.icon}
                         <span className="capitalize">{payment.status}</span>
                       </div>
-                    </div>
-
-                    {/* Transaction ID */}
-                    <div className="bg-muted/50 rounded-lg p-4">
-                      <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wide font-semibold">
-                        Transaction ID
+                      <p className="text-xs text-gray-500 font-mono bg-white/5 px-2 py-1 rounded-md border border-white/5">
+                        ID: {payment.transactionId}
                       </p>
-                      <p className="font-mono text-sm truncate">{payment.transactionId}</p>
-                    </div>
-
-                    {/* Courses Count */}
-                    <div className="bg-muted/50 rounded-lg p-4">
-                      <p className="text-xs text-muted-foreground mb-2 uppercase tracking-wide font-semibold">
-                        Courses
-                      </p>
-                      <p className="font-semibold text-lg">{payment.courses?.length || 0}</p>
                     </div>
                   </div>
 
-                  {/* Courses List */}
-                  <div className="border-t border-border pt-4">
-                    <p className="text-sm font-semibold mb-3">Courses Included</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div className="border-t border-white/5 pt-5">
+                    <p className="text-sm font-medium text-gray-400 mb-4 flex items-center gap-2">
+                      <BookOpen className="w-4 h-4" />
+                      Purchased Courses ({payment.courses?.length || 0})
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {payment.courses?.map((course, idx) => (
-                        <div key={idx} className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
-                          <BookOpen className="w-4 h-4 text-primary flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{course.title}</p>
-                            <p className="text-xs text-muted-foreground">৳{course.price || 0}</p>
+                        <div key={idx} className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.04] transition-colors">
+                          <div className="flex-1 min-w-0 pr-4">
+                            <p className="text-sm font-medium text-gray-200 truncate">{course.title}</p>
                           </div>
+                          <span className="text-sm font-semibold text-primary/90 flex-shrink-0">৳{course.price || 0}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  {/* Discount Info */}
                   {payment.couponCode && (
-                    <div className="border-t border-border pt-4 mt-4">
-                      <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-lg border border-green-200 dark:border-green-800">
-                        <div>
-                          <p className="text-sm font-medium">Coupon Applied</p>
-                          <p className="text-xs text-muted-foreground">{payment.couponCode}</p>
+                    <div className="mt-4 p-3 bg-green-500/5 border border-green-500/10 rounded-xl flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="px-2 py-1 bg-green-500/20 text-green-400 text-xs font-bold rounded-md border border-green-500/20 uppercase tracking-wider">
+                          {payment.couponCode}
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-semibold text-green-600 dark:text-green-400">
-                            -৳{payment.discount?.toFixed(2) || 0}
-                          </p>
-                        </div>
+                        <span className="text-sm text-gray-400">applied</span>
                       </div>
+                      <span className="text-sm font-bold text-green-400">-৳{payment.discount?.toFixed(2) || 0}</span>
                     </div>
                   )}
                 </motion.div>
-              ))}
+              )
+            })}
+          </div>
+        ) : (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center py-20 bg-[#111827]/50 backdrop-blur-sm border border-white/5 rounded-3xl relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
+            
+            <div className="w-24 h-24 mx-auto mb-6 bg-white/5 rounded-full flex items-center justify-center border border-white/10 relative">
+              <CreditCard className="w-10 h-10 text-gray-500" />
+              <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full" />
             </div>
-          ) : (
-            <div className="text-center py-16 bg-card border border-border rounded-xl">
-              <CreditCard className="w-20 h-20 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <p className="text-lg font-semibold mb-2">No Payment History</p>
-              <p className="text-muted-foreground mb-6">You haven't made any payments yet</p>
-              <Link
-                to="/courses"
-                className="inline-block px-6 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors font-medium"
-              >
-                Browse Courses
-              </Link>
-            </div>
-          )}
-        </motion.div>
+            
+            <h3 className="text-2xl font-bold text-white mb-2">No Transactions Yet</h3>
+            <p className="text-gray-400 mb-8 max-w-md mx-auto">Your payment history is currently empty. Explore our premium courses to begin your learning journey.</p>
+            
+            <Link
+              to="/courses"
+              className="inline-flex items-center justify-center px-8 py-3 bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white rounded-xl font-semibold shadow-[0_0_20px_rgba(249,115,22,0.3)] hover:shadow-[0_0_30px_rgba(249,115,22,0.5)] transition-all hover:-translate-y-0.5"
+            >
+              Explore Courses
+            </Link>
+          </motion.div>
+        )}
       </div>
     </div>
   )
