@@ -87,7 +87,7 @@ export default function SupportWidget() {
   ]
 
   return (
-    <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-[60] flex flex-col items-end" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+    <div className="fixed bottom-24 sm:bottom-12 right-4 sm:right-6 z-[60] flex flex-col items-end" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       {/* Quick Help Popup */}
       <AnimatePresence>
         {isOpen && (
@@ -154,23 +154,25 @@ export default function SupportWidget() {
 
       {/* Main Floating Button */}
       <motion.button
+        animate={{ boxShadow: ["0px 0px 0px 0px rgba(59,130,246,0.5)", "0px 0px 15px 5px rgba(59,130,246,0)", "0px 0px 0px 0px rgba(59,130,246,0)"] }}
+        transition={{ duration: 2, repeat: Infinity }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="relative group flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-5 h-[52px] bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-full shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 border border-white/20 backdrop-blur-md w-auto min-w-[200px] max-w-[200px]"
+        className="relative group flex items-center justify-center gap-1.5 px-3 h-[42px] bg-gradient-to-r from-slate-900 to-[#111827] text-white rounded-full shadow-lg shadow-blue-500/10 hover:shadow-xl border border-blue-500/20 backdrop-blur-md w-auto min-w-[140px] max-w-[150px]"
       >
-        <div className="absolute inset-0 rounded-full bg-white/20 animate-pulse pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
-        <div className="relative flex items-center gap-1.5 sm:gap-2">
+        <div className="absolute inset-0 rounded-full bg-blue-500/10 animate-pulse pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="relative flex items-center gap-1.5">
           {isOpen ? (
-            <X className="w-4 h-4 sm:w-5 sm:h-5" />
+            <X className="w-4 h-4" />
           ) : (
             <>
               <div className="relative flex-shrink-0">
-                <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-red-500 border border-white rounded-full animate-ping" />
-                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-red-500 border border-white rounded-full" />
+                <MessageCircle className="w-4 h-4 text-blue-400" />
+                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 border border-slate-900 rounded-full animate-ping" />
+                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 border border-slate-900 rounded-full" />
               </div>
-              <span className="text-[13px] sm:text-sm font-bold tracking-wide whitespace-nowrap">Chat With Admin</span>
+              <span className="text-xs font-semibold tracking-wide whitespace-nowrap text-blue-50">Support</span>
             </>
           )}
         </div>
