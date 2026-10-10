@@ -130,9 +130,9 @@ export default function Home() {
   }
 
   const trustStats = [
-    { icon: <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 transition-transform duration-500 group-hover:scale-110" />, count: "100+", label: "Premium Courses" },
-    { icon: <Users className="w-8 h-8 sm:w-10 sm:h-10 transition-transform duration-500 group-hover:scale-110" />, count: "10K+", label: "Students Enrolled" },
-    { icon: <Headset className="w-8 h-8 sm:w-10 sm:h-10 transition-transform duration-500 group-hover:scale-110" />, count: "24/7", label: "Learning Support" }
+    { icon: <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 transition-transform duration-500 group-hover:scale-110" />, count: "100+", label: "Premium Courses" },
+    { icon: <Users className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 transition-transform duration-500 group-hover:scale-110" />, count: "10K+", label: "Students Enrolled" },
+    { icon: <Headset className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 transition-transform duration-500 group-hover:scale-110" />, count: "24/7", label: "Learning Support" }
   ]
 
   const features = [
@@ -260,10 +260,10 @@ const testimonials = [
       </div>
 
       {/* 2. TRUST SECTION */}
-      <section id="explore-courses" className="py-16 sm:py-24 relative overflow-hidden bg-background">
+      <section id="explore-courses" className="py-5 md:py-24 relative overflow-hidden bg-background">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
-        <div className="container mx-auto max-w-5xl px-4 relative z-10">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
+        <div className="container mx-auto max-w-5xl px-4 relative z-10 mt-8 md:mt-0">
+          <div className="grid grid-cols-3 gap-2 sm:gap-6 md:gap-8">
             {trustStats.map((stat, index) => (
               <motion.div 
                 key={index}
@@ -271,18 +271,18 @@ const testimonials = [
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ duration: 0.6, delay: index * 0.15, ease: "easeOut" }}
-                className="group relative flex flex-col items-center text-center p-8 rounded-3xl bg-card border border-white/5 shadow-xl shadow-black/20 hover:shadow-primary/10 hover:border-primary/20 transition-all duration-500 overflow-hidden"
+                className="group relative flex flex-col items-center text-center p-3 sm:p-6 md:p-8 rounded-2xl md:rounded-3xl bg-card border border-white/5 shadow-xl shadow-black/20 hover:shadow-primary/10 hover:border-primary/20 transition-all duration-500 overflow-hidden"
               >
                 <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 
-                <div className="relative p-4 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary mb-5 shadow-lg shadow-primary/10 group-hover:shadow-primary/30 transition-all duration-500 border border-primary/10 group-hover:border-primary/30">
+                <div className="relative p-2 sm:p-3 md:p-4 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary mb-2 sm:mb-4 md:mb-5 shadow-lg shadow-primary/10 group-hover:shadow-primary/30 transition-all duration-500 border border-primary/10 group-hover:border-primary/30">
                   {stat.icon}
                 </div>
                 
-                <div className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-2 bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent group-hover:from-primary group-hover:to-primary/70 transition-colors duration-500">
+                <div className="text-lg sm:text-3xl md:text-5xl font-extrabold tracking-tight mb-1 md:mb-2 bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent group-hover:from-primary group-hover:to-primary/70 transition-colors duration-500">
                   {stat.count}
                 </div>
-                <div className="text-sm sm:text-base text-muted-foreground font-semibold uppercase tracking-wider group-hover:text-foreground transition-colors duration-500">
+                <div className="text-[10px] leading-tight sm:text-sm md:text-base text-muted-foreground font-bold sm:font-semibold uppercase tracking-wider group-hover:text-foreground transition-colors duration-500">
                   {stat.label}
                 </div>
               </motion.div>
@@ -293,91 +293,53 @@ const testimonials = [
 
       {/* 3. COURSE CATEGORIES */}
       {categories.length > 0 && (
-        <section className="py-16 sm:py-24 px-4 relative overflow-hidden bg-[#050816]">
-          {/* Subtle Background Gradient Movement */}
-          <motion.div 
-            animate={{ backgroundPosition: ["0% 0%", "100% 100%"] }}
-            transition={{ repeat: Infinity, duration: 20, repeatType: "reverse", ease: "linear" }}
-            className="absolute inset-0 opacity-20 pointer-events-none z-0"
-            style={{ backgroundImage: "radial-gradient(circle at center, rgba(249,115,22,0.05) 0%, transparent 50%, rgba(168,85,247,0.05) 100%)", backgroundSize: "200% 200%" }}
-          />
-          <div className="container mx-auto max-w-6xl relative z-10">
-            <div className="text-center mb-8 sm:mb-12">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-3 sm:mb-4 text-white tracking-tight">Top Categories</h2>
-              <p className="text-sm sm:text-base text-slate-400 max-w-2xl mx-auto font-medium">Explore our wide range of professional courses designed to elevate your expertise.</p>
+        <section className="pt-5 pb-10 md:py-16 px-4 relative overflow-hidden bg-[#07080f]">
+          {/* Warm ambient background */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(251,146,60,0.04)_0%,transparent_60%)] pointer-events-none" />
+          <div className="container mx-auto max-w-5xl relative z-10">
+            <div className="text-center mb-5 sm:mb-8">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1.5 sm:mb-2 text-white tracking-tight">Top Categories</h2>
+              <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto">Explore our wide range of professional courses.</p>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 relative z-10">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4 md:gap-5">
               {categories.map((category, index) => (
                 <motion.div
                   key={category.id}
-                  initial={{ opacity: 0, y: 30 }}
+                  initial={{ opacity: 0, y: 14 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  transition={{ duration: 0.6, delay: index * 0.1, type: "spring", stiffness: 100 }}
-                  className="h-full"
+                  viewport={{ once: true, margin: "-30px" }}
+                  transition={{ duration: 0.3, delay: index * 0.04, ease: "easeOut" }}
                 >
                   <button 
                     onClick={() => handleCategoryClick(category)} 
-                    className="w-full h-full text-left focus:outline-none group"
+                    className="w-full text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 group block"
                   >
-                    {/* Outer Wrapper for Moving Border Effect */}
-                    <div className="relative h-full rounded-[28px] p-[1px] overflow-hidden transition-shadow duration-500 hover:shadow-[0_10px_40px_-10px_rgba(249,115,22,0.2)]">
-                      
-                      {/* Animated Conic Border (Visible on Hover) */}
-                      <div className="absolute inset-[-100%] opacity-0 group-hover:opacity-100 transition-opacity duration-700 z-0">
-                        <motion.div 
-                          animate={{ rotate: 360 }}
-                          transition={{ repeat: Infinity, duration: 6, ease: "linear" }}
-                          className="w-full h-full"
-                          style={{ background: "conic-gradient(from 0deg, transparent 0deg, transparent 280deg, rgba(249,115,22,0.3) 320deg, rgba(168,85,247,0.3) 360deg)" }}
-                        />
+                    {/* Floating premium card — warm dark bg, no border, gold glow on hover */}
+                    <div className="relative flex flex-col items-center pt-3.5 pb-2.5 px-2.5 sm:pt-5 sm:pb-3.5 sm:px-4 rounded-2xl bg-[#111318] group-hover:bg-[#16181f] transition-all duration-300 group-hover:-translate-y-0.5 shadow-sm group-hover:shadow-[0_8px_28px_-6px_rgba(0,0,0,0.7),0_0_20px_-8px_rgba(251,146,60,0.18)]">
+
+                      {/* Subtle warm top-edge accent line on hover */}
+                      <div className="absolute top-0 inset-x-4 h-px bg-gradient-to-r from-transparent via-orange-400/0 to-transparent group-hover:via-orange-400/30 transition-all duration-500 rounded-full" />
+
+                      {/* Image — full width, natural height, no frame */}
+                      <div className="w-full flex items-center justify-center mb-2 sm:mb-3 transition-transform duration-300 group-hover:scale-[1.05]">
+                        {category.imageURL ? (
+                          <img 
+                            src={category.imageURL} 
+                            alt={category.title} 
+                            className="w-full h-auto object-contain max-h-[110px] sm:max-h-[145px] md:max-h-[160px]"
+                          />
+                        ) : (
+                          <div className="w-full flex items-center justify-center py-5">
+                            <BookOpen className="w-10 h-10 sm:w-12 sm:h-12 text-slate-600 group-hover:text-orange-400/70 transition-colors duration-300" />
+                          </div>
+                        )}
                       </div>
 
-                      {/* Default subtle border fallback */}
-                      <div className="absolute inset-0 border border-slate-800/80 rounded-[28px] group-hover:border-transparent transition-colors duration-500 z-10" />
-
-                      {/* Inner Card */}
-                      <motion.div 
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="relative flex flex-col items-center p-4 sm:p-5 h-full rounded-[27px] bg-[#111827]/95 backdrop-blur-xl overflow-hidden z-20"
-                      >
-                        {/* Shimmer Light Sweep */}
-                        <motion.div
-                          animate={{ x: ["-200%", "200%"] }}
-                          transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut", repeatDelay: 3 }}
-                          className="absolute inset-0 w-1/2 bg-gradient-to-r from-transparent via-white/[0.03] to-transparent skew-x-12 z-0 pointer-events-none"
-                        />
-                        
-                        {/* Ambient corner glows on hover */}
-                        <div className="absolute -top-12 -right-12 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-                        <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-                        
-                        {/* Image Container with Glow */}
-                        <div className="relative w-full max-w-[150px] sm:max-w-[220px] aspect-[5/4] mb-4 sm:mb-5 z-10 mx-auto rounded-xl">
-                          {/* Animated Gradient border effect */}
-                          <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-500/30 via-purple-500/30 to-orange-500/30 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm" />
-                          <div className="absolute -inset-[1px] bg-gradient-to-r from-orange-500/40 via-purple-500/40 to-orange-500/40 rounded-xl opacity-40 group-hover:opacity-100 group-hover:animate-[pulse_2s_ease-in-out_infinite] transition-all duration-500" />
-                          
-                          {/* Image Wrapper */}
-                          <div className="relative w-full h-full bg-slate-900/40 rounded-xl flex items-center justify-center p-1.5 sm:p-2 border border-slate-700/40 group-hover:border-orange-500/30 transition-colors duration-500 shadow-[0_4px_20px_rgba(0,0,0,0.3)] group-hover:shadow-[0_4px_25px_rgba(249,115,22,0.2)] z-10 group-hover:scale-[1.03]">
-                            {category.imageURL ? (
-                              <img 
-                                src={category.imageURL} 
-                                alt={category.title} 
-                                className="w-full h-full object-contain filter drop-shadow-md group-hover:drop-shadow-[0_0px_10px_rgba(249,115,22,0.4)] transition-all duration-500" 
-                              />
-                            ) : (
-                              <BookOpen className="w-12 h-12 sm:w-16 sm:h-16 text-orange-400/80 group-hover:text-orange-400 transition-colors" />
-                            )}
-                          </div>
-                        </div>
-                        
-                        <h3 className="text-[15px] sm:text-[17px] font-bold text-center text-slate-200 group-hover:text-white transition-colors line-clamp-2 leading-[1.3] z-10 px-1 w-full mt-auto">
-                          {category.title}
-                        </h3>
-                      </motion.div>
+                      {/* Title */}
+                      <h3 className="text-[11px] sm:text-[13px] md:text-sm font-medium text-slate-400 group-hover:text-slate-100 transition-colors duration-300 line-clamp-2 leading-snug text-center w-full">
+                        {category.title}
+                      </h3>
                     </div>
                   </button>
                 </motion.div>
@@ -388,35 +350,35 @@ const testimonials = [
       )}
 
       {/* 4. FEATURED COURSES */}
-      <section className="py-16 sm:py-24 px-4 bg-gradient-to-b from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-950 border-t border-slate-200 dark:border-slate-800">
+      <section className="py-10 sm:py-16 px-4 bg-gradient-to-b from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-950 border-t border-slate-200 dark:border-slate-800">
         <div className="container mx-auto max-w-6xl">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 sm:mb-14 gap-6">
-            <div className="space-y-2 sm:space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs sm:text-sm font-bold tracking-wide uppercase border border-indigo-100 dark:border-indigo-500/20">
-                <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Recommended
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 sm:mb-10 gap-4">
+            <div className="space-y-1.5 sm:space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] sm:text-xs font-bold tracking-wide uppercase border border-indigo-100 dark:border-indigo-500/20">
+                <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Recommended
               </div>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
                 Featured Courses
               </h2>
-              <p className="text-sm sm:text-base md:text-lg text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-xl leading-relaxed">
                 Start your learning journey with our most popular and highly-rated premium courses.
               </p>
             </div>
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="bg-card border border-border rounded-xl p-4 animate-pulse h-80">
-                  <div className="aspect-video bg-muted rounded-lg mb-4"></div>
-                  <div className="h-6 bg-muted rounded w-3/4 mb-3"></div>
-                  <div className="h-4 bg-muted rounded w-1/2 mb-4"></div>
-                  <div className="h-10 bg-muted rounded-md mt-auto"></div>
+                <div key={i} className="bg-card border border-border rounded-2xl p-3 animate-pulse h-64">
+                  <div className="aspect-[16/9] bg-muted rounded-xl mb-3"></div>
+                  <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                  <div className="h-3 bg-muted rounded w-1/2 mb-3"></div>
+                  <div className="h-8 bg-muted rounded-lg mt-auto"></div>
                 </div>
               ))}
             </div>
           ) : trendingCourses.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10 mb-8 sm:mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-10">
               {trendingCourses.map((course, index) => (
                 <motion.div
                   key={course.id}
