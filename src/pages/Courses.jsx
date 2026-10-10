@@ -314,7 +314,7 @@ export default function Courses() {
                   whileHover={{ y: -5 }}
                   className="group relative bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-[20px] overflow-hidden border border-slate-200/80 dark:border-slate-800/80 hover:border-indigo-500/50 dark:hover:border-indigo-400/50 shadow-sm hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300 flex flex-col"
                 >
-                  <Link to={`/courses/${course.slug || course.id}`} className="block relative aspect-[4/3] overflow-hidden bg-slate-100 dark:bg-slate-800">
+                  <Link to={`/${course.slug || course.id}`} className="block relative aspect-[4/3] overflow-hidden bg-slate-100 dark:bg-slate-800">
                     {course.thumbnailURL ? (
                       <img
                         src={course.thumbnailURL}
@@ -359,7 +359,7 @@ export default function Courses() {
                       </div>
                     </div>
 
-                    <Link to={`/courses/${course.slug || course.id}`}>
+                    <Link to={`/${course.slug || course.id}`}>
                       <h3 className="font-bold text-lg text-slate-900 dark:text-white leading-snug line-clamp-2 mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                         {course.title}
                       </h3>
@@ -396,7 +396,7 @@ export default function Courses() {
                         </div>
 
                         <Link 
-                          to={`/courses/${course.slug || course.id}`}
+                          to={`/${course.slug || course.id}`}
                           className="relative overflow-hidden px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-sm font-bold rounded-xl transition-all shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] hover:shadow-[0_6px_20px_rgba(249,115,22,0.23)] hover:scale-105 group/btn flex items-center gap-1.5"
                         >
                           <span className="relative z-10">{isEnrolled ? "Continue" : "Enroll Now"}</span>

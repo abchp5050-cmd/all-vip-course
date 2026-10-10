@@ -13,6 +13,7 @@ import SupportWidget from "./components/SupportWidget"
 // Pages
 import Home from "./pages/Home"
 import Login from "./pages/Login"
+import Register from "./pages/Register"
 import Courses from "./pages/Courses"
 import CourseDetail from "./pages/CourseDetail"
 import CategoryPage from "./pages/CategoryPage"
@@ -43,6 +44,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
               <Route path="/courses" element={<Courses />} />
               <Route path="/category/:categoryId" element={<CategoryPage />} />
               <Route path="/category/:categoryId/subcategory/:subcategoryId" element={<SubcategoryPage />} />

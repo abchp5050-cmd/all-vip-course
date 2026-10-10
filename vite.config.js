@@ -13,14 +13,14 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: '0.0.0.0',
-    port: 5000,
+    port: 5050,
     strictPort: true,
     allowedHosts: true,
     hmr,
   },
   preview: {
     host: '0.0.0.0',
-    port: 5000,
+    port: 5050,
     strictPort: true,
   },
 });
