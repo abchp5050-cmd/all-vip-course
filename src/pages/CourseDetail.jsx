@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
-import { Play, BookOpen, Clock, Users, Tag, Check, AlertCircle, ChevronRight, Star, Globe, PlayCircle, Smartphone, Infinity as InfinityIcon, Trophy, ArrowRight, MonitorPlay, FileText, ShieldCheck, CheckCircle, Zap, Layers } from "lucide-react"
+import { Play, BookOpen, Clock, UsersRound, Tag, Check, AlertCircle, ChevronRight, Star, Globe, PlayCircle, Smartphone, Infinity as InfinityIcon, Trophy, ArrowRight, MonitorPlay, FileText, ShieldCheck, CheckCircle, Zap, Layers } from "lucide-react"
 import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore"
 import { db } from "../lib/firebase"
 import { useAuth } from "../contexts/AuthContext"
@@ -15,7 +15,7 @@ const generateStats = (id) => {
   const hash = String(id).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const rating = (4.0 + (hash % 11) / 10).toFixed(1);
   const reviewCount = 10 + (hash % 40);
-  const studentsCount = 40 + (hash % 161);
+  const studentsCount = 50 + (hash % 151);
   return { rating, reviewCount, studentsCount };
 };
 
@@ -249,7 +249,7 @@ export default function CourseDetail() {
                   <span className="text-slate-400">({courseStats.reviewCount} ratings)</span>
                 </div>
                 <div className="flex items-center gap-1.5 sm:gap-2">
-                  <Users className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" />
+                  <UsersRound className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" />
                   <span>{courseStats.studentsCount} Students Enrolled</span>
                 </div>
                 <div className="flex items-center gap-1.5 sm:gap-2">
@@ -311,7 +311,7 @@ export default function CourseDetail() {
                           <p className="text-indigo-600 dark:text-indigo-400 font-medium text-xs sm:text-sm mb-2 sm:mb-3">Expert Educator</p>
                           <div className="flex items-center justify-center sm:justify-start gap-3 sm:gap-4 text-xs sm:text-sm text-slate-500 mb-2 sm:mb-3">
                             <span className="flex items-center gap-1"><Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 fill-amber-400" /> {teacherStats.rating} Instructor Rating</span>
-                            <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400" /> {teacherStats.studentsCount} Students</span>
+                            <span className="flex items-center gap-1"><UsersRound className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400" /> {teacherStats.studentsCount} Students</span>
                           </div>
                           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl">
                             {teacher.bio || "Passionate educator with years of experience in helping students achieve their academic and professional goals through clear, structured, and practical learning."}

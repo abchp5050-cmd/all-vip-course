@@ -20,7 +20,7 @@ export default function BannerCarousel() {
   if (banners.length === 0) return null
 
   return (
-    <section className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 pt-3 sm:pt-6 pb-2">
+    <section className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 pt-3 sm:pt-6 pb-1">
       <div className="relative w-full rounded-2xl md:rounded-3xl overflow-hidden shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] shadow-primary/20 bg-slate-900 border border-white/10 group">
         
         {/* Premium ambient glow behind the swiper */}

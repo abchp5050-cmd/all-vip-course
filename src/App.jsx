@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom"
+import { BrowserRouter as Router, Routes, Route, useLocation, useNavigationType } from "react-router-dom"
+import { useEffect } from "react"
 import { AuthProvider } from "./contexts/AuthContext"
 import { ThemeProvider } from "./contexts/ThemeContext"
 import { Toaster } from "./components/ui/toaster"
@@ -29,6 +30,19 @@ import NotFound from "./pages/NotFound"
 
 console.log(" App.jsx loaded")
 
+// Scroll to top on route change, but respect browser back/forward buttons
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  const navigationType = useNavigationType()
+
+  useEffect(() => {
+    if (navigationType !== "POP") {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" })
+    }
+  }, [pathname, navigationType])
+  return null
+}
+
 function App() {
   console.log(" App component rendering")
 
@@ -38,6 +52,8 @@ function App() {
         <AuthProvider>
           <SettingsLoader />
           <div className="flex flex-col min-h-screen bg-background text-foreground">
+            {/* ScrollToTop must be INSIDE Router to access useLocation */}
+            <ScrollToTop />
             <DynamicHeader />
             <AnnouncementBar />
             <main className="flex-1">

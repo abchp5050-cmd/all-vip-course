@@ -48,30 +48,68 @@ export default function SupportWidget() {
   }, [location.pathname])
 
   useEffect(() => {
-    // Start after 5 seconds
-    const initialTimer = setTimeout(() => {
-      setShowMessage(true)
-    }, 5000)
-
-    return () => clearTimeout(initialTimer)
-  }, [location.pathname])
-
-  useEffect(() => {
-    if (!showMessage && !isOpen) {
-      // If message is hidden, wait a bit then show next
-      const nextTimer = setTimeout(() => {
-        setMessageIndex((prev) => (prev + 1) % messages.length)
-        setShowMessage(true)
-      }, 2000)
-      return () => clearTimeout(nextTimer)
-    } else if (showMessage && !isOpen) {
-      // If message is shown, hide it after 6 seconds
-      const hideTimer = setTimeout(() => {
-        setShowMessage(false)
-      }, 6000)
-      return () => clearTimeout(hideTimer)
+    // When the chat is explicitly open, hide the small message popup
+    if (isOpen) {
+      setShowMessage(false)
+      localStorage.setItem('support_last_interacted', Date.now().toString())
+      return
     }
-  }, [showMessage, messages.length, isOpen])
+
+    let showTimer
+    let hideTimer
+
+    const checkAndSchedule = (isInitial = false) => {
+      const now = Date.now()
+      const lastShown = parseInt(localStorage.getItem('support_last_shown') || '0', 10)
+      const lastInteracted = parseInt(localStorage.getItem('support_last_interacted') || '0', 10)
+      
+      const INTERACTION_COOLDOWN = 5 * 60 * 1000 // 5 minutes cooldown after interaction
+      const NORMAL_COOLDOWN = 3 * 60 * 1000      // 3 minutes between normal popups
+      const INITIAL_DELAY = 15000                // 15 seconds before first popup
+      
+      const timeSinceInteracted = now - lastInteracted
+      const timeSinceShown = now - lastShown
+
+      if (timeSinceInteracted < INTERACTION_COOLDOWN) {
+        showTimer = setTimeout(() => checkAndSchedule(), INTERACTION_COOLDOWN - timeSinceInteracted)
+        return
+      }
+
+      if (timeSinceShown < NORMAL_COOLDOWN) {
+        showTimer = setTimeout(() => checkAndSchedule(), NORMAL_COOLDOWN - timeSinceShown)
+        return
+      }
+
+      if (isInitial) {
+        showTimer = setTimeout(() => {
+          setShowMessage(true)
+          localStorage.setItem('support_last_shown', Date.now().toString())
+          
+          hideTimer = setTimeout(() => {
+            setShowMessage(false)
+            setMessageIndex(prev => (prev + 1) % messages.length)
+            checkAndSchedule() 
+          }, 8000) // Keep message visible for 8 seconds
+        }, INITIAL_DELAY)
+      } else {
+        setShowMessage(true)
+        localStorage.setItem('support_last_shown', Date.now().toString())
+        
+        hideTimer = setTimeout(() => {
+          setShowMessage(false)
+          setMessageIndex(prev => (prev + 1) % messages.length)
+          checkAndSchedule()
+        }, 8000)
+      }
+    }
+
+    checkAndSchedule(true)
+
+    return () => {
+      clearTimeout(showTimer)
+      clearTimeout(hideTimer)
+    }
+  }, [isOpen, messages.length])
 
   const handleOpenTelegram = (e) => {
     e.preventDefault()

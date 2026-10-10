@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
-import { useNavigate, Link } from "react-router-dom"
+import { useNavigate, useLocation, Link } from "react-router-dom"
 import { motion } from "framer-motion"
-import { Chrome } from "lucide-react"
+import { GraduationCap, LogIn } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 
 export default function Login() {
@@ -9,6 +9,12 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const { signInWithGoogle, userProfile, currentUser } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  // Where to send the user after login — defaults to /dashboard
+  const redirectTo = location.state?.from || null
+
+  // Removed local scrollTo as it is handled by global ScrollToTop
 
   useEffect(() => {
     if (currentUser && userProfile) {
@@ -16,10 +22,10 @@ export default function Login() {
       if (userProfile.role === "admin") {
         navigate("/admin", { replace: true })
       } else {
-        navigate("/dashboard", { replace: true })
+        navigate(redirectTo || "/dashboard", { replace: true })
       }
     }
-  }, [currentUser, userProfile, navigate])
+  }, [currentUser, userProfile, navigate, redirectTo])
 
   const handleGoogleSignIn = async () => {
     setError("")
@@ -35,8 +41,10 @@ export default function Login() {
           console.log(" Redirecting to admin dashboard")
           navigate("/admin", { replace: true })
         } else {
-          console.log(" Redirecting to user dashboard")
-          navigate("/dashboard", { replace: true })
+          // Redirect to intended page or dashboard
+          const destination = redirectTo || "/dashboard"
+          console.log(" Redirecting to:", destination)
+          navigate(destination, { replace: true })
         }
       }, 200)
     } catch (err) {
@@ -60,36 +68,56 @@ export default function Login() {
     }
   }
 
-
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-[#050816] relative overflow-hidden">
-      {/* Premium Background Effects */}
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-600/20 rounded-full blur-[120px] pointer-events-none mix-blend-screen"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px] pointer-events-none mix-blend-screen"></div>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#0a0d18] relative overflow-hidden font-sans">
+      {/* Premium Background Ambient Effects */}
+      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-orange-500/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen"></div>
       
       <motion.div 
-        initial={{ opacity: 0, y: 30 }} 
+        initial={{ opacity: 0, y: 40 }} 
         animate={{ opacity: 1, y: 0 }} 
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        className="w-full max-w-[420px] z-10"
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }} // smooth ease-out
+        className="w-full max-w-[440px] z-10 relative"
       >
-        <div className="bg-[#111827]/80 backdrop-blur-2xl border border-slate-800/80 rounded-[32px] p-8 sm:p-10 shadow-2xl relative overflow-hidden">
-          {/* Card Top Highlight */}
-          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
+        {/* Soft Glowing Border Animation around the card */}
+        <motion.div 
+          animate={{ opacity: [0.4, 0.8, 0.4] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute -inset-[1px] bg-gradient-to-r from-orange-500/30 via-transparent to-blue-500/30 rounded-[24px] blur-sm -z-10"
+        ></motion.div>
+
+        <div className="bg-[#13182b]/90 backdrop-blur-xl border border-slate-700/50 rounded-[24px] p-8 sm:p-10 shadow-2xl relative overflow-hidden">
           
-          <div className="text-center mb-10 mt-2">
+          <div className="text-center mb-8">
+            {/* Floating Icon */}
             <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-              className="w-16 h-16 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-2xl mx-auto flex items-center justify-center mb-6 border border-slate-700/50 shadow-inner"
+              animate={{ y: [-4, 4, -4] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="w-16 h-16 bg-gradient-to-br from-orange-500/20 to-orange-600/5 rounded-2xl mx-auto flex items-center justify-center mb-6 border border-orange-500/20 shadow-[0_0_20px_rgba(249,115,22,0.15)]"
             >
-              <Chrome className="w-8 h-8 text-blue-400" />
+              <GraduationCap className="w-8 h-8 text-orange-400" />
             </motion.div>
-            <h1 className="text-3xl font-extrabold text-white mb-3 tracking-tight">
-              Welcome Back
-            </h1>
-            <p className="text-slate-400 text-sm font-medium">Sign in to continue your learning journey</p>
+
+            {/* Heading with delayed fade */}
+            <motion.h1 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.8 }}
+              className="text-[26px] sm:text-[28px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-slate-300 mb-4 leading-tight"
+            >
+              কোর্সটি কিনতে হলে প্রথমে লগইন করুন
+            </motion.h1>
+
+            {/* Description */}
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.8 }}
+              className="text-slate-400 text-[15px] leading-relaxed max-w-[90%] mx-auto"
+            >
+              আপনার অ্যাকাউন্টে লগইন করার পর পছন্দের কোর্সটি সহজেই Enroll করতে পারবেন।
+            </motion.p>
           </div>
 
           {error && (
@@ -102,29 +130,41 @@ export default function Login() {
             </motion.div>
           )}
 
+          {/* Google Login Button */}
           <motion.button
-            whileHover={{ scale: 1.02 }}
+            whileHover={{ scale: 1.02, y: -2 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="w-full py-4 px-6 bg-white hover:bg-slate-50 text-slate-900 rounded-2xl font-bold transition-all flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed shadow-xl shadow-white/5 group relative overflow-hidden"
+            className="w-full py-[18px] px-6 bg-white hover:bg-slate-50 text-slate-900 rounded-[16px] font-bold transition-all flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed shadow-[0_8px_20px_rgba(255,255,255,0.05)] group relative overflow-hidden"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-slate-100 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-            <Chrome className="w-5 h-5" />
-            <span className="relative z-10">{loading ? "Signing in..." : "Continue with Google"}</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-slate-200 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+            
+            {/* Google G Logo SVG */}
+            <svg className="w-5 h-5 relative z-10" viewBox="0 0 24 24">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            <span className="relative z-10 text-[15px]">{loading ? "Signing in..." : "Continue with Google"}</span>
           </motion.button>
 
-          <div className="mt-8 pt-8 border-t border-slate-800 text-center">
-            <p className="text-sm text-slate-400 font-medium">
-              Don't have an account?{" "}
-              <Link to="/register" className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 hover:from-blue-300 hover:to-purple-300 font-bold ml-1 transition-all">
-                Create Account
-              </Link>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.8 }}
+            className="mt-6 text-center space-y-1"
+          >
+            <p className="text-[13px] text-slate-400/90 font-medium tracking-wide">
+              অ্যাকাউন্টে লগইন অথবা রেজিস্ট্রেশন করে
             </p>
-          </div>
+            <p className="text-[13px] text-slate-400/90 font-medium tracking-wide">
+              <span className="text-slate-300">Continue with Google</span> এ ক্লিক করুন
+            </p>
+          </motion.div>
         </div>
       </motion.div>
     </div>
   )
-
 }

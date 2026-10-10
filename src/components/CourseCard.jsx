@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
-import { AlertCircle, Check, ShoppingCart, Send } from "lucide-react"
+import { AlertCircle, UsersRound, Check, ShoppingCart, Send } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 
 export default function CourseCard({ course, paymentStatus, showButton = false }) {
@@ -40,6 +40,7 @@ export default function CourseCard({ course, paymentStatus, showButton = false }
     } else if (hasPendingPayment) {
       navigate('/payment-history')
     } else {
+      // Save the intended checkout item regardless
       const tempCartItem = {
         id: course.id,
         title: course.title,
@@ -47,7 +48,13 @@ export default function CourseCard({ course, paymentStatus, showButton = false }
         thumbnailURL: course.thumbnailURL
       }
       localStorage.setItem("tempCheckoutItem", JSON.stringify([tempCartItem]))
-      navigate('/checkout')
+
+      if (!currentUser) {
+        // Not logged in — redirect to login, saving /checkout as the return destination
+        navigate('/login', { state: { from: '/checkout' }, replace: false })
+      } else {
+        navigate('/checkout')
+      }
     }
   }
 
@@ -87,7 +94,7 @@ export default function CourseCard({ course, paymentStatus, showButton = false }
 
 // Add some dummy stars and students count for visual upgrade
   const rating = (Math.random() * (5 - 4.2) + 4.2).toFixed(1)
-  const students = Math.floor(Math.random() * 500) + 50
+  const students = Math.floor(Math.random() * 151) + 50
 
   return (
     <Link to={`/${course.slug || course.id}`} className="h-full block group relative">
@@ -97,7 +104,7 @@ export default function CourseCard({ course, paymentStatus, showButton = false }
         className="h-full bg-white dark:bg-[#111318] border border-slate-100 dark:border-white/[0.06] rounded-xl overflow-hidden hover:border-indigo-300/30 dark:hover:border-indigo-500/20 shadow-sm hover:shadow-lg hover:shadow-indigo-500/10 transition-all duration-250 flex flex-col relative group/card"
       >
         {/* Thumbnail */}
-        <div className="relative overflow-hidden bg-slate-100 dark:bg-slate-800/60 aspect-[16/9] w-full flex-shrink-0">
+        <div className="relative overflow-hidden bg-slate-100 dark:bg-slate-800/60 aspect-[2/1] w-full flex-shrink-0">
           {course.thumbnailURL ? (
             <img
               src={course.thumbnailURL}
@@ -117,53 +124,50 @@ export default function CourseCard({ course, paymentStatus, showButton = false }
 
           {/* Status badges */}
           {!showButton && hasPendingPayment && (
-            <div className="absolute top-2 right-2 bg-amber-500 text-white px-2 py-0.5 rounded-full text-[9px] uppercase font-extrabold flex items-center gap-1 shadow backdrop-blur-sm">
+            <div className="absolute top-1.5 right-1.5 bg-amber-500 text-white px-2 py-0.5 rounded-full text-[9px] uppercase font-extrabold flex items-center gap-1 shadow backdrop-blur-sm">
               <AlertCircle className="w-2.5 h-2.5" /> Pending
             </div>
           )}
           {!showButton && hasAccess && (
-            <div className="absolute top-2 right-2 bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[9px] uppercase font-extrabold flex items-center gap-1 shadow backdrop-blur-sm">
+            <div className="absolute top-1.5 right-1.5 bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[9px] uppercase font-extrabold flex items-center gap-1 shadow backdrop-blur-sm">
               <Check className="w-2.5 h-2.5" /> Enrolled
             </div>
           )}
           {course.category && (
-            <div className="absolute top-2 left-2 bg-black/50 backdrop-blur-md text-white text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full border border-white/10">
+            <div className="absolute top-1.5 left-1.5 bg-black/50 backdrop-blur-md text-white text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full border border-white/10">
               {course.category}
             </div>
           )}
         </div>
 
         {/* Card body */}
-        <div className="flex-1 flex flex-col p-3 sm:p-3.5">
+        <div className="flex-1 flex flex-col p-2.5 sm:p-3">
 
-          {/* Title */}
-          <h3 className="text-[13px] sm:text-sm font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug mb-2 group-hover/card:text-indigo-600 dark:group-hover/card:text-indigo-400 transition-colors">
-            {course.title}
-          </h3>
+          {/* Title + Meta Row */}
+          <div className="flex flex-col gap-1 mt-auto">
+            <h3 className="text-[12px] sm:text-[13px] font-bold text-slate-900 dark:text-white line-clamp-2 leading-tight group-hover/card:text-indigo-600 dark:group-hover/card:text-indigo-400 transition-colors">
+              {course.title}
+            </h3>
 
-          {/* Price + meta row */}
-          <div className="flex items-center justify-between mt-auto">
-            {/* Rating + students */}
-            <div className="flex items-center gap-1.5">
-              <div className="flex items-center gap-0.5 text-amber-500 text-[10px] font-bold">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
-                  <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.966.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
-                </svg>
-                {rating}
+            <div className="flex items-center justify-between mt-0.5">
+              <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-0.5 text-amber-500 text-[10px] font-bold">
+                  <span>⭐</span>
+                  {rating}
+                </div>
+                <span className="flex items-center gap-1 text-slate-400 dark:text-slate-500 text-[10px]"><UsersRound className="w-3 h-3" /> {students} students</span>
               </div>
-              <span className="text-slate-400 dark:text-slate-500 text-[10px]">· {students} students</span>
+
+              {course.price !== undefined && (
+                <div>
+                  {course.price > 0 ? (
+                    <span className="text-[12px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-400 dark:from-emerald-400 dark:to-teal-300">৳{course.price}</span>
+                  ) : (
+                    <span className="text-[12px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-400">Free</span>
+                  )}
+                </div>
+              )}
             </div>
-
-            {/* Price */}
-            {course.price !== undefined && (
-              <div>
-                {course.price > 0 ? (
-                  <span className="text-sm font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-400 dark:from-emerald-400 dark:to-teal-300">৳{course.price}</span>
-                ) : (
-                  <span className="text-sm font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-400">Free</span>
-                )}
-              </div>
-            )}
           </div>
 
           {/* Instructor row (only if present) */}
@@ -184,7 +188,7 @@ export default function CourseCard({ course, paymentStatus, showButton = false }
                   <button
                     onClick={handleTelegramClick}
                     disabled={hasClickedTelegram}
-                    className={`w-full py-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all ${
+                    className={`w-full py-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all ${
                       hasClickedTelegram
                         ? 'bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 cursor-not-allowed'
                         : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow hover:shadow-md hover:shadow-indigo-500/20 hover:-translate-y-0.5'
@@ -204,14 +208,14 @@ export default function CourseCard({ course, paymentStatus, showButton = false }
               ) : hasPendingPayment ? (
                 <button
                   onClick={handleButtonClick}
-                  className="w-full py-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 text-amber-600 dark:text-amber-500 border border-amber-200 dark:border-amber-500/20 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all"
+                  className="w-full py-1.5 rounded-lg bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 text-amber-600 dark:text-amber-500 border border-amber-200 dark:border-amber-500/20 text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all"
                 >
                   <AlertCircle className="w-3 h-3" /> Pending Payment
                 </button>
               ) : (
                 <button
                   onClick={handleButtonClick}
-                  className="w-full py-2 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow shadow-orange-500/20 hover:shadow-md hover:shadow-orange-500/30 hover:-translate-y-0.5"
+                  className="w-full py-1.5 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all shadow shadow-orange-500/20 hover:shadow-md hover:shadow-orange-500/30 hover:-translate-y-0.5"
                 >
                   <ShoppingCart className="w-3 h-3" /> Enroll Now
                 </button>

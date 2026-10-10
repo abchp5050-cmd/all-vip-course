@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
-import { Search, Filter, BookOpen, ArrowRight, Star, Users, CheckCircle, Clock, Play, User } from "lucide-react"
+import { Search, Filter, BookOpen, ArrowRight, Star, UsersRound, CheckCircle, Clock, Play, User } from "lucide-react"
 import CourseCard from "../components/CourseCard"
 import { collection, query, orderBy, getDocs, where } from "firebase/firestore"
 import { db } from "../lib/firebase"
@@ -302,7 +302,7 @@ export default function Courses() {
               const hash = course.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
               const rating = 4.0 + (hash % 11) / 10
               const reviewCount = 10 + (hash % 40)
-              const studentsCount = 40 + (hash % 161)
+              const studentsCount = 50 + (hash % 151)
 
               return (
                 <motion.div
@@ -354,7 +354,7 @@ export default function Courses() {
                         <span className="text-slate-700 dark:text-slate-300">{rating.toFixed(1)} ({reviewCount} ratings)</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Users className="w-4 h-4" />
+                        <UsersRound className="w-4 h-4" />
                         <span>{studentsCount} Students</span>
                       </div>
                     </div>

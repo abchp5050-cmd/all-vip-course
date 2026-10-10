@@ -14,8 +14,16 @@ import updateEnrollmentStatusHandler from './api/update-enrollment-status.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Parse command line arguments for port
+const args = process.argv.slice(2);
+let portArg = 5050; // Default to 5050
+const portIndex = args.indexOf('--port');
+if (portIndex > -1 && args.length > portIndex + 1) {
+  portArg = parseInt(args[portIndex + 1], 10);
+}
+
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || portArg;
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 app.use(cors());
@@ -75,7 +83,7 @@ if (IS_PRODUCTION) {
     server: { 
       middlewareMode: true,
       host: '0.0.0.0',
-      port: 5000,
+      port: PORT,
       strictPort: true,
       hmr: isReplit ? { clientPort: 443, protocol: 'wss' } : undefined,
     },
