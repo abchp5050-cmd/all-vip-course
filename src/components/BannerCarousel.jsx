@@ -20,16 +20,16 @@ export default function BannerCarousel() {
   if (banners.length === 0) return null
 
   return (
-    <section className="w-full max-w-[1920px] mx-auto px-0 md:px-4 lg:px-6 pt-0 pb-0">
-      <div className="relative w-full md:rounded-b-2xl lg:rounded-2xl overflow-hidden shadow-2xl shadow-primary/5 bg-background border-none lg:border lg:border-white/5 group">
+    <section className="w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 pt-3 sm:pt-6 pb-2">
+      <div className="relative w-full rounded-2xl md:rounded-3xl overflow-hidden shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] shadow-primary/20 bg-slate-900 border border-white/10 group">
         
-        {/* Subtle glow behind the swiper (desktop only to not overwhelm mobile) */}
-        <div className="hidden md:block absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent pointer-events-none z-0" />
+        {/* Premium ambient glow behind the swiper */}
+        <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-purple-500/20 to-primary/20 blur-xl opacity-40 group-hover:opacity-70 transition-opacity duration-700 pointer-events-none z-0" />
 
         <Swiper
           modules={[Autoplay, EffectFade, Pagination, Navigation]}
           effect={'fade'}
-          speed={800}
+          speed={1000}
           spaceBetween={0}
           slidesPerView={1}
           loop={banners.length > 1}
@@ -46,17 +46,19 @@ export default function BannerCarousel() {
             nextEl: '.swiper-button-next-custom',
             prevEl: '.swiper-button-prev-custom',
           }}
-          className="w-full aspect-[16/9] md:aspect-auto md:h-[450px] lg:h-[500px] z-10"
+          className="w-full aspect-[16/9] sm:aspect-[21/9] md:h-[400px] lg:h-[480px] z-10 relative rounded-2xl md:rounded-3xl overflow-hidden"
         >
           {banners.map((banner, index) => (
             <SwiperSlide key={banner.id || index}>
-              <div className="relative w-full h-full">
-                {/* Background Image */}
+              <div className="relative w-full h-full overflow-hidden">
+                {/* Background Image with slight zoom animation on slide */}
                 <img
                   src={banner.imageUrl}
                   alt={`Banner ${index + 1}`}
-                  className="absolute inset-0 w-full h-full object-cover object-center"
+                  className="absolute inset-0 w-full h-full object-cover object-center swiper-zoom-target transition-transform duration-[8000ms] ease-out scale-100 hover:scale-105"
                 />
+                {/* Subtle gradient overlay to make text/UI pop if any */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10 pointer-events-none" />
               </div>
             </SwiperSlide>
           ))}
