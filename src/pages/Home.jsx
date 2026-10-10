@@ -18,7 +18,8 @@ import {
   Star,
   Quote,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Headset
 } from "lucide-react"
 import CourseCard from "../components/CourseCard"
 import BannerCarousel from "../components/BannerCarousel"
@@ -129,10 +130,9 @@ export default function Home() {
   }
 
   const trustStats = [
-    { icon: <Users className="w-6 h-6" />, count: "10k+", label: "Active Students" },
-    { icon: <BookOpen className="w-6 h-6" />, count: "100+", label: "Premium Courses" },
-    { icon: <Award className="w-6 h-6" />, count: "50+", label: "Expert Instructors" },
-    { icon: <CheckCircle2 className="w-6 h-6" />, count: "99%", label: "Success Rate" }
+    { icon: <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 transition-transform duration-500 group-hover:scale-110" />, count: "100+", label: "Premium Courses" },
+    { icon: <Users className="w-8 h-8 sm:w-10 sm:h-10 transition-transform duration-500 group-hover:scale-110" />, count: "10K+", label: "Students Enrolled" },
+    { icon: <Headset className="w-8 h-8 sm:w-10 sm:h-10 transition-transform duration-500 group-hover:scale-110" />, count: "24/7", label: "Learning Support" }
   ]
 
   const features = [
@@ -260,23 +260,31 @@ const testimonials = [
       </div>
 
       {/* 2. TRUST SECTION */}
-      <section id="explore-courses" className="py-12 sm:py-16 border-y border-border bg-muted/10">
-        <div className="container mx-auto max-w-6xl px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
+      <section id="explore-courses" className="py-16 sm:py-24 relative overflow-hidden bg-background">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
+        <div className="container mx-auto max-w-5xl px-4 relative z-10">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
             {trustStats.map((stat, index) => (
               <motion.div 
                 key={index}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="flex flex-col items-center text-center space-y-1 sm:space-y-2"
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.6, delay: index * 0.15, ease: "easeOut" }}
+                className="group relative flex flex-col items-center text-center p-8 rounded-3xl bg-card border border-white/5 shadow-xl shadow-black/20 hover:shadow-primary/10 hover:border-primary/20 transition-all duration-500 overflow-hidden"
               >
-                <div className="p-2 sm:p-3 bg-primary/10 rounded-full text-primary mb-1 sm:mb-2">
+                <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                
+                <div className="relative p-4 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary mb-5 shadow-lg shadow-primary/10 group-hover:shadow-primary/30 transition-all duration-500 border border-primary/10 group-hover:border-primary/30">
                   {stat.icon}
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold tracking-tight">{stat.count}</div>
-                <div className="text-xs sm:text-sm text-muted-foreground font-medium">{stat.label}</div>
+                
+                <div className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-2 bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent group-hover:from-primary group-hover:to-primary/70 transition-colors duration-500">
+                  {stat.count}
+                </div>
+                <div className="text-sm sm:text-base text-muted-foreground font-semibold uppercase tracking-wider group-hover:text-foreground transition-colors duration-500">
+                  {stat.label}
+                </div>
               </motion.div>
             ))}
           </div>

@@ -9,7 +9,6 @@ import {
   FolderTree,
   BarChart3,
   Layout,
-  Image,
   Bell,
   Search,
   Moon,
@@ -28,7 +27,6 @@ import ManageCourses from "./ManageCourses"
 import ManagePayments from "./ManagePayments"
 import ManageCategories from "./ManageCategories"
 import Overview from "./Overview"
-import ManageBanners from "./ManageBanners"
 import HeaderFooterBuilder from "./HeaderFooterBuilder"
 
 import WebsiteSettings from "./WebsiteSettings"
@@ -78,7 +76,6 @@ export default function AdminDashboard() {
     { name: "Courses", path: "/admin/courses", icon: BookOpen },
     { name: "Payments", path: "/admin/payments", icon: CreditCard, badge: pendingPaymentsCount },
     { name: "Header & Footer", path: "/admin/header-footer", icon: Layout },
-    { name: "Banners", path: "/admin/banners", icon: Image },
     { name: "Reviews", path: "/admin/reviews", icon: Star },
     { name: "Settings", path: "/admin/settings", icon: Settings },
   ]
@@ -326,7 +323,6 @@ export default function AdminDashboard() {
                 <Route path="courses" element={<ManageCourses />} />
                 <Route path="payments" element={<ManagePayments />} />
                 <Route path="header-footer" element={<HeaderFooterBuilder />} />
-                <Route path="banners" element={<ManageBanners />} />
                 {/* Fallbacks for Reviews/Settings routing if they don't exist yet */}
                 <Route path="reviews" element={<div className="p-8 text-center text-slate-500 bg-white rounded-xl shadow-sm border border-slate-100">Reviews Manager Coming Soon</div>} />
                 <Route path="settings" element={<WebsiteSettings />} />

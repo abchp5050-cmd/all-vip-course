@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { collection, getDocs } from "firebase/firestore"
 import { db } from "../../lib/firebase"
-import { Users, BookOpen, CreditCard, AlertCircle, CheckCircle, TrendingUp, DollarSign, ArrowUpRight, ArrowDownRight, Image } from "lucide-react"
+import { Users, BookOpen, CreditCard, AlertCircle, CheckCircle, TrendingUp, DollarSign, ArrowUpRight, ArrowDownRight } from "lucide-react"
 import { motion } from "framer-motion"
 import { Link } from "react-router-dom"
 
@@ -245,16 +245,7 @@ export default function Overview() {
                 <p className="text-xs text-slate-500">View and manage users</p>
               </div>
             </Link>
-            <Link to="/admin/banners" className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors border border-transparent hover:border-slate-100 dark:hover:border-slate-800 group">
-              <div className="p-2 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-lg group-hover:scale-110 transition-transform">
-                <Image className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-800 dark:text-white">Update Banners</p>
-                <p className="text-xs text-slate-500">Change homepage sliders</p>
-              </div>
-            </Link>
-          </div>
+            </div>
         </motion.div>
       </div>
 

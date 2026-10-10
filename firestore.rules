@@ -79,6 +79,15 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ===== Subcategories Collection =====
+    match /subcategories/{subcategoryId} {
+      allow read: if true; // Public reading
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+
     // ===== Teachers Collection =====
     match /teachers/{teacherId} {
       allow read: if true; // Public reading
