@@ -12,9 +12,9 @@ import 'swiper/css/navigation'
 
 export default function BannerCarousel() {
   const banners = [
-    { id: "banner-1", imageUrl: "/banners/banner1.png" },
-    { id: "banner-2", imageUrl: "/banners/banner2.png" },
-    { id: "banner-3", imageUrl: "/banners/banner3.png" }
+    { id: "banner-1", webpUrl: "/banners/banner1.webp", imageUrl: "/banners/banner1.png" },
+    { id: "banner-2", webpUrl: "/banners/banner2.webp", imageUrl: "/banners/banner2.png" },
+    { id: "banner-3", webpUrl: "/banners/banner3.webp", imageUrl: "/banners/banner3.png" }
   ]
 
   if (banners.length === 0) return null
@@ -51,12 +51,20 @@ export default function BannerCarousel() {
           {banners.map((banner, index) => (
             <SwiperSlide key={banner.id || index}>
               <div className="relative w-full h-full overflow-hidden">
-                {/* Background Image with slight zoom animation on slide */}
-                <img
-                  src={banner.imageUrl}
-                  alt={`Banner ${index + 1}`}
-                  className="absolute inset-0 w-full h-full object-cover object-center swiper-zoom-target transition-transform duration-[8000ms] ease-out scale-100 hover:scale-105"
-                />
+                {/* Background Image with WebP support and proper loading hints */}
+                <picture>
+                  <source srcSet={banner.webpUrl} type="image/webp" />
+                  <img
+                    src={banner.imageUrl}
+                    alt={`Banner ${index + 1}`}
+                    loading={index === 0 ? "eager" : "lazy"}
+                    decoding={index === 0 ? "sync" : "async"}
+                    fetchpriority={index === 0 ? "high" : "low"}
+                    width="1920"
+                    height="800"
+                    className="absolute inset-0 w-full h-full object-cover object-center swiper-zoom-target transition-transform duration-[8000ms] ease-out scale-100 hover:scale-105"
+                  />
+                </picture>
                 {/* Subtle gradient overlay to make text/UI pop if any */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10 pointer-events-none" />
               </div>

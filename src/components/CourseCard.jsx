@@ -1,28 +1,15 @@
-"use client"
-
-import { useState, useEffect } from "react"
+import { useState, useEffect, memo } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { AlertCircle, UsersRound, Check, ShoppingCart, Send } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 
-export default function CourseCard({ course, paymentStatus, showButton = false }) {
+function CourseCard({ course, paymentStatus, showButton = false }) {
   const navigate = useNavigate()
   const { currentUser } = useAuth()
   const hasPendingPayment = paymentStatus === "pending"
   const hasAccess = paymentStatus === "approved"
   const [hasClickedTelegram, setHasClickedTelegram] = useState(false)
-
-  useEffect(() => {
-    if (showButton && currentUser) {
-      console.log(`CourseCard [${course.title}]:`, {
-        courseId: course.id,
-        paymentStatus,
-        hasPendingPayment,
-        hasAccess
-      })
-    }
-  }, [course.id, paymentStatus, showButton, currentUser])
 
   useEffect(() => {
     if (hasAccess && currentUser && course.id) {
@@ -109,6 +96,10 @@ export default function CourseCard({ course, paymentStatus, showButton = false }
             <img
               src={course.thumbnailURL}
               alt={course.title}
+              loading="lazy"
+              decoding="async"
+              width="400"
+              height="200"
               className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-500 ease-out"
             />
           ) : (
@@ -227,3 +218,5 @@ export default function CourseCard({ course, paymentStatus, showButton = false }
     </Link>
   )
 }
+
+export default memo(CourseCard)

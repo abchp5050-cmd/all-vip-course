@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigationType } from "react-router-dom"
-import { useEffect } from "react"
+import { useEffect, lazy, Suspense } from "react"
 import { AuthProvider } from "./contexts/AuthContext"
 import { ThemeProvider } from "./contexts/ThemeContext"
 import { Toaster } from "./components/ui/toaster"
@@ -10,25 +10,24 @@ import ProtectedRoute from "./components/ProtectedRoute"
 import PWAInstallPrompt from "./components/PWAInstallPrompt"
 import SettingsLoader from "./components/SettingsLoader"
 import SupportWidget from "./components/SupportWidget"
+import PremiumLoader from "./components/PremiumLoader"
 
-// Pages
-import Home from "./pages/Home"
-import Login from "./pages/Login"
-import Register from "./pages/Register"
-import Courses from "./pages/Courses"
-import CourseDetail from "./pages/CourseDetail"
-import CategoryPage from "./pages/CategoryPage"
-import SubcategoryPage from "./pages/SubcategoryPage"
-import Profile from "./pages/Profile"
-import Dashboard from "./pages/Dashboard"
-import AdminDashboard from "./pages/admin/AdminDashboard"
-import Checkout from "./pages/Checkout"
-import CheckoutComplete from "./pages/CheckoutComplete"
-import PaymentHistory from "./pages/PaymentHistory"
-import MyCourses from "./pages/MyCourses"
-import NotFound from "./pages/NotFound"
-
-console.log(" App.jsx loaded")
+// Lazy loaded pages for optimal bundle splitting and performance
+const Home = lazy(() => import("./pages/Home"))
+const Login = lazy(() => import("./pages/Login"))
+const Register = lazy(() => import("./pages/Register"))
+const Courses = lazy(() => import("./pages/Courses"))
+const CourseDetail = lazy(() => import("./pages/CourseDetail"))
+const CategoryPage = lazy(() => import("./pages/CategoryPage"))
+const SubcategoryPage = lazy(() => import("./pages/SubcategoryPage"))
+const Profile = lazy(() => import("./pages/Profile"))
+const Dashboard = lazy(() => import("./pages/Dashboard"))
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"))
+const Checkout = lazy(() => import("./pages/Checkout"))
+const CheckoutComplete = lazy(() => import("./pages/CheckoutComplete"))
+const PaymentHistory = lazy(() => import("./pages/PaymentHistory"))
+const MyCourses = lazy(() => import("./pages/MyCourses"))
+const NotFound = lazy(() => import("./pages/NotFound"))
 
 // Scroll to top on route change, but respect browser back/forward buttons
 function ScrollToTop() {
@@ -44,7 +43,6 @@ function ScrollToTop() {
 }
 
 function App() {
-  console.log(" App component rendering")
 
   return (
     <Router>
@@ -57,58 +55,60 @@ function App() {
             <DynamicHeader />
             <AnnouncementBar />
             <main className="flex-1">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/courses" element={<Courses />} />
-              <Route path="/category/:categoryId" element={<CategoryPage />} />
-              <Route path="/category/:categoryId/subcategory/:subcategoryId" element={<SubcategoryPage />} />
-              <Route path="/:slug" element={<CourseDetail />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/checkout-complete" element={<CheckoutComplete />} />
-              <Route
-                path="/payment-history"
-                element={
-                  <ProtectedRoute>
-                    <PaymentHistory />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                  }
-              />
-              <Route
-                path="/my-courses"
-                element={
-                  <ProtectedRoute>
-                    <MyCourses />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/*"
-                element={
-                  <ProtectedRoute adminOnly>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+              <Suspense fallback={<PremiumLoader />}>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/courses" element={<Courses />} />
+                  <Route path="/category/:categoryId" element={<CategoryPage />} />
+                  <Route path="/category/:categoryId/subcategory/:subcategoryId" element={<SubcategoryPage />} />
+                  <Route path="/:slug" element={<CourseDetail />} />
+                  <Route path="/checkout" element={<Checkout />} />
+                  <Route path="/checkout-complete" element={<CheckoutComplete />} />
+                  <Route
+                    path="/payment-history"
+                    element={
+                      <ProtectedRoute>
+                        <PaymentHistory />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/profile"
+                    element={
+                      <ProtectedRoute>
+                        <Profile />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <ProtectedRoute>
+                        <Dashboard />
+                      </ProtectedRoute>
+                      }
+                  />
+                  <Route
+                    path="/my-courses"
+                    element={
+                      <ProtectedRoute>
+                        <MyCourses />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/*"
+                    element={
+                      <ProtectedRoute adminOnly>
+                        <AdminDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
             </main>
             <PWAInstallPrompt />
             <SupportWidget />

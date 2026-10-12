@@ -7,6 +7,7 @@ import { db } from "../lib/firebase"
 import { motion } from "framer-motion"
 import { ChevronRight, Folder, BookOpen } from "lucide-react"
 import CourseCard from "../components/CourseCard"
+import { CourseGridSkeleton } from "../components/SkeletonLoader"
 import { useAuth } from "../contexts/AuthContext"
 
 export default function CategoryPage() {
@@ -102,8 +103,12 @@ export default function CategoryPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="min-h-screen py-8 px-4 bg-background">
+        <div className="container mx-auto max-w-6xl space-y-8 animate-pulse">
+          <div className="h-4 bg-slate-800 rounded w-48" />
+          <div className="h-10 bg-slate-800 rounded w-64" />
+          <CourseGridSkeleton count={6} />
+        </div>
       </div>
     )
   }
@@ -140,6 +145,8 @@ export default function CategoryPage() {
               <img 
                 src={category.imageURL} 
                 alt={category.title}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover"
               />
             </div>

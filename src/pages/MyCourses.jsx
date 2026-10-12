@@ -2,18 +2,20 @@
 
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
-import { motion } from "framer-motion"
-import { BookOpen, Send, Check, Clock, CheckCircle, XCircle, GraduationCap, Star, Shield, Users, Sparkles, ChevronRight } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { BookOpen, Send, Check, Clock, CheckCircle, XCircle, GraduationCap, Star, Shield, Users, Sparkles, ChevronRight, AlertTriangle, X } from "lucide-react"
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore"
 import { db } from "../lib/firebase"
 import { useAuth } from "../contexts/AuthContext"
 import TelegramJoinButton from "../components/TelegramJoinButton"
+import { MyCoursesSkeleton } from "../components/SkeletonLoader"
 
 export default function MyCourses() {
   const { currentUser } = useAuth()
   const [enrollments, setEnrollments] = useState([])
   const [loading, setLoading] = useState(true)
   const [clickedLinks, setClickedLinks] = useState({})
+  const [showWarningModal, setShowWarningModal] = useState(false)
 
   useEffect(() => {
     if (currentUser) {
@@ -125,10 +127,21 @@ export default function MyCourses() {
     }, 500)
   }
 
+  useEffect(() => {
+    if (!loading && currentUser) {
+      const approvedCourses = enrollments.filter(e => e.paymentStatus === 'approved')
+      if (approvedCourses.length > 0) {
+        setShowWarningModal(true)
+      }
+    }
+  }, [loading, enrollments, currentUser])
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="min-h-screen pt-24 pb-12 px-4 bg-[#050816] relative overflow-hidden">
+        <div className="container mx-auto max-w-5xl relative z-10">
+          <MyCoursesSkeleton />
+        </div>
       </div>
     )
   }
@@ -190,6 +203,10 @@ export default function MyCourses() {
                       <img
                         src={course.thumbnailURL}
                         alt={course.title}
+                        loading="lazy"
+                        decoding="async"
+                        width="400"
+                        height="225"
                         className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (
@@ -323,6 +340,98 @@ export default function MyCourses() {
             </div>
           </motion.div>
         )}
+
+        {/* Telegram Join Warning Popup */}
+        <AnimatePresence>
+          {showWarningModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setShowWarningModal(false)}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md"
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92, y: 16 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 16 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative w-full max-w-sm sm:max-w-md bg-[#0a0f1d]/95 backdrop-blur-2xl border border-orange-500/35 rounded-3xl p-5 sm:p-6 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),0_0_35px_rgba(249,115,22,0.18)] overflow-hidden text-slate-200"
+              >
+                {/* Accent Top Border Glow */}
+                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-orange-500 via-amber-400 to-orange-500" />
+                <div className="absolute -top-12 -right-12 w-36 h-36 bg-orange-500/15 rounded-full blur-2xl pointer-events-none" />
+                <div className="absolute -bottom-10 -left-10 w-28 h-28 bg-sky-500/10 rounded-full blur-2xl pointer-events-none" />
+
+                {/* Header: Title Icon + Title */}
+                <div className="flex items-center gap-3.5 mb-4">
+                  {/* Title Icon: Telegram / Send style icon with subtle blue accent & glow */}
+                  <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-sky-500/20 to-blue-600/10 border border-sky-400/30 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(56,189,248,0.25)]">
+                    <Send className="w-5 h-5 sm:w-5.5 sm:h-5.5 text-sky-400 -rotate-12 translate-x-0.5" strokeWidth={2.2} />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                      <span>Telegram Join Notice</span>
+                      <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 shrink-0 drop-shadow-[0_0_6px_rgba(251,191,36,0.35)]" strokeWidth={2.2} />
+                    </h3>
+                  </div>
+
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.08 }}
+                    whileTap={{ scale: 0.92 }}
+                    onClick={() => setShowWarningModal(false)}
+                    className="w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700/90 border border-slate-700/60 backdrop-blur-md text-slate-300 hover:text-white flex items-center justify-center transition-all cursor-pointer shrink-0 shadow-sm -mr-1 -mt-1"
+                    aria-label="Close"
+                  >
+                    <X className="w-4 h-4" />
+                  </motion.button>
+                </div>
+
+                {/* Main Warning Box */}
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-orange-500/10 border border-orange-500/30 mb-5">
+                  <div className="flex items-center gap-2 mb-2">
+                    {/* Warning Icon: AlertTriangle inside small circular glass container with soft warning glow */}
+                    <div className="w-6 h-6 rounded-full bg-orange-500/20 border border-orange-400/40 backdrop-blur-md flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(249,115,22,0.4)]">
+                      <AlertTriangle className="w-3.5 h-3.5 text-orange-400" strokeWidth={2.5} />
+                    </div>
+                    <span className="text-orange-400 font-bold text-xs sm:text-sm">
+                      গুরুত্বপূর্ণ:
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 text-xs sm:text-[13px] text-orange-100/90 leading-relaxed">
+                    <p>
+                      Telegram Join Button এ একবার ক্লিক করলে সাথে সাথে Telegram Group খুলে যাবে।
+                    </p>
+                    <p className="font-semibold text-orange-300">
+                      Button শুধুমাত্র একবার কাজ করবে।
+                    </p>
+                    <p className="text-[11px] sm:text-xs text-orange-200/80 pt-1.5 border-t border-orange-500/20">
+                      কোনো কারণে Join সম্পন্ন না হলে Admin এর সাথে যোগাযোগ করুন।
+                    </p>
+                  </div>
+                </div>
+
+                {/* Popup Footer */}
+                <div className="pt-1">
+                  <motion.button
+                    type="button"
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setShowWarningModal(false)}
+                    className="w-full h-11 rounded-xl font-bold text-sm bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-400 hover:to-amber-400 text-white shadow-lg shadow-orange-500/25 active:scale-[0.98] transition-all flex items-center justify-center cursor-pointer tracking-wide"
+                  >
+                    বুঝেছি
+                  </motion.button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   )

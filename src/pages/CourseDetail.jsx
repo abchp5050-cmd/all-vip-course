@@ -9,6 +9,7 @@ import { db } from "../lib/firebase"
 import { useAuth } from "../contexts/AuthContext"
 import { isFirebaseId } from "../lib/slug"
 import TelegramJoinButton from "../components/TelegramJoinButton"
+import { CourseDetailSkeleton } from "../components/SkeletonLoader"
 
 const generateStats = (id) => {
   if (!id) return { rating: "4.8", reviewCount: 24, studentsCount: 124 };
@@ -190,11 +191,7 @@ export default function CourseDetail() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    )
+    return <CourseDetailSkeleton />
   }
 
   if (!course) {
@@ -305,7 +302,15 @@ export default function CourseDetail() {
                     const teacherStats = generateStats(teacher.id);
                     return (
                       <div key={teacher.id} className="flex flex-col sm:flex-row gap-4 sm:gap-6 pb-4 sm:pb-6 border-b border-slate-100 dark:border-slate-800 last:border-0 last:pb-0">
-                        <img src={teacher.imageURL || "https://via.placeholder.com/150"} alt={teacher.name} className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-slate-100 dark:border-slate-800 shrink-0 mx-auto sm:mx-0" />
+                        <img 
+                          src={teacher.imageURL || "https://via.placeholder.com/150"} 
+                          alt={teacher.name} 
+                          loading="lazy" 
+                          decoding="async" 
+                          width="96" 
+                          height="96" 
+                          className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-slate-100 dark:border-slate-800 shrink-0 mx-auto sm:mx-0" 
+                        />
                         <div className="text-center sm:text-left">
                           <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">{teacher.name}</h3>
                           <p className="text-indigo-600 dark:text-indigo-400 font-medium text-xs sm:text-sm mb-2 sm:mb-3">Expert Educator</p>
@@ -334,7 +339,14 @@ export default function CourseDetail() {
               {/* Course Thumbnail */}
               <div className="relative aspect-video rounded-xl sm:rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 group">
                 {course.thumbnailURL ? (
-                  <img src={course.thumbnailURL} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <img 
+                    src={course.thumbnailURL} 
+                    alt={course.title} 
+                    decoding="async"
+                    width="600"
+                    height="338"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                  />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center"><PlayCircle className="w-12 h-12 sm:w-16 sm:h-16 text-slate-300" /></div>
                 )}

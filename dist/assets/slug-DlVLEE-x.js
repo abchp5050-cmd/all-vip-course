@@ -1,0 +1,1 @@
+const a=(e,r=null)=>{if(!e)return r||"";let s=e.toLowerCase().trim().replace(/[^\w\s-]/g,"").replace(/\s+/g,"-").replace(/-+/g,"-").replace(/^-+|-+$/g,"");if(r){const t=r.substring(0,8);s=`${s}-${t}`}return s},g=e=>/^[a-zA-Z0-9]{20,}$/.test(e);export{a as g,g as i};

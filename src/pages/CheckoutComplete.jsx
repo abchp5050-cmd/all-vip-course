@@ -203,29 +203,68 @@ export default function CheckoutComplete() {
               </motion.div>
             )}
 
-            {/* What Happens Next */}
+            {/* What Happens Next - Bangla Payment Review */}
             <motion.div
+              id="payment-review-bn"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.9 }}
-              className="mb-10"
+              className="mb-8 sm:mb-10"
             >
-              <h3 className="text-sm font-bold text-slate-300 mb-4 uppercase tracking-wider pl-1 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                What Happens Next
-              </h3>
+              <div className="mb-3.5 sm:mb-4 pl-0.5">
+                <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2 tracking-tight">
+                  <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                  আপনার পেমেন্ট যাচাই করা হচ্ছে
+                </h3>
+                <p className="text-[11px] sm:text-[13px] text-slate-400 mt-1 leading-relaxed">
+                  আপনার দেওয়া পেমেন্ট তথ্য আমাদের Admin Team যাচাই করবে। সব তথ্য সঠিক থাকলে খুব দ্রুত আপনার <span className="text-amber-400 font-medium">Payment Approval</span> সম্পন্ন হবে।
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                <div className="p-4 rounded-2xl bg-slate-800/30 border border-slate-700/30">
-                  <span className="text-xs font-black text-slate-600 block mb-1">01</span>
-                  <p className="text-[12px] sm:text-[13px] text-slate-300 font-medium leading-snug">Payment details are sent for review</p>
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-800/30 border border-slate-700/30 hover:border-slate-600/50 transition-all flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-black text-amber-500/80 tracking-wider">01</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400/40" />
+                    </div>
+                    <h4 className="text-[13px] sm:text-sm font-bold text-white mb-1 leading-snug">
+                      পেমেন্ট তথ্য যাচাই
+                    </h4>
+                    <p className="text-[11px] sm:text-xs text-slate-400 font-normal leading-relaxed">
+                      আপনার ট্রানজেকশন ও তথ্যগুলো নিরাপদভাবে রিভিউ করা হচ্ছে।
+                    </p>
+                  </div>
                 </div>
-                <div className="p-4 rounded-2xl bg-slate-800/30 border border-slate-700/30">
-                  <span className="text-xs font-black text-slate-600 block mb-1">02</span>
-                  <p className="text-[12px] sm:text-[13px] text-slate-300 font-medium leading-snug">Admin manually verifies your transaction</p>
+
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-800/30 border border-slate-700/30 hover:border-slate-600/50 transition-all flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-black text-amber-500/80 tracking-wider">02</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400/40" />
+                    </div>
+                    <h4 className="text-[13px] sm:text-sm font-bold text-white mb-1 leading-snug">
+                      Admin Approval
+                    </h4>
+                    <p className="text-[11px] sm:text-xs text-slate-400 font-normal leading-relaxed">
+                      সব তথ্য সঠিক থাকলে আপনার পেমেন্ট অনুমোদন দেওয়া হবে।
+                    </p>
+                  </div>
                 </div>
-                <div className="p-4 rounded-2xl bg-slate-800/30 border border-slate-700/30">
-                  <span className="text-xs font-black text-slate-600 block mb-1">03</span>
-                  <p className="text-[12px] sm:text-[13px] text-slate-300 font-medium leading-snug">Courses are instantly unlocked upon approval</p>
+
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-800/30 border border-slate-700/30 hover:border-slate-600/50 transition-all flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-black text-amber-500/80 tracking-wider">03</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400/40" />
+                    </div>
+                    <h4 className="text-[13px] sm:text-sm font-bold text-white mb-1 leading-snug">
+                      Course Access
+                    </h4>
+                    <p className="text-[11px] sm:text-xs text-slate-400 font-normal leading-relaxed">
+                      Approval পাওয়ার পর <span className="text-amber-400 font-medium">Dashboard</span> থেকে <span className="text-amber-400 font-medium">My Courses</span> অপশনে গিয়ে আপনার কোর্সটি দেখতে ও শেখা শুরু করতে পারবেন।
+                    </p>
+                  </div>
                 </div>
               </div>
             </motion.div>

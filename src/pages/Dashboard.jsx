@@ -20,6 +20,7 @@ import { collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "../lib/firebase"
 import { useAuth } from "../contexts/AuthContext"
 import DashboardLayout from "../components/DashboardLayout"
+import { DashboardSkeleton } from "../components/SkeletonLoader"
 
 export default function Dashboard() {
   const { currentUser, userProfile, isAdmin } = useAuth()
@@ -116,9 +117,7 @@ export default function Dashboard() {
           </motion.div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-accent"></div>
-            </div>
+            <DashboardSkeleton />
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

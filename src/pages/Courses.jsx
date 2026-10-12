@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Search, Filter, BookOpen, ArrowRight, Star, UsersRound, CheckCircle, Clock, Play, User } from "lucide-react"
 import CourseCard from "../components/CourseCard"
+import { CourseGridSkeleton } from "../components/SkeletonLoader"
 import { collection, query, orderBy, getDocs, where } from "firebase/firestore"
 import { db } from "../lib/firebase"
 import { useAuth } from "../contexts/AuthContext"
@@ -261,22 +262,7 @@ export default function Courses() {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-              <div key={n} className="bg-white dark:bg-slate-900 rounded-[20px] overflow-hidden border border-slate-100 dark:border-slate-800 animate-pulse">
-                <div className="aspect-[4/3] bg-slate-200 dark:bg-slate-800"></div>
-                <div className="p-5 space-y-4">
-                  <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/4"></div>
-                  <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded w-full"></div>
-                  <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-2/3"></div>
-                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-between">
-                    <div className="h-6 bg-slate-200 dark:bg-slate-800 rounded w-1/3"></div>
-                    <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded w-1/3"></div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <CourseGridSkeleton count={8} />
         ) : filteredCourses.length === 0 ? (
           <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-3xl p-16 text-center border border-slate-100 dark:border-slate-800 shadow-sm">
             <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />

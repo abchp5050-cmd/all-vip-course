@@ -10,6 +10,15 @@ import processEnrollmentHandler from './api/process-enrollment.js';
 import dynamicManifestHandler from './api/dynamic-manifest.js';
 import getTelegramLinkHandler from './api/get-telegram-link.js';
 import updateEnrollmentStatusHandler from './api/update-enrollment-status.js';
+import sendOrderNotificationHandler from './api/send-order-notification.js';
+
+try {
+  if (process.loadEnvFile) {
+    process.loadEnvFile();
+  }
+} catch (e) {
+  // .env may not exist or already loaded
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -67,6 +76,10 @@ app.post('/api/get-telegram-link', (req, res) => {
 
 app.post('/api/update-enrollment-status', (req, res) => {
   updateEnrollmentStatusHandler(req, res);
+});
+
+app.post('/api/send-order-notification', (req, res) => {
+  sendOrderNotificationHandler(req, res);
 });
 
 if (IS_PRODUCTION) {

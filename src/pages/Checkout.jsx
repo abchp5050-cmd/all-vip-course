@@ -15,6 +15,8 @@ export default function Checkout() {
   const [cartItems, setCartItems] = useState([])
   const [loading, setLoading] = useState(false)
   const [phoneNumber, setPhoneNumber] = useState("")
+  const [paymentMethod, setPaymentMethod] = useState("")
+  const [paymentMethodError, setPaymentMethodError] = useState(false)
   const [telegramId, setTelegramId] = useState("")
   const [telegramName, setTelegramName] = useState("")
   const [customerName, setCustomerName] = useState("")
@@ -82,6 +84,15 @@ export default function Checkout() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
+    if (!paymentMethod) {
+      setPaymentMethodError(true)
+      toast({
+        variant: "destructive",
+        title: "অনুগ্রহ করে পেমেন্ট মাধ্যম নির্বাচন করুন।",
+      })
+      return
+    }
+
     if (!phoneNumber.trim() || !customerName.trim() || !telegramName.trim()) {
       toast({
         variant: "destructive",
@@ -144,6 +155,34 @@ export default function Checkout() {
           updatedAt: serverTimestamp(),
           telegramJoinedAt: null
         })
+      }
+
+      // Send Telegram notification (failsafe, runs in background without blocking user)
+      try {
+        fetch("/api/send-order-notification", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            course_name: cartItems.map((c) => c.title).join(", "),
+            student_name: customerName.trim(),
+            payment_number: phoneNumber.trim(),
+            payment_method: paymentMethod || "bKash",
+            telegram_id_name: telegramName.trim(),
+            telegram_username: telegramId.trim() || "Not provided",
+            amount: `৳${subtotal.toFixed(2)}`,
+            date_time: new Date().toLocaleString("en-US", {
+              timeZone: "Asia/Dhaka",
+              dateStyle: "medium",
+              timeStyle: "short",
+            }),
+          }),
+        }).catch((err) => {
+          console.error("Telegram notification delivery error:", err);
+        });
+      } catch (err) {
+        console.error("Failed to send Telegram notification:", err);
       }
 
       clearCart()
@@ -365,6 +404,73 @@ export default function Checkout() {
                     required
                     className="w-full h-12 px-3 lg:px-4 bg-slate-950/50 border border-slate-700/50 rounded-xl lg:rounded-xl focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 text-white placeholder:text-slate-600 transition-all text-[13px] lg:text-sm"
                   />
+                </div>
+
+                {/* Payment Method */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] lg:text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                    PAYMENT METHOD <span className="text-red-400">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPaymentMethod("bKash")
+                        if (paymentMethodError) setPaymentMethodError(false)
+                      }}
+                      className={`group relative flex items-center justify-center gap-2 h-12 px-3 rounded-xl border transition-all duration-200 cursor-pointer ${
+                        paymentMethod === "bKash"
+                          ? "bg-[#E2136E]/15 border-[#E2136E] text-white shadow-[0_0_15px_rgba(226,19,110,0.25)] ring-1 ring-[#E2136E]/50 font-bold"
+                          : paymentMethodError
+                          ? "bg-slate-950/50 border-red-500/50 text-slate-300 hover:border-[#E2136E]/40 hover:bg-slate-900/80 font-medium"
+                          : "bg-slate-950/50 border-slate-700/50 text-slate-300 hover:border-[#E2136E]/40 hover:bg-slate-900/80 font-medium"
+                      }`}
+                    >
+                      <span
+                        className={`w-2.5 h-2.5 rounded-full shrink-0 transition-transform ${
+                          paymentMethod === "bKash"
+                            ? "bg-[#E2136E] shadow-[0_0_8px_#E2136E] scale-110"
+                            : "bg-[#E2136E]/70 group-hover:bg-[#E2136E]"
+                        }`}
+                      />
+                      <span className="text-[13px] lg:text-sm tracking-wide">bKash</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPaymentMethod("Nagad")
+                        if (paymentMethodError) setPaymentMethodError(false)
+                      }}
+                      className={`group relative flex items-center justify-center gap-2 h-12 px-3 rounded-xl border transition-all duration-200 cursor-pointer ${
+                        paymentMethod === "Nagad"
+                          ? "bg-[#F7931E]/15 border-[#F7931E] text-white shadow-[0_0_15px_rgba(247,147,30,0.25)] ring-1 ring-[#F7931E]/50 font-bold"
+                          : paymentMethodError
+                          ? "bg-slate-950/50 border-red-500/50 text-slate-300 hover:border-[#F7931E]/40 hover:bg-slate-900/80 font-medium"
+                          : "bg-slate-950/50 border-slate-700/50 text-slate-300 hover:border-[#F7931E]/40 hover:bg-slate-900/80 font-medium"
+                      }`}
+                    >
+                      <span
+                        className={`w-2.5 h-2.5 rounded-full shrink-0 transition-transform ${
+                          paymentMethod === "Nagad"
+                            ? "bg-[#F7931E] shadow-[0_0_8px_#F7931E] scale-110"
+                            : "bg-[#F7931E]/70 group-hover:bg-[#F7931E]"
+                        }`}
+                      />
+                      <span className="text-[13px] lg:text-sm tracking-wide">Nagad</span>
+                    </button>
+                  </div>
+                  <div className="flex items-start gap-1.5 pt-0.5">
+                    <Info className="w-3 h-3 text-amber-500 shrink-0 mt-[2px]" />
+                    <p className="text-[9px] lg:text-[10px] text-slate-400 leading-snug">
+                      পেমেন্ট করার মাধ্যমটি নির্বাচন করুন।
+                    </p>
+                  </div>
+                  {paymentMethodError && (
+                    <p className="text-[10px] lg:text-[11px] text-red-400 font-medium leading-snug">
+                      অনুগ্রহ করে পেমেন্ট মাধ্যম নির্বাচন করুন।
+                    </p>
+                  )}
                 </div>
 
                 {/* Phone */}
