@@ -9,7 +9,7 @@ import { toast } from "../../hooks/use-toast"
 import { 
   Plus, Search, Edit2, Trash2, X, BookOpen, Upload, 
   Link as LinkIcon, Tag, Filter, Clock, Users, DollarSign,
-  CheckCircle, MoreVertical, LayoutGrid, List
+  CheckCircle, MoreVertical, LayoutGrid, List, Send
 } from "lucide-react"
 
 export default function ManageCourses() {
@@ -92,7 +92,7 @@ export default function ManageCourses() {
         publishStatus: course.publishStatus || "published",
         imageType: course.thumbnailURL ? "link" : "upload",
         imageLink: course.thumbnailURL || "",
-        telegramLink: course.telegramLink || "",
+        telegramLink: course.telegramLink || course.telegramGroupLink || "",
         tags: course.tags || [],
       })
     } else {
@@ -571,6 +571,23 @@ export default function ManageCourses() {
                           <option value="ongoing">Ongoing</option>
                           <option value="complete">Complete</option>
                         </select>
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Telegram Group Link</label>
+                        <div className="relative">
+                          <Send className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <input
+                            type="url"
+                            value={formData.telegramLink}
+                            onChange={(e) => setFormData({ ...formData, telegramLink: e.target.value })}
+                            placeholder="https://t.me/your_group"
+                            className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm"
+                          />
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1">
+                          Students will see this link to join the course Telegram community
+                        </p>
                       </div>
                     </div>
                   </section>
