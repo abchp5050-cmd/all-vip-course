@@ -6,13 +6,13 @@ import { getMessaging, isSupported } from "firebase/messaging"
 console.log(" Initializing Firebase...")
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBcpwkIYw3EdSkcPlXwjNxIg0zYg_lsOf4",
-  authDomain: "all-vip-2c6de.firebaseapp.com",
-  projectId: "all-vip-2c6de",
-  storageBucket: "all-vip-2c6de.firebasestorage.app",
-  messagingSenderId: "449861479970",
-  appId: "1:449861479970:web:167773229b6f2cfcb6247b",
-  measurementId: "G-QQDGPW8SM2"
+  apiKey: "AIzaSyBcpwkIYw3EdSkcPlXwjNxIg0zYg_lsOf4",
+  authDomain: "all-vip-2c6de.firebaseapp.com",
+  projectId: "all-vip-2c6de",
+  storageBucket: "all-vip-2c6de.firebasestorage.app",
+  messagingSenderId: "449861479970",
+  appId: "1:449861479970:web:167773229b6f2cfcb6247b",
+  measurementId: "G-QQDGPW8SM2"
 };
 
 let app

@@ -4,7 +4,7 @@
  */
 
 // API_URL সেট করা হচ্ছে
-const API_URL = import.meta.env.VITE_API_URL || 'https://easy-education.vercel.app'
+const API_URL = import.meta.env.VITE_API_URL || 'https://all-vip-course.vercel.app'
 
 /**
  * File কে Base64 এ রূপান্তর করা হচ্ছে

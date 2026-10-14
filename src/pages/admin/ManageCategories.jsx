@@ -250,6 +250,7 @@ export default function ManageCategories() {
         </div>
       </div>
 
+
       {/* Categories Grid */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -404,6 +405,7 @@ export default function ManageCategories() {
                   <label className="block text-sm font-medium mb-1.5">Title</label>
                   <input type="text" value={subcategoryForm.title} onChange={e => setSubcategoryForm({...subcategoryForm, title: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm" required />
                 </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium mb-1.5">Image URL</label>
