@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useNavigate, Link } from "react-router-dom"
 import { motion } from "framer-motion"
-import { CreditCard, ArrowLeft, Calendar, Banknote, CheckCircle, Clock, XCircle, BookOpen, Receipt } from "lucide-react"
+import { CreditCard, ArrowLeft, Calendar, Banknote, CheckCircle, Clock, XCircle, BookOpen, Receipt, AlertCircle } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 import { collection, query, where, getDocs } from "firebase/firestore"
 import { db } from "../lib/firebase"
@@ -164,16 +164,47 @@ export default function PaymentHistory() {
                       Purchased Courses ({payment.courses?.length || 0})
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {payment.courses?.map((course, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.04] transition-colors">
-                          <div className="flex-1 min-w-0 pr-4">
-                            <p className="text-sm font-medium text-gray-200 truncate">{course.title}</p>
+                      {payment.courses?.map((course, idx) => {
+                        const courseStatus = course.status || payment.status || "pending"
+                        const isMulti = (payment.courses?.length || 0) > 1
+
+                        return (
+                          <div key={idx} className="p-3 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/[0.04] transition-colors">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm font-medium text-gray-200 truncate">{course.title}</p>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className="text-sm font-semibold text-primary/90">৳{course.price || 0}</span>
+                                {isMulti && (
+                                  <span className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full ${
+                                    courseStatus === 'approved' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
+                                    courseStatus === 'rejected' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                                    'bg-orange-500/10 text-orange-400 border border-orange-500/20'
+                                  }`}>
+                                    {courseStatus}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {isMulti && course.rejectionReason && (
+                              <p className="text-xs text-red-400 mt-1.5 font-medium">
+                                বাতিল কারণ: {course.rejectionReason}
+                              </p>
+                            )}
                           </div>
-                          <span className="text-sm font-semibold text-primary/90 flex-shrink-0">৳{course.price || 0}</span>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </div>
+
+                  {payment.status === "rejected" && payment.rejectionReason && (
+                    <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-2.5 text-xs sm:text-sm text-red-400">
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
+                      <div>
+                        <span className="font-bold text-red-400">পেমেন্ট বাতিলের কারণ: </span>
+                        <span className="text-slate-200">{payment.rejectionReason}</span>
+                      </div>
+                    </div>
+                  )}
 
                   {payment.couponCode && (
                     <div className="mt-4 p-3 bg-green-500/5 border border-green-500/10 rounded-xl flex items-center justify-between">

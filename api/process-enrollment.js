@@ -33,6 +33,41 @@ export default async function handler(req, res) {
   
   // Handle free enrollment (100% discount coupon)
   if (skipPaymentVerification && finalAmount === 0) {
+    if (!couponCode) {
+      return res.status(403).json({
+        success: false,
+        error: "Coupon code required for free enrollment verification."
+      });
+    }
+    
+    // Validate coupon code against Firestore
+    try {
+      const { getFirestoreDb } = await import('./firebase-admin-init.js');
+      const db = getFirestoreDb();
+      if (db) {
+        const couponSnapshot = await db.collection('coupons').where('code', '==', couponCode).get();
+        if (couponSnapshot.empty) {
+          return res.status(403).json({
+            success: false,
+            error: "Invalid or nonexistent coupon code."
+          });
+        }
+        const couponData = couponSnapshot.docs[0].data();
+        if (couponData.isActive === false || Number(couponData.discountPercent) !== 100) {
+          return res.status(403).json({
+            success: false,
+            error: "Coupon is not eligible for 100% free enrollment."
+          });
+        }
+      }
+    } catch (couponErr) {
+      console.error("Error verifying coupon:", couponErr);
+      return res.status(500).json({
+        success: false,
+        error: "Failed to verify coupon validity."
+      });
+    }
+
     try {
       console.log('Processing free enrollment for userId:', userId);
       

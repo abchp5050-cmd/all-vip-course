@@ -300,14 +300,38 @@ export const createDefaultFooterConfig = (userId) => ({
   revisions: []
 })
 
+// In-memory cache for Header and Footer to prevent duplicate queries on every navigation
+let cachedHeaderDoc = null
+let lastHeaderFetchTime = 0
+let cachedFooterDoc = null
+let lastFooterFetchTime = 0
+const CACHE_TTL_MS = 60 * 1000 // 60 seconds
+
+export const clearHeaderFooterCache = () => {
+  cachedHeaderDoc = null
+  lastHeaderFetchTime = 0
+  cachedFooterDoc = null
+  lastFooterFetchTime = 0
+}
+
 // Fetch Active Header Configuration with conditional display logic
 export const fetchActiveHeaderConfig = async (currentPath, userRole = 'guest', deviceType = 'desktop') => {
   try {
+    const now = Date.now()
+    if (cachedHeaderDoc && (now - lastHeaderFetchTime < CACHE_TTL_MS)) {
+      if (shouldDisplayConfig(cachedHeaderDoc, currentPath, userRole, deviceType)) {
+        return cachedHeaderDoc
+      }
+      return cachedHeaderDoc
+    }
+
     // First try to get the default config directly
     const defaultDoc = await getDoc(doc(db, "headerConfigs", "default"))
     if (defaultDoc.exists()) {
       const defaultConfig = { id: defaultDoc.id, ...defaultDoc.data() }
       if (defaultConfig.isActive && defaultConfig.isPublished) {
+        cachedHeaderDoc = defaultConfig
+        lastHeaderFetchTime = now
         if (shouldDisplayConfig(defaultConfig, currentPath, userRole, deviceType)) {
           return defaultConfig
         }
@@ -340,10 +364,14 @@ export const fetchActiveHeaderConfig = async (currentPath, userRole = 'guest', d
         )
         
         if (matchingConfig) {
+          cachedHeaderDoc = matchingConfig
+          lastHeaderFetchTime = now
           return matchingConfig
         }
         
         // Fallback to first active config if no match
+        cachedHeaderDoc = configs[0]
+        lastHeaderFetchTime = now
         return configs[0]
       }
     } catch (queryError) {
@@ -361,11 +389,21 @@ export const fetchActiveHeaderConfig = async (currentPath, userRole = 'guest', d
 // Fetch Active Footer Configuration with conditional display logic
 export const fetchActiveFooterConfig = async (currentPath, userRole = 'guest', deviceType = 'desktop') => {
   try {
+    const now = Date.now()
+    if (cachedFooterDoc && (now - lastFooterFetchTime < CACHE_TTL_MS)) {
+      if (shouldDisplayConfig(cachedFooterDoc, currentPath, userRole, deviceType)) {
+        return cachedFooterDoc
+      }
+      return cachedFooterDoc
+    }
+
     // First try to get the default config directly
     const defaultDoc = await getDoc(doc(db, "footerConfigs", "default"))
     if (defaultDoc.exists()) {
       const defaultConfig = { id: defaultDoc.id, ...defaultDoc.data() }
       if (defaultConfig.isActive && defaultConfig.isPublished) {
+        cachedFooterDoc = defaultConfig
+        lastFooterFetchTime = now
         if (shouldDisplayConfig(defaultConfig, currentPath, userRole, deviceType)) {
           return defaultConfig
         }
@@ -398,10 +436,14 @@ export const fetchActiveFooterConfig = async (currentPath, userRole = 'guest', d
         )
         
         if (matchingConfig) {
+          cachedFooterDoc = matchingConfig
+          lastFooterFetchTime = now
           return matchingConfig
         }
         
         // Fallback to first active config if no match
+        cachedFooterDoc = configs[0]
+        lastFooterFetchTime = now
         return configs[0]
       }
     } catch (queryError) {
@@ -419,6 +461,7 @@ export const fetchActiveFooterConfig = async (currentPath, userRole = 'guest', d
 // Save Header Configuration
 export const saveHeaderConfig = async (config) => {
   try {
+    clearHeaderFooterCache()
     const configRef = doc(db, "headerConfigs", config.id)
     await setDoc(configRef, {
       ...config,
@@ -435,6 +478,7 @@ export const saveHeaderConfig = async (config) => {
 // Save Footer Configuration
 export const saveFooterConfig = async (config) => {
   try {
+    clearHeaderFooterCache()
     const configRef = doc(db, "footerConfigs", config.id)
     await setDoc(configRef, {
       ...config,

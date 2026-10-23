@@ -1,12 +1,14 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from "firebase/firestore"
 import { db } from "../../lib/firebase"
+import { uploadImageToImgBB } from "../../lib/imgbb"
 import { toast } from "../../hooks/use-toast"
 import ConfirmDialog from "../../components/ConfirmDialog"
 import { 
   FolderTree, Plus, Edit2, Trash2, X, Upload, Save, 
-  Eye, EyeOff, LayoutGrid, List, Search, Folder, Move, Link as LinkIcon
+  Eye, EyeOff, LayoutGrid, List, Search, Folder, Move, Link as LinkIcon,
+  Loader2, Image as ImageIcon
 } from "lucide-react"
 
 export default function ManageCategories() {
@@ -35,6 +37,57 @@ export default function ManageCategories() {
   const [subcategoryForm, setSubcategoryForm] = useState({
     categoryId: "", title: "", description: "", imageURL: "", order: 0
   })
+
+  // Image Upload state for Category
+  const [categorySourceType, setCategorySourceType] = useState("upload") // "upload" | "url"
+  const [categoryImageFile, setCategoryImageFile] = useState(null)
+  const [categoryImagePreview, setCategoryImagePreview] = useState(null)
+  const [uploadingCategory, setUploadingCategory] = useState(false)
+  const [isCategoryDragging, setIsCategoryDragging] = useState(false)
+  const categoryFileInputRef = useRef(null)
+  const categoryUrlInputRef = useRef(null)
+
+  // Image Upload state for Subcategory
+  const [subcategorySourceType, setSubcategorySourceType] = useState("upload") // "upload" | "url"
+  const [subcategoryImageFile, setSubcategoryImageFile] = useState(null)
+  const [subcategoryImagePreview, setSubcategoryImagePreview] = useState(null)
+  const [uploadingSubcategory, setUploadingSubcategory] = useState(false)
+  const [isSubcategoryDragging, setIsSubcategoryDragging] = useState(false)
+  const subcategoryFileInputRef = useRef(null)
+  const subcategoryUrlInputRef = useRef(null)
+
+  // File validation constants
+  const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"]
+  const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp"]
+  const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB
+
+  const validateImageFile = (file) => {
+    if (!file) return false
+
+    const extension = "." + (file.name.split(".").pop() || "").toLowerCase()
+    const isTypeValid = ALLOWED_IMAGE_TYPES.includes(file.type) || ALLOWED_EXTENSIONS.includes(extension)
+
+    if (!isTypeValid) {
+      toast({
+        variant: "destructive",
+        title: "Unsupported Image Format",
+        description: "Please select a JPG, PNG, or WebP image."
+      })
+      return false
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      const sizeInMB = (file.size / (1024 * 1024)).toFixed(1)
+      toast({
+        variant: "destructive",
+        title: "Image Too Large",
+        description: `Image size is ${sizeInMB}MB. Maximum allowed size is 5MB.`
+      })
+      return false
+    }
+
+    return true
+  }
 
   useEffect(() => {
     fetchData()
@@ -77,37 +130,97 @@ export default function ManageCategories() {
         order: cat.order || 0,
         isHidden: cat.isHidden || false
       })
+      setCategoryImagePreview(cat.imageURL || null)
+      setCategorySourceType("upload")
     } else {
       setEditingCategory(null)
       setCategoryForm({ title: "", description: "", imageURL: "", order: categories.length, isHidden: false })
+      setCategoryImagePreview(null)
+      setCategorySourceType("upload")
     }
+    setCategoryImageFile(null)
+    setIsCategoryDragging(false)
+    if (categoryFileInputRef.current) categoryFileInputRef.current.value = ""
     setShowCategoryModal(true)
+  }
+
+  const handleCloseCategoryModal = () => {
+    if (categoryImagePreview && categoryImagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(categoryImagePreview)
+    }
+    setCategoryImageFile(null)
+    setCategoryImagePreview(null)
+    setIsCategoryDragging(false)
+    setShowCategoryModal(false)
+    setEditingCategory(null)
+  }
+
+  const handleCategoryImageSelect = (file) => {
+    if (!validateImageFile(file)) return
+
+    if (categoryImagePreview && categoryImagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(categoryImagePreview)
+    }
+
+    const preview = URL.createObjectURL(file)
+    setCategoryImageFile(file)
+    setCategoryImagePreview(preview)
+  }
+
+  const handleRemoveCategoryImage = () => {
+    if (categoryImagePreview && categoryImagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(categoryImagePreview)
+    }
+    setCategoryImageFile(null)
+    setCategoryImagePreview(null)
+    setCategoryForm(prev => ({ ...prev, imageURL: "" }))
+    if (categoryFileInputRef.current) categoryFileInputRef.current.value = ""
   }
 
   const handleSaveCategory = async (e) => {
     e.preventDefault()
+    if (!categoryForm.title.trim()) {
+      toast({ variant: "destructive", title: "Title Required", description: "Category title is required" })
+      return
+    }
+
+    setUploadingCategory(true)
     try {
+      let finalImageURL = categoryForm.imageURL.trim()
+
+      if (categorySourceType === "upload" && categoryImageFile) {
+        try {
+          finalImageURL = await uploadImageToImgBB(categoryImageFile)
+        } catch (uploadError) {
+          throw new Error(uploadError.message || "Failed to upload image. Please try again.")
+        }
+      }
+
       const data = {
-        title: categoryForm.title,
-        description: categoryForm.description,
-        imageURL: categoryForm.imageURL,
-        order: Number(categoryForm.order),
-        isHidden: categoryForm.isHidden,
+        title: categoryForm.title.trim(),
+        description: categoryForm.description.trim(),
+        imageURL: finalImageURL,
+        order: Number(categoryForm.order) || 0,
+        isHidden: Boolean(categoryForm.isHidden),
         updatedAt: serverTimestamp()
       }
 
       if (editingCategory) {
         await updateDoc(doc(db, "categories", editingCategory.id), data)
-        toast({ title: "Success", description: "Category updated" })
+        toast({ title: "Success", description: "Category updated successfully" })
       } else {
         data.createdAt = serverTimestamp()
         await addDoc(collection(db, "categories"), data)
-        toast({ title: "Success", description: "Category created" })
+        toast({ title: "Success", description: "Category created successfully" })
       }
-      setShowCategoryModal(false)
+
+      handleCloseCategoryModal()
       fetchData()
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: error.message })
+      console.error("Error saving category:", error)
+      toast({ variant: "destructive", title: "Error", description: error.message || "Failed to save category" })
+    } finally {
+      setUploadingCategory(false)
     }
   }
 
@@ -140,11 +253,51 @@ export default function ManageCategories() {
         imageURL: subcat.imageURL || "",
         order: subcat.order || 0
       })
+      setSubcategoryImagePreview(subcat.imageURL || null)
+      setSubcategorySourceType("upload")
     } else {
       setEditingSubcategory(null)
       setSubcategoryForm({ categoryId: categories[0]?.id || "", title: "", description: "", imageURL: "", order: subcategories.length })
+      setSubcategoryImagePreview(null)
+      setSubcategorySourceType("upload")
     }
+    setSubcategoryImageFile(null)
+    setIsSubcategoryDragging(false)
+    if (subcategoryFileInputRef.current) subcategoryFileInputRef.current.value = ""
     setShowSubcategoryModal(true)
+  }
+
+  const handleCloseSubcategoryModal = () => {
+    if (subcategoryImagePreview && subcategoryImagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(subcategoryImagePreview)
+    }
+    setSubcategoryImageFile(null)
+    setSubcategoryImagePreview(null)
+    setIsSubcategoryDragging(false)
+    setShowSubcategoryModal(false)
+    setEditingSubcategory(null)
+  }
+
+  const handleSubcategoryImageSelect = (file) => {
+    if (!validateImageFile(file)) return
+
+    if (subcategoryImagePreview && subcategoryImagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(subcategoryImagePreview)
+    }
+
+    const preview = URL.createObjectURL(file)
+    setSubcategoryImageFile(file)
+    setSubcategoryImagePreview(preview)
+  }
+
+  const handleRemoveSubcategoryImage = () => {
+    if (subcategoryImagePreview && subcategoryImagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(subcategoryImagePreview)
+    }
+    setSubcategoryImageFile(null)
+    setSubcategoryImagePreview(null)
+    setSubcategoryForm(prev => ({ ...prev, imageURL: "" }))
+    if (subcategoryFileInputRef.current) subcategoryFileInputRef.current.value = ""
   }
 
   const handleSaveSubcategory = async (e) => {
@@ -153,28 +306,48 @@ export default function ManageCategories() {
       toast({ variant: "destructive", title: "Required", description: "Please select a parent category" })
       return
     }
+    if (!subcategoryForm.title.trim()) {
+      toast({ variant: "destructive", title: "Title Required", description: "Subcategory title is required" })
+      return
+    }
+
+    setUploadingSubcategory(true)
     try {
+      let finalImageURL = subcategoryForm.imageURL.trim()
+
+      if (subcategorySourceType === "upload" && subcategoryImageFile) {
+        try {
+          finalImageURL = await uploadImageToImgBB(subcategoryImageFile)
+        } catch (uploadError) {
+          throw new Error(uploadError.message || "Failed to upload image. Please try again.")
+        }
+      }
+
       const data = {
         categoryId: subcategoryForm.categoryId,
-        title: subcategoryForm.title,
-        description: subcategoryForm.description,
-        imageURL: subcategoryForm.imageURL,
-        order: Number(subcategoryForm.order),
+        title: subcategoryForm.title.trim(),
+        description: subcategoryForm.description.trim(),
+        imageURL: finalImageURL,
+        order: Number(subcategoryForm.order) || 0,
         updatedAt: serverTimestamp()
       }
 
       if (editingSubcategory) {
         await updateDoc(doc(db, "subcategories", editingSubcategory.id), data)
-        toast({ title: "Success", description: "Subcategory updated" })
+        toast({ title: "Success", description: "Subcategory updated successfully" })
       } else {
         data.createdAt = serverTimestamp()
         await addDoc(collection(db, "subcategories"), data)
-        toast({ title: "Success", description: "Subcategory created" })
+        toast({ title: "Success", description: "Subcategory created successfully" })
       }
-      setShowSubcategoryModal(false)
+
+      handleCloseSubcategoryModal()
       fetchData()
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: error.message })
+      console.error("Error saving subcategory:", error)
+      toast({ variant: "destructive", title: "Error", description: error.message || "Failed to save subcategory" })
+    } finally {
+      setUploadingSubcategory(false)
     }
   }
 
@@ -249,7 +422,6 @@ export default function ManageCategories() {
           </button>
         </div>
       </div>
-
 
       {/* Categories Grid */}
       {loading ? (
@@ -344,38 +516,296 @@ export default function ManageCategories() {
       <AnimatePresence>
         {showCategoryModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowCategoryModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/50">
-                <h3 className="text-lg font-bold">{editingCategory ? "Edit Category" : "New Category"}</h3>
-                <button onClick={() => setShowCategoryModal(false)} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full"><X className="w-5 h-5" /></button>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              onClick={handleCloseCategoryModal}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/50 flex-shrink-0">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white">
+                  {editingCategory ? "Edit Category" : "New Category"}
+                </h3>
+                <button
+                  type="button"
+                  onClick={handleCloseCategoryModal}
+                  className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-              <form onSubmit={handleSaveCategory} className="p-6 space-y-5">
+
+              <form onSubmit={handleSaveCategory} className="p-6 space-y-4 overflow-y-auto">
+                {/* Title */}
                 <div>
-                  <label className="block text-sm font-medium mb-1.5">Title</label>
-                  <input type="text" value={categoryForm.title} onChange={e => setCategoryForm({...categoryForm, title: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm" required />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    Title <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={categoryForm.title}
+                    onChange={e => setCategoryForm({...categoryForm, title: e.target.value})}
+                    placeholder="e.g. Web Development"
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm text-slate-900 dark:text-white transition-all"
+                    required
+                  />
                 </div>
+
+                {/* Description */}
                 <div>
-                  <label className="block text-sm font-medium mb-1.5">Description</label>
-                  <textarea value={categoryForm.description} onChange={e => setCategoryForm({...categoryForm, description: e.target.value})} rows={2} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm" />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    Description
+                  </label>
+                  <textarea
+                    value={categoryForm.description}
+                    onChange={e => setCategoryForm({...categoryForm, description: e.target.value})}
+                    placeholder="Brief description of this category..."
+                    rows={2}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm text-slate-900 dark:text-white transition-all resize-none"
+                  />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1.5">Image URL</label>
-                    <input type="url" value={categoryForm.imageURL} onChange={e => setCategoryForm({...categoryForm, imageURL: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm" placeholder="https://" />
+
+                {/* Category Image Section */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Category Image
+                    </label>
+                    <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+                      <button
+                        type="button"
+                        onClick={() => setCategorySourceType("upload")}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                          categorySourceType === "upload"
+                            ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                            : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                        }`}
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCategorySourceType("url")}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                          categorySourceType === "url"
+                            ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                            : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                        }`}
+                      >
+                        <LinkIcon className="w-3.5 h-3.5" />
+                        <span>Image URL</span>
+                      </button>
+                    </div>
                   </div>
+
+                  <input
+                    ref={categoryFileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handleCategoryImageSelect(file)
+                    }}
+                    className="hidden"
+                  />
+
+                  {categoryImagePreview ? (
+                    <div className="bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex items-center gap-3">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex-shrink-0 relative">
+                        <img
+                          src={categoryImagePreview}
+                          alt="Category Preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null
+                            e.currentTarget.src = "https://placehold.co/160x160/1e293b/ffffff?text=Image"
+                          }}
+                        />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-500/20">
+                            {categoryImageFile ? "Ready to upload" : "Current Image"}
+                          </span>
+                          {categoryImageFile && (
+                            <span className="text-xs text-slate-500">
+                              {(categoryImageFile.size / (1024 * 1024)).toFixed(2)} MB
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 truncate mt-1">
+                          {categoryImageFile ? categoryImageFile.name : (categoryForm.imageURL || "Direct image URL")}
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          JPG, PNG, or WebP (max 5MB)
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row items-center gap-1.5 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (categorySourceType === "upload") {
+                              categoryFileInputRef.current?.click()
+                            } else {
+                              categoryUrlInputRef.current?.focus()
+                            }
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors flex items-center gap-1 border border-slate-200 dark:border-slate-700"
+                          title="Change image"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Change</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleRemoveCategoryImage}
+                          className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors flex items-center gap-1 border border-rose-200/50 dark:border-rose-900/50"
+                          title="Remove image"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Remove</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      {categorySourceType === "upload" ? (
+                        <div
+                          onClick={() => categoryFileInputRef.current?.click()}
+                          onDragOver={(e) => { e.preventDefault(); setIsCategoryDragging(true) }}
+                          onDragLeave={() => setIsCategoryDragging(false)}
+                          onDrop={(e) => {
+                            e.preventDefault()
+                            setIsCategoryDragging(false)
+                            const file = e.dataTransfer.files?.[0]
+                            if (file) handleCategoryImageSelect(file)
+                          }}
+                          className={`group cursor-pointer border-2 border-dashed rounded-xl p-5 text-center transition-all ${
+                            isCategoryDragging
+                              ? "border-indigo-500 bg-indigo-500/10"
+                              : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 hover:bg-slate-100/70 dark:hover:bg-slate-900 hover:border-indigo-400 dark:hover:border-indigo-600"
+                          }`}
+                        >
+                          <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+                            <Upload className="w-5 h-5" />
+                          </div>
+                          <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                            Click to upload photo
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            Mobile gallery or computer • JPG, PNG, WebP (max 5MB)
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5">
+                          <div className="relative">
+                            <LinkIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <input
+                              ref={categoryUrlInputRef}
+                              type="url"
+                              value={categoryForm.imageURL}
+                              onChange={(e) => {
+                                const url = e.target.value
+                                setCategoryForm({ ...categoryForm, imageURL: url })
+                                setCategoryImagePreview(url.trim() ? url.trim() : null)
+                              }}
+                              placeholder="https://example.com/image.jpg"
+                              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm text-slate-900 dark:text-white transition-all"
+                            />
+                          </div>
+                          <p className="text-[11px] text-slate-400">
+                            Paste a direct link to an image (JPG, PNG, WebP).
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {categoryImagePreview && categorySourceType === "url" && (
+                    <div className="mt-2">
+                      <div className="relative">
+                        <LinkIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          ref={categoryUrlInputRef}
+                          type="url"
+                          value={categoryForm.imageURL}
+                          onChange={(e) => {
+                            const url = e.target.value
+                            setCategoryForm({ ...categoryForm, imageURL: url })
+                            setCategoryImagePreview(url.trim() ? url.trim() : null)
+                          }}
+                          placeholder="https://example.com/image.jpg"
+                          className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs text-slate-900 dark:text-white transition-all"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Display Order & Hide Option */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                   <div>
-                    <label className="block text-sm font-medium mb-1.5">Display Order</label>
-                    <input type="number" value={categoryForm.order} onChange={e => setCategoryForm({...categoryForm, order: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm" />
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                      Display Order
+                    </label>
+                    <input
+                      type="number"
+                      value={categoryForm.order}
+                      onChange={e => setCategoryForm({...categoryForm, order: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm text-slate-900 dark:text-white"
+                      min="0"
+                    />
+                  </div>
+                  <div className="flex items-center sm:pt-6">
+                    <label htmlFor="hideCat" className="flex items-center gap-2.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        id="hideCat"
+                        checked={categoryForm.isHidden}
+                        onChange={e => setCategoryForm({...categoryForm, isHidden: e.target.checked})}
+                        className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-slate-300 dark:border-slate-700"
+                      />
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Hide from public frontend
+                      </span>
+                    </label>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 pt-2">
-                  <input type="checkbox" id="hideCat" checked={categoryForm.isHidden} onChange={e => setCategoryForm({...categoryForm, isHidden: e.target.checked})} className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-slate-300" />
-                  <label htmlFor="hideCat" className="text-sm font-medium">Hide from public frontend</label>
-                </div>
-                <div className="pt-4 flex justify-end gap-3">
-                  <button type="button" onClick={() => setShowCategoryModal(false)} className="px-5 py-2.5 font-semibold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl">Cancel</button>
-                  <button type="submit" className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm">Save</button>
+
+                {/* Modal Footer Actions */}
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleCloseCategoryModal}
+                    disabled={uploadingCategory}
+                    className="px-5 py-2.5 font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={uploadingCategory}
+                    className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {uploadingCategory ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>{categoryImageFile ? "Uploading image..." : "Saving..."}</span>
+                      </>
+                    ) : (
+                      <span>Save Category</span>
+                    )}
+                  </button>
                 </div>
               </form>
             </motion.div>
@@ -387,38 +817,281 @@ export default function ManageCategories() {
       <AnimatePresence>
         {showSubcategoryModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowSubcategoryModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/50">
-                <h3 className="text-lg font-bold">{editingSubcategory ? "Edit Subcategory" : "New Subcategory"}</h3>
-                <button onClick={() => setShowSubcategoryModal(false)} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full"><X className="w-5 h-5" /></button>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              onClick={handleCloseSubcategoryModal}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/50 flex-shrink-0">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white">
+                  {editingSubcategory ? "Edit Subcategory" : "New Subcategory"}
+                </h3>
+                <button
+                  type="button"
+                  onClick={handleCloseSubcategoryModal}
+                  className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-              <form onSubmit={handleSaveSubcategory} className="p-6 space-y-5">
+
+              <form onSubmit={handleSaveSubcategory} className="p-6 space-y-4 overflow-y-auto">
+                {/* Parent Category */}
                 <div>
-                  <label className="block text-sm font-medium mb-1.5">Parent Category</label>
-                  <select value={subcategoryForm.categoryId} onChange={e => setSubcategoryForm({...subcategoryForm, categoryId: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm" required>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    Parent Category <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={subcategoryForm.categoryId}
+                    onChange={e => setSubcategoryForm({...subcategoryForm, categoryId: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm text-slate-900 dark:text-white"
+                    required
+                  >
                     <option value="">Select Category</option>
                     {categories.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                   </select>
                 </div>
+
+                {/* Title */}
                 <div>
-                  <label className="block text-sm font-medium mb-1.5">Title</label>
-                  <input type="text" value={subcategoryForm.title} onChange={e => setSubcategoryForm({...subcategoryForm, title: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm" required />
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    Title <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={subcategoryForm.title}
+                    onChange={e => setSubcategoryForm({...subcategoryForm, title: e.target.value})}
+                    placeholder="e.g. React & Next.js"
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm text-slate-900 dark:text-white"
+                    required
+                  />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1.5">Image URL</label>
-                    <input type="url" value={subcategoryForm.imageURL} onChange={e => setSubcategoryForm({...subcategoryForm, imageURL: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm" placeholder="https://" />
+                {/* Subcategory Image Section */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Subcategory Image
+                    </label>
+                    <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+                      <button
+                        type="button"
+                        onClick={() => setSubcategorySourceType("upload")}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                          subcategorySourceType === "upload"
+                            ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                            : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                        }`}
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSubcategorySourceType("url")}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                          subcategorySourceType === "url"
+                            ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                            : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                        }`}
+                      >
+                        <LinkIcon className="w-3.5 h-3.5" />
+                        <span>Image URL</span>
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1.5">Display Order</label>
-                    <input type="number" value={subcategoryForm.order} onChange={e => setSubcategoryForm({...subcategoryForm, order: e.target.value})} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm" />
-                  </div>
+
+                  <input
+                    ref={subcategoryFileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handleSubcategoryImageSelect(file)
+                    }}
+                    className="hidden"
+                  />
+
+                  {subcategoryImagePreview ? (
+                    <div className="bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex items-center gap-3">
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex-shrink-0 relative">
+                        <img
+                          src={subcategoryImagePreview}
+                          alt="Subcategory Preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null
+                            e.currentTarget.src = "https://placehold.co/160x160/1e293b/ffffff?text=Image"
+                          }}
+                        />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-500/20">
+                            {subcategoryImageFile ? "Ready to upload" : "Current Image"}
+                          </span>
+                          {subcategoryImageFile && (
+                            <span className="text-xs text-slate-500">
+                              {(subcategoryImageFile.size / (1024 * 1024)).toFixed(2)} MB
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 truncate mt-1">
+                          {subcategoryImageFile ? subcategoryImageFile.name : (subcategoryForm.imageURL || "Direct image URL")}
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          JPG, PNG, or WebP (max 5MB)
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row items-center gap-1.5 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (subcategorySourceType === "upload") {
+                              subcategoryFileInputRef.current?.click()
+                            } else {
+                              subcategoryUrlInputRef.current?.focus()
+                            }
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors flex items-center gap-1 border border-slate-200 dark:border-slate-700"
+                          title="Change image"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Change</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleRemoveSubcategoryImage}
+                          className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors flex items-center gap-1 border border-rose-200/50 dark:border-rose-900/50"
+                          title="Remove image"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Remove</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      {subcategorySourceType === "upload" ? (
+                        <div
+                          onClick={() => subcategoryFileInputRef.current?.click()}
+                          onDragOver={(e) => { e.preventDefault(); setIsSubcategoryDragging(true) }}
+                          onDragLeave={() => setIsSubcategoryDragging(false)}
+                          onDrop={(e) => {
+                            e.preventDefault()
+                            setIsSubcategoryDragging(false)
+                            const file = e.dataTransfer.files?.[0]
+                            if (file) handleSubcategoryImageSelect(file)
+                          }}
+                          className={`group cursor-pointer border-2 border-dashed rounded-xl p-5 text-center transition-all ${
+                            isSubcategoryDragging
+                              ? "border-indigo-500 bg-indigo-500/10"
+                              : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 hover:bg-slate-100/70 dark:hover:bg-slate-900 hover:border-indigo-400 dark:hover:border-indigo-600"
+                          }`}
+                        >
+                          <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+                            <Upload className="w-5 h-5" />
+                          </div>
+                          <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                            Click to upload photo
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            Mobile gallery or computer • JPG, PNG, WebP (max 5MB)
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5">
+                          <div className="relative">
+                            <LinkIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <input
+                              ref={subcategoryUrlInputRef}
+                              type="url"
+                              value={subcategoryForm.imageURL}
+                              onChange={(e) => {
+                                const url = e.target.value
+                                setSubcategoryForm({ ...subcategoryForm, imageURL: url })
+                                setSubcategoryImagePreview(url.trim() ? url.trim() : null)
+                              }}
+                              placeholder="https://example.com/image.jpg"
+                              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm text-slate-900 dark:text-white transition-all"
+                            />
+                          </div>
+                          <p className="text-[11px] text-slate-400">
+                            Paste a direct link to an image (JPG, PNG, WebP).
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {subcategoryImagePreview && subcategorySourceType === "url" && (
+                    <div className="mt-2">
+                      <div className="relative">
+                        <LinkIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          ref={subcategoryUrlInputRef}
+                          type="url"
+                          value={subcategoryForm.imageURL}
+                          onChange={(e) => {
+                            const url = e.target.value
+                            setSubcategoryForm({ ...subcategoryForm, imageURL: url })
+                            setSubcategoryImagePreview(url.trim() ? url.trim() : null)
+                          }}
+                          placeholder="https://example.com/image.jpg"
+                          className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs text-slate-900 dark:text-white transition-all"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="pt-4 flex justify-end gap-3">
-                  <button type="button" onClick={() => setShowSubcategoryModal(false)} className="px-5 py-2.5 font-semibold text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl">Cancel</button>
-                  <button type="submit" className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm">Save</button>
+
+                {/* Display Order */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                    Display Order
+                  </label>
+                  <input
+                    type="number"
+                    value={subcategoryForm.order}
+                    onChange={e => setSubcategoryForm({...subcategoryForm, order: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                {/* Modal Footer Actions */}
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleCloseSubcategoryModal}
+                    disabled={uploadingSubcategory}
+                    className="px-5 py-2.5 font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={uploadingSubcategory}
+                    className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {uploadingSubcategory ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>{subcategoryImageFile ? "Uploading image..." : "Saving..."}</span>
+                      </>
+                    ) : (
+                      <span>Save Subcategory</span>
+                    )}
+                  </button>
                 </div>
               </form>
             </motion.div>

@@ -36,6 +36,15 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Verify admin permissions
+    const adminUserDoc = await db.collection('users').doc(adminId).get();
+    if (!adminUserDoc.exists || adminUserDoc.data()?.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: "Forbidden: Requester does not have admin permissions"
+      });
+    }
+
     const enrollmentRef = db.collection('enrollments').doc(enrollmentId);
     const enrollmentDoc = await enrollmentRef.get();
 

@@ -1,10 +1,10 @@
 "use client"
 import { toast } from "../../hooks/use-toast"
 
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { CreditCard, Check, X, Clock, Download, Trash2 } from "lucide-react"
-import { collection, getDocs, updateDoc, doc, setDoc, serverTimestamp, query, orderBy, deleteDoc } from "firebase/firestore"
+import { useState, useEffect, memo } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { CreditCard, Check, X, Clock, Download, Trash2, AlertCircle } from "lucide-react"
+import { collection, getDocs, updateDoc, doc, setDoc, serverTimestamp, query, orderBy, deleteDoc, where } from "firebase/firestore"
 import { db } from "../../lib/firebase"
 import { sendPaymentConfirmationEmail } from "../../lib/email"
 import ConfirmDialog from "../../components/ConfirmDialog"
@@ -14,6 +14,7 @@ export default function ManagePayments() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState("all")
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: "", message: "", onConfirm: () => {} })
+  const [rejectModal, setRejectModal] = useState({ isOpen: false, payment: null, targetCourse: null })
 
   useEffect(() => {
     fetchPayments()
@@ -32,38 +33,119 @@ export default function ManagePayments() {
     }
   }
 
-  const handleApprove = async (payment) => {
+  const handleApprove = async (payment, targetCourse = null) => {
+    const courseTitle = targetCourse ? targetCourse.title : (payment.courses?.map(c => c.title).join(", ") || "course")
     setConfirmDialog({
       isOpen: true,
       title: "Approve Payment",
-      message: "Approve this payment and grant course access?",
+      message: `Approve payment and grant access to ${courseTitle}?`,
       variant: "default",
       onConfirm: async () => {
         try {
-          await updateDoc(doc(db, "payments", payment.id), {
-            status: "approved",
-            approvedAt: serverTimestamp(),
-          })
+          if (targetCourse && payment.courses && payment.courses.length > 1) {
+            // Target specific course in multi-course order
+            const updatedCourses = payment.courses.map((c) =>
+              c.id === targetCourse.id
+                ? {
+                    ...c,
+                    status: "approved",
+                    rejectionReason: null,
+                    approvedAt: new Date().toISOString(),
+                  }
+                : c
+            )
 
-          for (const course of payment.courses) {
-            await setDoc(doc(db, "userCourses", `${payment.userId}_${course.id}`), {
+            const allApproved = updatedCourses.every((c) => c.status === "approved")
+            const anyPending = updatedCourses.some((c) => !c.status || c.status === "pending")
+            const overallStatus = allApproved ? "approved" : anyPending ? "pending" : "partially_processed"
+
+            await updateDoc(doc(db, "payments", payment.id), {
+              courses: updatedCourses,
+              status: overallStatus,
+              ...(allApproved ? { approvedAt: serverTimestamp(), rejectionReason: null } : {}),
+            })
+
+            // Grant access only to targetCourse
+            await setDoc(doc(db, "userCourses", `${payment.userId}_${targetCourse.id}`), {
               userId: payment.userId,
-              courseId: course.id,
+              courseId: targetCourse.id,
               enrolledAt: serverTimestamp(),
               progress: 0,
             })
-          }
 
-          try {
-            await sendPaymentConfirmationEmail(payment.userEmail, payment.userName, {
-              courses: payment.courses,
-              subtotal: payment.subtotal,
-              discount: payment.discount || 0,
-              finalAmount: payment.finalAmount,
-              transactionId: payment.transactionId
+            // Update enrollment status only for targetCourse
+            try {
+              const eq = query(
+                collection(db, "enrollments"),
+                where("userId", "==", payment.userId),
+                where("courseId", "==", targetCourse.id)
+              )
+              const snap = await getDocs(eq)
+              for (const d of snap.docs) {
+                await updateDoc(doc(db, "enrollments", d.id), {
+                  status: "APPROVED",
+                  rejectionReason: null,
+                  approvedAt: serverTimestamp(),
+                })
+              }
+            } catch (enrErr) {
+              console.error("Error updating enrollment status on approve:", enrErr)
+            }
+          } else {
+            // Single-course payment or approve entire payment
+            const updatedCourses = (payment.courses || []).map((c) => ({
+              ...c,
+              status: "approved",
+              rejectionReason: null,
+            }))
+
+            await updateDoc(doc(db, "payments", payment.id), {
+              status: "approved",
+              approvedAt: serverTimestamp(),
+              rejectionReason: null,
+              courses: updatedCourses,
             })
-          } catch (error) {
-            console.error('Email notification failed:', error)
+
+            for (const course of payment.courses || []) {
+              await setDoc(doc(db, "userCourses", `${payment.userId}_${course.id}`), {
+                userId: payment.userId,
+                courseId: course.id,
+                enrolledAt: serverTimestamp(),
+                progress: 0,
+              })
+            }
+
+            try {
+              for (const course of payment.courses || []) {
+                const eq = query(
+                  collection(db, "enrollments"),
+                  where("userId", "==", payment.userId),
+                  where("courseId", "==", course.id)
+                )
+                const snap = await getDocs(eq)
+                for (const d of snap.docs) {
+                  await updateDoc(doc(db, "enrollments", d.id), {
+                    status: "APPROVED",
+                    rejectionReason: null,
+                    approvedAt: serverTimestamp(),
+                  })
+                }
+              }
+            } catch (enrErr) {
+              console.error("Error updating enrollment status on approve:", enrErr)
+            }
+
+            try {
+              await sendPaymentConfirmationEmail(payment.userEmail, payment.userName, {
+                courses: payment.courses,
+                subtotal: payment.subtotal,
+                discount: payment.discount || 0,
+                finalAmount: payment.finalAmount,
+                transactionId: payment.transactionId,
+              })
+            } catch (error) {
+              console.error("Email notification failed:", error)
+            }
           }
 
           toast({
@@ -79,39 +161,134 @@ export default function ManagePayments() {
             description: "Failed to approve payment. Check console for details.",
           })
         }
-      }
+      },
     })
   }
 
-  const handleReject = async (paymentId) => {
-    setConfirmDialog({
+  const handleOpenRejectModal = (payment, targetCourse = null) => {
+    setRejectModal({
       isOpen: true,
-      title: "Reject Payment",
-      message: "Are you sure you want to reject this payment? This action cannot be undone.",
-      variant: "destructive",
-      onConfirm: async () => {
-        try {
-          await updateDoc(doc(db, "payments", paymentId), {
-            status: "rejected",
-            rejectedAt: serverTimestamp(),
-            rejectionReason: "Payment verification failed",
-          })
+      payment,
+      targetCourse,
+    })
+  }
 
-          toast({
-            title: "Success",
-            description: "Payment rejected successfully!",
-          })
-          fetchPayments()
-        } catch (error) {
-          console.error("Error rejecting payment:", error)
-          toast({
-            variant: "error",
-            title: "Error",
-            description: "Failed to reject payment",
-          })
+  const handleCloseRejectModal = () => {
+    setRejectModal({
+      isOpen: false,
+      payment: null,
+      targetCourse: null,
+    })
+  }
+
+  const handleConfirmReject = async (payment, trimmedReason, targetCourse = null) => {
+    try {
+      const paymentId = payment.id
+
+      // If a specific course in a multi-course payment is targeted:
+      if (targetCourse && payment.courses && payment.courses.length > 1) {
+        const updatedCourses = payment.courses.map((c) =>
+          c.id === targetCourse.id
+            ? {
+                ...c,
+                status: "rejected",
+                rejectionReason: trimmedReason || null,
+                rejectedAt: new Date().toISOString(),
+              }
+            : c
+        )
+
+        const allRejected = updatedCourses.every((c) => c.status === "rejected")
+        const anyPending = updatedCourses.some((c) => !c.status || c.status === "pending")
+        const overallStatus = allRejected ? "rejected" : anyPending ? "pending" : "partially_processed"
+
+        await updateDoc(doc(db, "payments", paymentId), {
+          courses: updatedCourses,
+          status: overallStatus,
+          ...(allRejected
+            ? {
+                rejectedAt: serverTimestamp(),
+                rejectionReason: trimmedReason || null,
+              }
+            : {}),
+        })
+
+        // Update enrollment ONLY for targetCourse
+        try {
+          const eq = query(
+            collection(db, "enrollments"),
+            where("userId", "==", payment.userId),
+            where("courseId", "==", targetCourse.id)
+          )
+          const snap = await getDocs(eq)
+          for (const d of snap.docs) {
+            if (d.data().status !== "APPROVED") {
+              await updateDoc(doc(db, "enrollments", d.id), {
+                status: "REJECTED",
+                rejectionReason: trimmedReason || null,
+                rejectedAt: serverTimestamp(),
+              })
+            }
+          }
+        } catch (err) {
+          console.error("Error updating enrollment status on reject:", err)
+        }
+      } else {
+        // Single course or rejecting entire payment
+        const updatedCourses = (payment.courses || []).map((c) => ({
+          ...c,
+          status: "rejected",
+          rejectionReason: trimmedReason || null,
+        }))
+
+        await updateDoc(doc(db, "payments", paymentId), {
+          status: "rejected",
+          rejectedAt: serverTimestamp(),
+          rejectionReason: trimmedReason || null,
+          courses: updatedCourses,
+        })
+
+        // Update matching enrollments for this payment's courses only
+        try {
+          for (const course of payment.courses || []) {
+            const eq = query(
+              collection(db, "enrollments"),
+              where("userId", "==", payment.userId),
+              where("courseId", "==", course.id)
+            )
+            const snap = await getDocs(eq)
+            for (const d of snap.docs) {
+              if (d.data().status !== "APPROVED") {
+                await updateDoc(doc(db, "enrollments", d.id), {
+                  status: "REJECTED",
+                  rejectionReason: trimmedReason || null,
+                  rejectedAt: serverTimestamp(),
+                })
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Error updating enrollment status on reject:", err)
         }
       }
-    })
+
+      toast({
+        title: "Payment Rejected",
+        description: trimmedReason
+          ? "Payment rejected with reason."
+          : "Payment rejected without reason.",
+      })
+      handleCloseRejectModal()
+      fetchPayments()
+    } catch (error) {
+      console.error("Error rejecting payment:", error)
+      toast({
+        variant: "error",
+        title: "Error",
+        description: "Failed to reject payment",
+      })
+      throw error
+    }
   }
 
   const handleDelete = async (paymentId) => {
@@ -319,17 +496,73 @@ export default function ManagePayments() {
                 <p className="text-xs sm:text-sm text-muted-foreground mb-2">
                   Courses ({payment.courses?.length || 0})
                 </p>
-                <div className="space-y-1 max-h-32 overflow-y-auto">
-                  {payment.courses?.map((course, index) => (
-                    <div key={index} className="text-xs sm:text-sm flex justify-between gap-2">
-                      <span className="truncate">{course.title}</span>
-                      <span className="text-muted-foreground flex-shrink-0">৳{course.price}</span>
-                    </div>
-                  ))}
+                <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                  {payment.courses?.map((course, index) => {
+                    const courseStatus = course.status || payment.status || "pending"
+                    const courseReason = course.rejectionReason || (courseStatus === "rejected" ? payment.rejectionReason : null)
+                    const isMulti = (payment.courses?.length || 0) > 1
+
+                    return (
+                      <div
+                        key={index}
+                        className={`p-2.5 rounded-lg text-xs sm:text-sm ${
+                          isMulti ? "bg-muted/40 border border-border/60" : "flex justify-between gap-2"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-medium truncate">{course.title}</span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-muted-foreground">৳{course.price}</span>
+                            {isMulti && (
+                              <span
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase ${
+                                  courseStatus === "approved"
+                                    ? "bg-green-500/10 text-green-500 border border-green-500/20"
+                                    : courseStatus === "rejected"
+                                    ? "bg-red-500/10 text-red-500 border border-red-500/20"
+                                    : "bg-yellow-500/10 text-yellow-600 border border-yellow-500/20"
+                                }`}
+                              >
+                                {courseStatus}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Individual course rejection reason if multi-course */}
+                        {isMulti && courseReason && (
+                          <p className="text-[11px] text-red-500 mt-1">
+                            <strong>Reason:</strong> {courseReason}
+                          </p>
+                        )}
+
+                        {/* Individual course action buttons for multi-course orders */}
+                        {isMulti && courseStatus === "pending" && (
+                          <div className="flex items-center gap-2 pt-1.5 mt-1.5 border-t border-border/40 justify-end">
+                            <button
+                              type="button"
+                              onClick={() => handleApprove(payment, course)}
+                              className="px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-[11px] font-medium flex items-center gap-1 transition-colors"
+                            >
+                              <Check className="w-3 h-3" /> Approve Course
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenRejectModal(payment, course)}
+                              className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-[11px] font-medium flex items-center gap-1 transition-colors"
+                            >
+                              <X className="w-3 h-3" /> Reject Course
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
 
-              {payment.rejectionReason && (
+              {/* Payment-level Rejection Reason (shown if single course or overall payment rejected) */}
+              {payment.rejectionReason && (payment.courses?.length || 0) <= 1 && (
                 <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
                   <p className="text-xs sm:text-sm text-red-600">
                     <strong>Rejection Reason:</strong> {payment.rejectionReason}
@@ -344,14 +577,14 @@ export default function ManagePayments() {
                     className="flex-1 px-3 sm:px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 text-xs sm:text-sm font-medium"
                   >
                     <Check className="w-4 h-4" />
-                    Approve
+                    {(payment.courses?.length || 0) > 1 ? "Approve All" : "Approve"}
                   </button>
                   <button
-                    onClick={() => handleReject(payment.id)}
+                    onClick={() => handleOpenRejectModal(payment)}
                     className="flex-1 px-3 sm:px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 text-xs sm:text-sm font-medium"
                   >
                     <X className="w-4 h-4" />
-                    Reject
+                    {(payment.courses?.length || 0) > 1 ? "Reject All" : "Reject"}
                   </button>
                 </div>
               )}
@@ -387,6 +620,167 @@ export default function ManagePayments() {
         message={confirmDialog.message}
         variant={confirmDialog.variant}
       />
+
+      {/* Standalone Lightweight Rejection Modal to Eliminate Lag */}
+      <RejectPaymentModal
+        isOpen={rejectModal.isOpen}
+        payment={rejectModal.payment}
+        targetCourse={rejectModal.targetCourse}
+        onClose={handleCloseRejectModal}
+        onConfirm={handleConfirmReject}
+      />
     </div>
   )
 }
+
+const RejectPaymentModal = memo(function RejectPaymentModal({
+  isOpen,
+  payment,
+  targetCourse,
+  onClose,
+  onConfirm,
+}) {
+  const [reason, setReason] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+
+  // Reset internal reason draft when opened
+  useEffect(() => {
+    if (isOpen) {
+      setReason("")
+      setSubmitting(false)
+    }
+  }, [isOpen, payment, targetCourse])
+
+  if (!isOpen || !payment) return null
+
+  const handleConfirm = async () => {
+    setSubmitting(true)
+    try {
+      await onConfirm(payment, reason.trim(), targetCourse)
+    } catch {
+      setSubmitting(false)
+    }
+  }
+
+  const coursesToDisplay = targetCourse ? [targetCourse] : (payment.courses || [])
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm"
+          onClick={() => !submitting && onClose()}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 15 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 15 }}
+            transition={{ duration: 0.2 }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg bg-[#0e1322] border border-rose-500/30 rounded-2xl p-5 sm:p-6 shadow-2xl shadow-black/80 relative overflow-hidden text-slate-200"
+          >
+            {/* Top accent line */}
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-rose-500 via-red-500 to-rose-600" />
+
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-center justify-center text-rose-500 shrink-0">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">
+                    {targetCourse ? `Reject Course: ${targetCourse.title}` : "Reject Payment"}
+                  </h3>
+                  <p className="text-xs text-slate-400">পেমেন্ট বাতিল নিশ্চিত করুন</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={onClose}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Student & Payment Summary */}
+            <div className="mb-4 p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1.5 text-xs sm:text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Student:</span>
+                <span className="font-semibold text-white">{payment.userName || "N/A"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Phone:</span>
+                <span className="font-mono font-medium text-slate-200">
+                  {payment.phoneNumber || payment.senderNumber || "N/A"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Amount:</span>
+                <span className="font-bold text-rose-400">
+                  ৳{targetCourse ? targetCourse.price || 0 : payment.finalAmount || 0}
+                </span>
+              </div>
+              <div className="pt-1 border-t border-slate-800/60 flex justify-between">
+                <span className="text-slate-400">Course:</span>
+                <span className="font-medium text-slate-300 truncate max-w-[220px]">
+                  {coursesToDisplay.map((c) => c.title).join(", ") || "N/A"}
+                </span>
+              </div>
+            </div>
+
+            {/* Rejection Reason Textarea */}
+            <div className="space-y-1.5 mb-5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                  Rejection Reason{" "}
+                  <span className="text-slate-500 font-normal normal-case">(Optional / ঐচ্ছিক)</span>
+                </label>
+              </div>
+              <textarea
+                rows={3}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="পেমেন্ট বাতিলের কারণ লিখুন..."
+                disabled={submitting}
+                className="w-full px-3.5 py-2.5 bg-slate-950/70 border border-slate-700/80 focus:border-rose-500/60 rounded-xl text-white placeholder:text-slate-500 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-rose-500/30 transition-all resize-none"
+              />
+              <p className="text-[11px] text-slate-400">
+                এই কারণটি শিক্ষার্থীর My Courses পেজে দেখানো হবে। ফাঁকা রাখলেও বাতিল হবে।
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3 pt-2 border-t border-slate-800/80">
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={onClose}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-800/60 hover:bg-slate-800 text-slate-300 font-medium text-xs sm:text-sm transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={handleConfirm}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-rose-600/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {submitting ? (
+                  <span>Processing...</span>
+                ) : (
+                  <>
+                    <X className="w-4 h-4" />
+                    <span>Confirm Reject</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  )
+})

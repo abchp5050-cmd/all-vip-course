@@ -119,7 +119,7 @@ export default function Checkout() {
 
       
       // Create payment record
-      await addDoc(collection(db, "payments"), {
+      const paymentDocRef = await addDoc(collection(db, "payments"), {
         userId: currentUser.uid,
         userName: customerName.trim(),
         userEmail: userProfile?.email || currentUser.email,
@@ -130,6 +130,7 @@ export default function Checkout() {
           id: item.id,
           title: item.title,
           price: parseFloat(item.price) || 0,
+          status: "pending",
         })),
         subtotal: parseFloat(subtotal.toFixed(2)),
         discount: 0,
@@ -143,6 +144,7 @@ export default function Checkout() {
         await addDoc(collection(db, "enrollments"), {
           userId: currentUser.uid,
           courseId: course.id,
+          paymentId: paymentDocRef.id,
           status: "PENDING",
           paymentInfo: {
             phoneNumber: phoneNumber.trim(),
@@ -222,41 +224,31 @@ export default function Checkout() {
       <div className="container max-w-6xl mx-auto px-4 lg:px-8 relative z-10">
         
         {/* HEADER SECTION */}
-        <div id="enrollment-section" className="mb-5 lg:mb-8 pt-2">
+        <div id="enrollment-section" className="mb-3 lg:mb-5 pt-2">
           <button
             onClick={() => navigate("/courses")}
-            className="flex items-center gap-1.5 text-[13px] text-slate-400 hover:text-amber-500 mb-4 transition-all hover:-translate-x-1 w-fit"
+            className="flex items-center gap-1.5 text-[13px] text-slate-400 hover:text-amber-500 mb-3 transition-all hover:-translate-x-1 w-fit"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Courses
+            কোর্সে ফিরে যান
           </button>
           
           <motion.div 
             initial={{ opacity: 0, y: -20 }} 
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col gap-2"
+            className="flex flex-col gap-1.5"
           >
             <div className="flex items-center gap-3">
-              <div className="p-2 lg:p-3 bg-blue-500/10 rounded-lg border border-blue-500/20 shrink-0">
-                <Lock className="w-5 h-5 lg:w-6 lg:h-6 text-blue-400" />
+              <div className="p-2 bg-blue-500/10 rounded-lg border border-blue-500/20 shrink-0">
+                <Lock className="w-5 h-5 text-blue-400" />
               </div>
               <div>
-                <h1 className="text-xl lg:text-3xl font-extrabold tracking-tight text-white leading-tight">
-                  Complete Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">Enrollment</span>
+                <h1 className="text-lg lg:text-2xl font-extrabold tracking-tight text-white leading-tight">
+                  আপনার কোর্স অর্ডার <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">সম্পন্ন করুন</span>
                 </h1>
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.6, ease: "easeOut" }}
-                  className="mt-1.5 flex flex-col"
-                >
-                  <span className="text-[13px] lg:text-[15px] font-bold text-white leading-tight">
-                    পেমেন্ট তথ্য পূরণ করুন
-                  </span>
-                  <span className="text-slate-400 max-w-xl text-[11px] lg:text-[13px] mt-0.5 leading-snug">
-                    সঠিক তথ্য দিয়ে সাবমিট করুন এবং <span className="text-amber-500 font-medium">দ্রুত কোর্স অ্যাক্সেস পান</span>।
-                  </span>
-                </motion.div>
+                <span className="text-slate-400 text-[11px] lg:text-[13px] mt-0.5 leading-snug block">
+                  সঠিক তথ্য দিয়ে সাবমিট করুন এবং <span className="text-amber-500 font-medium">দ্রুত কোর্স অ্যাক্সেস পান</span>।
+                </span>
               </div>
             </div>
           </motion.div>
@@ -279,20 +271,42 @@ export default function Checkout() {
             </h2>
 
             <div className="space-y-2.5 lg:space-y-3 mb-4 lg:mb-6">
-              {cartItems.map((item) => (
-                <div key={item.id} className="flex gap-3 lg:gap-4 p-2.5 lg:p-4 rounded-xl lg:rounded-2xl bg-slate-800/50 border border-slate-700/50 hover:border-slate-600 transition-colors">
-                  <div className="w-10 h-10 lg:w-14 lg:h-14 rounded-lg lg:rounded-xl bg-slate-950 flex items-center justify-center border border-slate-800 flex-shrink-0">
-                    <BookOpen className="w-4 h-4 lg:w-6 lg:h-6 text-slate-400" />
+              {cartItems.map((item) => {
+                const itemImage = item.thumbnailURL || item.imageURL || item.image || item.coverImage
+                return (
+                  <div key={item.id} className="flex items-center gap-3 lg:gap-4 p-2.5 lg:p-3.5 rounded-xl lg:rounded-2xl bg-slate-800/50 border border-slate-700/50 hover:border-slate-600 transition-colors">
+                    {/* Course Thumbnail: 65x50px with rounded corners and object-cover */}
+                    <div className="w-[65px] h-[50px] min-w-[65px] max-w-[65px] rounded-lg lg:rounded-xl bg-slate-950 flex items-center justify-center border border-slate-800 flex-shrink-0 overflow-hidden relative shadow-sm">
+                      {itemImage ? (
+                        <img 
+                          src={itemImage} 
+                          alt={item.title} 
+                          loading="eager"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none"
+                            if (e.currentTarget.nextElementSibling) {
+                              e.currentTarget.nextElementSibling.style.display = "flex"
+                            }
+                          }}
+                        />
+                      ) : null}
+                      <div className={`w-full h-full items-center justify-center ${itemImage ? "hidden" : "flex"}`}>
+                        <BookOpen className="w-5 h-5 text-slate-400" />
+                      </div>
+                    </div>
+
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <h3 className="text-xs lg:text-sm font-bold text-white line-clamp-1 leading-tight">{item.title}</h3>
+                      <p className="inline-flex w-fit items-center px-1.5 py-0.5 rounded text-[9px] lg:text-xs text-amber-400 bg-amber-400/10 mt-1 font-medium border border-amber-400/20">Premium Access</p>
+                    </div>
+
+                    <div className="flex-shrink-0 flex items-center">
+                      <span className="font-bold text-sm lg:text-lg text-white">৳{item.price || 0}</span>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <h3 className="text-xs lg:text-sm font-bold text-white line-clamp-1 leading-tight">{item.title}</h3>
-                    <p className="inline-flex w-fit items-center px-1.5 py-0.5 rounded text-[9px] lg:text-xs text-amber-400 bg-amber-400/10 mt-1 font-medium border border-amber-400/20">Premium Access</p>
-                  </div>
-                  <div className="flex-shrink-0 flex items-center">
-                    <span className="font-bold text-sm lg:text-lg text-white">৳{item.price || 0}</span>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
 
             <div className="border-t border-slate-800 pt-3 lg:pt-5">
@@ -313,70 +327,186 @@ export default function Checkout() {
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-2xl lg:rounded-3xl p-4 lg:p-8 shadow-xl"
+            className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-2xl lg:rounded-3xl p-4 lg:p-6 shadow-xl"
           >
-            <h2 className="text-base lg:text-xl font-bold text-white mb-1 lg:mb-2">Payment Methods</h2>
-            <p className="text-[11px] lg:text-sm text-slate-400 mb-3 lg:mb-6">Send the total amount to any of these accounts.</p>
+            <h2 className="text-base lg:text-lg font-bold text-white mb-0.5">পেমেন্ট মাধ্যম নির্বাচন করুন</h2>
+            <p className="text-[11px] lg:text-[13px] text-slate-400 mb-3">কোন মাধ্যমে টাকা পাঠাবেন সেটি সিলেক্ট করুন।</p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-5">
-              {/* bKash Card */}
-              <div className="relative overflow-hidden rounded-xl lg:rounded-2xl bg-gradient-to-br from-[#E2136E]/10 to-transparent border border-[#E2136E]/30 p-3 lg:p-5 group hover:border-[#E2136E]/60 transition-all duration-300">
-                <div className="absolute inset-0 bg-[#E2136E]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
-                <div className="relative flex items-center gap-2.5 lg:gap-3 mb-2.5 lg:mb-4 z-10">
-                  <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-[#E2136E] flex items-center justify-center shadow-md shrink-0">
-                    <span className="text-white font-bold text-[8px] lg:text-[10px] tracking-wider">bKash</span>
-                  </div>
-                  <div>
-                    <h3 className="text-white font-bold text-xs lg:text-sm leading-tight">✿ বিকাশ ✿</h3>
-                    <p className="text-[9px] lg:text-[11px] text-[#E2136E] mt-0.5 font-medium tracking-wide">
-                      (সেন্ড মানি/ক্যাশ ইন)
-                    </p>
+            {/* Selection Buttons — always visible */}
+            <div className="grid grid-cols-2 gap-2.5 mb-3">
+              {/* bKash Select Button */}
+              <button
+                type="button"
+                onClick={() => { setPaymentMethod("bKash"); if (paymentMethodError) setPaymentMethodError(false) }}
+                className={`relative flex items-center gap-2.5 p-3 rounded-xl border transition-all duration-300 cursor-pointer text-left ${
+                  paymentMethod === "bKash"
+                    ? "bg-[#E2136E]/12 border-[#E2136E]/80 shadow-[0_0_16px_rgba(226,19,110,0.3)] ring-1 ring-[#E2136E]/30"
+                    : paymentMethodError
+                    ? "bg-slate-950/50 border-red-500/50 hover:border-[#E2136E]/50"
+                    : "bg-slate-950/40 border-slate-700/60 hover:border-[#E2136E]/50 hover:bg-[#E2136E]/5"
+                }`}
+              >
+                <div className={`w-9 h-9 rounded-xl bg-white p-1 border flex items-center justify-center shrink-0 overflow-hidden transition-all duration-300 ${
+                  paymentMethod === "bKash"
+                    ? "border-[#E2136E]/60 shadow-[0_0_10px_rgba(226,19,110,0.3)]"
+                    : "border-[#E2136E]/30"
+                }`}>
+                  <img
+                    src="/bkash.jpg"
+                    alt="bKash"
+                    loading="eager"
+                    className="w-full h-full object-contain rounded-lg"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none"
+                      if (e.currentTarget.nextElementSibling) {
+                        e.currentTarget.nextElementSibling.style.display = "flex"
+                      }
+                    }}
+                  />
+                  <div className="hidden w-full h-full bg-[#E2136E] rounded-lg items-center justify-center">
+                    <span className="text-white font-bold text-[8px]">bKash</span>
                   </div>
                 </div>
-                
-                <div className="relative flex items-center justify-between bg-slate-950/60 p-2 lg:p-3 rounded-lg lg:rounded-xl border border-slate-800/80 z-10">
-                  <span className="text-sm lg:text-lg font-mono font-bold text-white tracking-widest">01831952349</span>
-                  <button 
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[16px] font-semibold leading-tight ${paymentMethod === "bKash" ? "text-white" : "text-slate-300"}`}>বিকাশ</p>
+                  <p className="text-[9px] text-[#E2136E] font-medium mt-0.5 tracking-wide">(সেন্ড মানি/ক্যাশ ইন)</p>
+                </div>
+                {paymentMethod === "bKash" && (
+                  <CheckCircle2 className="w-4 h-4 text-[#E2136E] shrink-0" />
+                )}
+              </button>
+
+              {/* Nagad Select Button */}
+              <button
+                type="button"
+                onClick={() => { setPaymentMethod("Nagad"); if (paymentMethodError) setPaymentMethodError(false) }}
+                className={`relative flex items-center gap-2.5 p-3 rounded-xl border transition-all duration-300 cursor-pointer text-left ${
+                  paymentMethod === "Nagad"
+                    ? "bg-[#F7931E]/12 border-[#F7931E]/80 shadow-[0_0_16px_rgba(247,147,30,0.3)] ring-1 ring-[#F7931E]/30"
+                    : paymentMethodError
+                    ? "bg-slate-950/50 border-red-500/50 hover:border-[#F7931E]/50"
+                    : "bg-slate-950/40 border-slate-700/60 hover:border-[#F7931E]/50 hover:bg-[#F7931E]/5"
+                }`}
+              >
+                <div className={`w-9 h-9 rounded-xl bg-white p-1 border flex items-center justify-center shrink-0 overflow-hidden transition-all duration-300 ${
+                  paymentMethod === "Nagad"
+                    ? "border-[#F7931E]/60 shadow-[0_0_10px_rgba(247,147,30,0.3)]"
+                    : "border-[#F7931E]/30"
+                }`}>
+                  <img
+                    src="/nagad.jpg"
+                    alt="Nagad"
+                    loading="eager"
+                    className="w-full h-full object-contain rounded-lg"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none"
+                      if (e.currentTarget.nextElementSibling) {
+                        e.currentTarget.nextElementSibling.style.display = "flex"
+                      }
+                    }}
+                  />
+                  <div className="hidden w-full h-full bg-[#F7931E] rounded-lg items-center justify-center">
+                    <span className="text-white font-bold text-[8px]">Nagad</span>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-[16px] font-semibold leading-tight ${paymentMethod === "Nagad" ? "text-white" : "text-slate-300"}`}>নগদ</p>
+                  <p className="text-[9px] text-[#F7931E] font-medium mt-0.5 tracking-wide">(সেন্ড মানি/ক্যাশ ইন)</p>
+                </div>
+                {paymentMethod === "Nagad" && (
+                  <CheckCircle2 className="w-4 h-4 text-[#F7931E] shrink-0" />
+                )}
+              </button>
+            </div>
+
+            {/* Revealed payment number — shown ONLY after selection */}
+            {paymentMethod === "bKash" && (
+              <motion.div
+                key="bkash-number"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+                className="rounded-xl border border-[#E2136E]/40 bg-[#E2136E]/5 p-3"
+              >
+                <p className="text-[10px] text-[#E2136E] font-semibold mb-2 flex items-center gap-1.5">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#E2136E]" />
+                  বিকাশ নম্বরে টাকা পাঠান
+                </p>
+                <div className="flex items-center justify-between bg-slate-950/60 px-3 py-2.5 rounded-lg border border-[#E2136E]/25">
+                  <span className="text-base font-mono font-bold text-white tracking-widest">01831952349</span>
+                  <button
                     type="button"
                     onClick={() => handleCopy("01831952349")}
-                    className="p-1.5 lg:p-2 bg-slate-800/80 hover:bg-[#E2136E] rounded-md lg:rounded-lg transition-colors group-hover:text-white"
-                    title="Copy bKash Number"
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${
+                      copied === "01831952349"
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                        : "bg-[#E2136E] hover:bg-[#c4105f] text-white"
+                    }`}
                   >
-                    {copied === "01831952349" ? <CheckCircle2 className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 lg:w-4 lg:h-4" />}
+                    {copied === "01831952349" ? (
+                      <><CheckCircle2 className="w-3.5 h-3.5" /> কপি হয়েছে</>
+                    ) : (
+                      <><Copy className="w-3.5 h-3.5" /> কপি করুন</>
+                    )}
                   </button>
                 </div>
-              </div>
+                <p className="text-[10px] text-slate-400 mt-2">
+                  এই নম্বরে টাকা পাঠিয়ে নিচে পেমেন্টের তথ্য দিন।
+                </p>
+              </motion.div>
+            )}
 
-              {/* Nagad Card */}
-              <div className="relative overflow-hidden rounded-xl lg:rounded-2xl bg-gradient-to-br from-[#F7931E]/10 to-transparent border border-[#F7931E]/30 p-3 lg:p-5 group hover:border-[#F7931E]/60 transition-all duration-300">
-                <div className="absolute inset-0 bg-[#F7931E]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
-                <div className="relative flex items-center gap-2.5 lg:gap-3 mb-2.5 lg:mb-4 z-10">
-                  <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-[#F7931E] flex items-center justify-center shadow-md shrink-0">
-                    <span className="text-white font-bold text-[8px] lg:text-[10px] tracking-wider">Nagad</span>
-                  </div>
-                  <div>
-                    <h3 className="text-white font-bold text-xs lg:text-sm leading-tight">✿ নগদ ✿</h3>
-                    <p className="text-[9px] lg:text-[11px] text-[#F7931E] mt-0.5 font-medium tracking-wide">
-                      (সেন্ড মানি/ক্যাশ ইন)
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="relative flex items-center justify-between bg-slate-950/60 p-2 lg:p-3 rounded-lg lg:rounded-xl border border-slate-800/80 z-10">
-                  <span className="text-sm lg:text-lg font-mono font-bold text-white tracking-widest">01815307903</span>
-                  <button 
+            {paymentMethod === "Nagad" && (
+              <motion.div
+                key="nagad-number"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+                className="rounded-xl border border-[#F7931E]/40 bg-[#F7931E]/5 p-3"
+              >
+                <p className="text-[10px] text-[#F7931E] font-semibold mb-2 flex items-center gap-1.5">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#F7931E]" />
+                  নগদ নম্বরে টাকা পাঠান
+                </p>
+                <div className="flex items-center justify-between bg-slate-950/60 px-3 py-2.5 rounded-lg border border-[#F7931E]/25">
+                  <span className="text-base font-mono font-bold text-white tracking-widest">01815307903</span>
+                  <button
                     type="button"
                     onClick={() => handleCopy("01815307903")}
-                    className="p-1.5 lg:p-2 bg-slate-800/80 hover:bg-[#F7931E] rounded-md lg:rounded-lg transition-colors group-hover:text-white"
-                    title="Copy Nagad Number"
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${
+                      copied === "01815307903"
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                        : "bg-[#F7931E] hover:bg-[#d97c12] text-white"
+                    }`}
                   >
-                    {copied === "01815307903" ? <CheckCircle2 className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 lg:w-4 lg:h-4" />}
+                    {copied === "01815307903" ? (
+                      <><CheckCircle2 className="w-3.5 h-3.5" /> কপি হয়েছে</>
+                    ) : (
+                      <><Copy className="w-3.5 h-3.5" /> কপি করুন</>
+                    )}
                   </button>
                 </div>
+                <p className="text-[10px] text-slate-400 mt-2">
+                  এই নম্বরে টাকা পাঠিয়ে নিচে পেমেন্টের তথ্য দিন।
+                </p>
+              </motion.div>
+            )}
+
+            {/* Prompt when nothing selected yet */}
+            {!paymentMethod && (
+              <div className="flex items-center gap-1.5 pt-0.5 text-amber-400/90 text-[11px] sm:text-[12px] font-medium leading-snug">
+                <Info className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span>উপরে একটি পেমেন্ট মাধ্যম সিলেক্ট করুন — তারপর নম্বর দেখাবে।</span>
               </div>
-            </div>
+            )}
+
+            {/* Validation error */}
+            {paymentMethodError && (
+              <div className="mt-2 flex items-center gap-1.5 text-red-400 text-[11px] font-medium">
+                <Info className="w-3 h-3 shrink-0" />
+                অনুগ্রহ করে পেমেন্ট মাধ্যম সিলেক্ট করুন।
+              </div>
+            )}
           </motion.div>
 
           {/* 3. PAYMENT DETAILS FORM */}
@@ -384,17 +514,17 @@ export default function Checkout() {
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-2xl lg:rounded-3xl p-4 lg:p-8 shadow-xl"
+            className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-2xl lg:rounded-3xl p-4 lg:p-6 shadow-xl"
           >
-            <h2 className="text-base lg:text-xl font-bold text-white mb-1 lg:mb-2">Payment Details</h2>
-            <p className="text-[11px] lg:text-sm text-slate-400 mb-4 lg:mb-8">Fill in your information carefully after completing the payment.</p>
+            <h2 className="text-base lg:text-lg font-bold text-white mb-0.5">পেমেন্টের তথ্য লিখুন</h2>
+            <p className="text-[11px] lg:text-[13px] text-slate-400 mb-3">পেমেন্ট করার পরে নিচের তথ্যগুলো সঠিকভাবে পূরণ করুন।</p>
             
-            <form onSubmit={handleSubmit} className="space-y-3 lg:space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-5">
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {/* Name */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] lg:text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                    Full Name <span className="text-red-400">*</span>
+                    আপনার নাম <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="text"
@@ -402,75 +532,8 @@ export default function Checkout() {
                     onChange={(e) => setCustomerName(e.target.value)}
                     placeholder="e.g. Ariful Islam"
                     required
-                    className="w-full h-12 px-3 lg:px-4 bg-slate-950/50 border border-slate-700/50 rounded-xl lg:rounded-xl focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 text-white placeholder:text-slate-600 transition-all text-[13px] lg:text-sm"
+                    className="w-full h-11 px-3 bg-slate-950/50 border border-slate-700/50 rounded-xl focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 text-white placeholder:text-slate-600 transition-all text-[13px] lg:text-sm"
                   />
-                </div>
-
-                {/* Payment Method */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] lg:text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                    PAYMENT METHOD <span className="text-red-400">*</span>
-                  </label>
-                  <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPaymentMethod("bKash")
-                        if (paymentMethodError) setPaymentMethodError(false)
-                      }}
-                      className={`group relative flex items-center justify-center gap-2 h-12 px-3 rounded-xl border transition-all duration-200 cursor-pointer ${
-                        paymentMethod === "bKash"
-                          ? "bg-[#E2136E]/15 border-[#E2136E] text-white shadow-[0_0_15px_rgba(226,19,110,0.25)] ring-1 ring-[#E2136E]/50 font-bold"
-                          : paymentMethodError
-                          ? "bg-slate-950/50 border-red-500/50 text-slate-300 hover:border-[#E2136E]/40 hover:bg-slate-900/80 font-medium"
-                          : "bg-slate-950/50 border-slate-700/50 text-slate-300 hover:border-[#E2136E]/40 hover:bg-slate-900/80 font-medium"
-                      }`}
-                    >
-                      <span
-                        className={`w-2.5 h-2.5 rounded-full shrink-0 transition-transform ${
-                          paymentMethod === "bKash"
-                            ? "bg-[#E2136E] shadow-[0_0_8px_#E2136E] scale-110"
-                            : "bg-[#E2136E]/70 group-hover:bg-[#E2136E]"
-                        }`}
-                      />
-                      <span className="text-[13px] lg:text-sm tracking-wide">bKash</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPaymentMethod("Nagad")
-                        if (paymentMethodError) setPaymentMethodError(false)
-                      }}
-                      className={`group relative flex items-center justify-center gap-2 h-12 px-3 rounded-xl border transition-all duration-200 cursor-pointer ${
-                        paymentMethod === "Nagad"
-                          ? "bg-[#F7931E]/15 border-[#F7931E] text-white shadow-[0_0_15px_rgba(247,147,30,0.25)] ring-1 ring-[#F7931E]/50 font-bold"
-                          : paymentMethodError
-                          ? "bg-slate-950/50 border-red-500/50 text-slate-300 hover:border-[#F7931E]/40 hover:bg-slate-900/80 font-medium"
-                          : "bg-slate-950/50 border-slate-700/50 text-slate-300 hover:border-[#F7931E]/40 hover:bg-slate-900/80 font-medium"
-                      }`}
-                    >
-                      <span
-                        className={`w-2.5 h-2.5 rounded-full shrink-0 transition-transform ${
-                          paymentMethod === "Nagad"
-                            ? "bg-[#F7931E] shadow-[0_0_8px_#F7931E] scale-110"
-                            : "bg-[#F7931E]/70 group-hover:bg-[#F7931E]"
-                        }`}
-                      />
-                      <span className="text-[13px] lg:text-sm tracking-wide">Nagad</span>
-                    </button>
-                  </div>
-                  <div className="flex items-start gap-1.5 pt-0.5">
-                    <Info className="w-3 h-3 text-amber-500 shrink-0 mt-[2px]" />
-                    <p className="text-[9px] lg:text-[10px] text-slate-400 leading-snug">
-                      পেমেন্ট করার মাধ্যমটি নির্বাচন করুন।
-                    </p>
-                  </div>
-                  {paymentMethodError && (
-                    <p className="text-[10px] lg:text-[11px] text-red-400 font-medium leading-snug">
-                      অনুগ্রহ করে পেমেন্ট মাধ্যম নির্বাচন করুন।
-                    </p>
-                  )}
                 </div>
 
                 {/* Phone */}
@@ -479,14 +542,14 @@ export default function Checkout() {
                     Sender Phone <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
-                    <Phone className="absolute left-3 lg:left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input
                       type="tel"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
                       placeholder="01XXXXXXXXX"
                       required
-                      className="w-full h-12 pl-9 lg:pl-10 pr-3 lg:pr-4 bg-slate-950/50 border border-slate-700/50 rounded-xl lg:rounded-xl focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 text-white placeholder:text-slate-600 transition-all text-[13px] lg:text-sm font-mono"
+                      className="w-full h-11 pl-9 pr-3 bg-slate-950/50 border border-slate-700/50 rounded-xl focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 text-white placeholder:text-slate-600 transition-all text-[13px] lg:text-sm font-mono"
                     />
                   </div>
                   <motion.div 
@@ -512,42 +575,37 @@ export default function Checkout() {
                     value={telegramId}
                     onChange={(e) => setTelegramId(e.target.value)}
                     placeholder="@yourusername"
-                    className="w-full h-12 px-3 lg:px-4 bg-slate-950/50 border border-slate-700/50 rounded-xl lg:rounded-xl focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 text-white placeholder:text-slate-600 transition-all text-[13px] lg:text-sm font-mono"
+                    className="w-full h-11 px-3 bg-slate-950/50 border border-slate-700/50 rounded-xl focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 text-white placeholder:text-slate-600 transition-all text-[13px] lg:text-sm font-mono"
                   />
                 </div>
 
                 {/* Telegram ID Name */}
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.1 }}
-                  className="space-y-1.5"
-                >
+                <div className="space-y-1.5">
                   <label className="text-[10px] lg:text-xs font-semibold text-slate-300 uppercase tracking-wider">
                     Telegram ID Name <span className="text-red-400">*</span>
                   </label>
                   <div className="relative">
-                    <User className="absolute left-3 lg:left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input
                       type="text"
                       value={telegramName}
                       onChange={(e) => setTelegramName(e.target.value)}
                       placeholder="Enter your Telegram name"
                       required
-                      className="w-full h-12 pl-9 lg:pl-10 pr-3 lg:pr-4 bg-slate-950/50 border border-slate-700/50 rounded-xl lg:rounded-xl focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 text-white placeholder:text-slate-600 transition-all text-[13px] lg:text-sm"
+                      className="w-full h-11 pl-9 pr-3 bg-slate-950/50 border border-slate-700/50 rounded-xl focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 text-white placeholder:text-slate-600 transition-all text-[13px] lg:text-sm"
                     />
                   </div>
-                </motion.div>
+                </div>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-1">
                 <button
                   type="submit"
                   disabled={loading}
                   className="w-full relative group overflow-hidden rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 p-[1px] hover:shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-all"
                 >
                   <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out" />
-                  <div className="relative h-12 lg:h-14 bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl flex items-center justify-center gap-2">
+                  <div className="relative h-12 bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl flex items-center justify-center gap-2">
                     {loading ? (
                       <>
                         <Loader2 className="w-4 h-4 lg:w-5 lg:h-5 animate-spin text-white" />
@@ -555,17 +613,12 @@ export default function Checkout() {
                       </>
                     ) : (
                       <>
-                        <span className="font-bold text-white text-[13px] lg:text-base">Submit Payment</span>
+                        <span className="font-bold text-white text-[13px] lg:text-base">পেমেন্টের তথ্য জমা দিন</span>
                         <ArrowRight className="w-4 h-4 lg:w-5 lg:h-5 text-white group-hover:translate-x-1 transition-transform" />
                       </>
                     )}
                   </div>
                 </button>
-                <p className="text-[10px] lg:text-xs text-center text-slate-500 mt-3 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 leading-snug">
-                  <Lock className="w-3 h-3 shrink-0" />
-                  <span>Your information is secure and encrypted.</span>
-                  <span className="hidden sm:inline"> Access granted post-verification.</span>
-                </p>
               </div>
             </form>
           </motion.div>

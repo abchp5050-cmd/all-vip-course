@@ -72,19 +72,15 @@ export default function Home() {
 
       setTrendingCourses(coursesData.slice(0, 6))
 
-      const categoriesQuery = query(
-        collection(db, "categories"), 
-        where("showOnHomepage", "==", true)
-      )
+      const categoriesQuery = query(collection(db, "categories"))
       const categoriesSnapshot = await getDocs(categoriesQuery)
-      let categoriesData = categoriesSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }))
-      
-      categoriesData = categoriesData
-        .sort((a, b) => (a.order || 0) - (b.order || 0))
-        .slice(0, 8)
+      let categoriesData = categoriesSnapshot.docs
+        .map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }))
+        .filter((category) => !category.isHidden)
+        .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0))
       
       setCategories(categoriesData)
     } catch (error) {
@@ -131,9 +127,9 @@ export default function Home() {
   }
 
   const trustStats = [
-    { icon: <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 transition-transform duration-500 group-hover:scale-110" />, count: "100+", label: "Premium Courses" },
-    { icon: <UsersRound className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 transition-transform duration-500 group-hover:scale-110" />, count: "200+", label: "Students Enrolled" },
-    { icon: <Headset className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 transition-transform duration-500 group-hover:scale-110" />, count: "24/7", label: "Learning Support" }
+    { Icon: BookOpen, count: "250+", label: "Premium Courses" },
+    { Icon: UsersRound, count: "2000+", label: "Students Enrolled" },
+    { Icon: Headset, count: "24/7", label: "Learning Support" }
   ]
 
   const features = [
@@ -221,73 +217,97 @@ const testimonials = [
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden">
-      {/* 1. HERO BANNER CAROUSEL */}
-      <BannerCarousel />
+      {/* 1. HERO BANNER CAROUSEL & SCROLL CUE */}
+      <div className="relative">
+        <BannerCarousel />
 
-      {/* SCROLL CUE */}
-      <div className="relative z-40 w-full flex justify-center h-0 pointer-events-none">
-        <div className="absolute -top-6 sm:-top-8 pointer-events-auto">
-          <motion.button
-            onClick={() => {
-              const exploreSection = document.getElementById('explore-courses');
-              if (exploreSection) {
-                const y = exploreSection.getBoundingClientRect().top + window.scrollY - 80;
-                window.scrollTo({ top: y, behavior: 'smooth' });
-              }
-            }}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1, duration: 0.8 }}
-            className="group cursor-pointer flex flex-col items-center"
-          >
-            <motion.div
-              animate={{ y: [0, 8, 0] }}
-              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-              className="flex flex-col items-center"
+        {/* SCROLL CUE: Completely hidden on mobile screens to prevent overlapping statistics cards; on desktop, positioned cleanly inside the bottom area of the hero banner */}
+        <div className="hidden md:flex absolute bottom-8 lg:bottom-10 inset-x-0 z-20 justify-center pointer-events-none">
+          <div className="pointer-events-auto">
+            <motion.button
+              onClick={() => {
+                const exploreSection = document.getElementById('explore-courses');
+                if (exploreSection) {
+                  const y = exploreSection.getBoundingClientRect().top + window.scrollY - 80;
+                  window.scrollTo({ top: y, behavior: 'smooth' });
+                }
+              }}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1, duration: 0.8 }}
+              className="group cursor-pointer flex flex-col items-center"
             >
-              <div className="w-8 h-12 rounded-full border-2 border-primary/50 flex justify-center p-1 bg-background shadow-lg backdrop-blur-sm group-hover:border-primary transition-all group-hover:shadow-[0_0_20px_rgba(var(--primary),0.4)]">
-                <motion.div 
-                  animate={{ y: [0, 16, 0], opacity: [1, 0.3, 1] }}
-                  transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-                  className="w-1.5 h-3 bg-primary rounded-full mt-1"
-                />
-              </div>
-              <div className="mt-3 flex items-center gap-1.5 text-xs sm:text-sm font-semibold tracking-wide text-foreground bg-background/90 px-4 py-2 rounded-full border border-border shadow-md backdrop-blur-md group-hover:border-primary/50 group-hover:text-primary transition-all font-bengali">
-                আরও কোর্স দেখতে নিচে যান <ChevronDown className="w-3.5 h-3.5" />
-              </div>
-            </motion.div>
-          </motion.button>
+              <motion.div
+                animate={{ y: [0, 8, 0] }}
+                transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                className="flex flex-col items-center"
+              >
+                <div className="w-8 h-12 rounded-full border-2 border-primary/50 flex justify-center p-1 bg-background shadow-lg backdrop-blur-sm group-hover:border-primary transition-all group-hover:shadow-[0_0_20px_rgba(var(--primary),0.4)]">
+                  <motion.div 
+                    animate={{ y: [0, 16, 0], opacity: [1, 0.3, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+                    className="w-1.5 h-3 bg-primary rounded-full mt-1"
+                  />
+                </div>
+                <div className="mt-2.5 flex items-center gap-1.5 text-xs sm:text-sm font-semibold tracking-wide text-foreground bg-background/90 px-4 py-1.5 rounded-full border border-border shadow-md backdrop-blur-md group-hover:border-primary/50 group-hover:text-primary transition-all font-bengali">
+                  আরও কোর্স দেখতে নিচে যান <ChevronDown className="w-3.5 h-3.5" />
+                </div>
+              </motion.div>
+            </motion.button>
+          </div>
         </div>
       </div>
 
       {/* 2. TRUST SECTION */}
-      <section id="explore-courses" className="py-3 md:py-12 relative overflow-hidden bg-background">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
-        <div className="container mx-auto max-w-5xl px-4 relative z-10 mt-2 md:mt-0">
-          <div className="grid grid-cols-3 gap-2 sm:gap-6 md:gap-8">
-            {trustStats.map((stat, index) => (
-              <motion.div 
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ duration: 0.6, delay: index * 0.15, ease: "easeOut" }}
-                className="group relative flex flex-col items-center text-center p-2 sm:p-4 md:p-6 rounded-2xl md:rounded-3xl bg-card border border-white/5 shadow-xl shadow-black/20 hover:shadow-primary/10 hover:border-primary/20 transition-all duration-500 overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
-                <div className="relative p-1.5 sm:p-2.5 md:p-3 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary mb-1.5 sm:mb-3 md:mb-4 shadow-lg shadow-primary/10 group-hover:shadow-primary/30 transition-all duration-500 border border-primary/10 group-hover:border-primary/30">
-                  {stat.icon}
-                </div>
-                
-                <div className="text-base sm:text-2xl md:text-4xl font-extrabold tracking-tight mb-0.5 md:mb-1 bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent group-hover:from-primary group-hover:to-primary/70 transition-colors duration-500">
-                  {stat.count}
-                </div>
-                <div className="text-[9px] leading-[1.1] sm:text-xs md:text-sm text-muted-foreground font-bold sm:font-semibold uppercase tracking-wider group-hover:text-foreground transition-colors duration-500">
-                  {stat.label}
-                </div>
-              </motion.div>
-            ))}
+      <section id="explore-courses" className="py-3 md:py-10 relative overflow-hidden bg-background">
+        <div className="absolute inset-0 bg-gradient-to-b from-orange-500/[0.03] to-transparent pointer-events-none" />
+        <div className="container mx-auto max-w-5xl px-3 sm:px-4 relative z-10 mt-1 md:mt-0">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6">
+            {trustStats.map((stat, index) => {
+              const Icon = stat.Icon
+              return (
+                <motion.div 
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-30px" }}
+                  transition={{ duration: 0.4, delay: index * 0.1, ease: "easeOut" }}
+                  style={{ animationDelay: `${index * 0.5}s` }}
+                  className="stat-card-glow group relative flex flex-col items-center text-center p-2.5 sm:p-4 md:p-6 rounded-xl sm:rounded-2xl md:rounded-3xl backdrop-blur-xl overflow-hidden hover:-translate-y-0.5"
+                >
+                  {/* Inner ambient radial glow */}
+                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,121,0,0.12)_0%,transparent_70%)] pointer-events-none rounded-[inherit]" />
+
+                  {/* Always-on slow breathing ambient glow */}
+                  <div 
+                    style={{ animationDelay: `${index * 0.5}s` }}
+                    className="ambient-glow-breathe absolute inset-0 bg-gradient-to-b from-orange-500/[0.08] via-transparent to-orange-500/[0.03] pointer-events-none rounded-[inherit]" 
+                  />
+                  
+                  {/* Subtle top edge border glow highlight */}
+                  <div className="absolute top-0 inset-x-3 sm:inset-x-6 h-[1.5px] bg-gradient-to-r from-transparent via-orange-400/50 to-transparent group-hover:via-orange-400/80 transition-all duration-300" />
+                  
+                  {/* Icon Container: Rounded dark background with glowing orange border and radial glow */}
+                  <div 
+                    style={{ animationDelay: `${index * 0.5}s` }}
+                    className="icon-glow-box relative w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-lg sm:rounded-xl md:rounded-2xl bg-[#0f1424] border border-orange-500/30 flex items-center justify-center mb-1.5 sm:mb-2.5 md:mb-3.5 shadow-[0_0_14px_rgba(255,121,0,0.22)] group-hover:border-orange-500/60 transition-all duration-300"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 via-orange-500/5 to-transparent rounded-[inherit] pointer-events-none" />
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-orange-400 group-hover:text-orange-300 transition-all duration-300 group-hover:scale-105 drop-shadow-[0_0_6px_rgba(255,121,0,0.45)]" strokeWidth={1.8} />
+                  </div>
+                  
+                  {/* Bold Stat Numbers */}
+                  <div className="text-base sm:text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight mb-0.5 sm:mb-1 text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-orange-400 group-hover:to-amber-300 transition-all duration-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]">
+                    {stat.count}
+                  </div>
+                  
+                  {/* Label */}
+                  <div className="text-[9px] leading-[1.15] sm:text-xs md:text-sm text-slate-400 font-semibold uppercase tracking-wider group-hover:text-slate-200 transition-colors duration-300">
+                    {stat.label}
+                  </div>
+                </motion.div>
+              )
+            })}
           </div>
 
           {/* Help / How to Buy Card */}
@@ -298,16 +318,19 @@ const testimonials = [
             transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
             className="mt-4 sm:mt-6 max-w-3xl mx-auto"
           >
-            <div className="relative overflow-hidden rounded-[20px] p-[1px] bg-gradient-to-r from-orange-500/20 via-blue-500/10 to-orange-500/20 shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
-              <div className="bg-[#0b0f19]/95 backdrop-blur-xl rounded-[20px] p-3 sm:p-5 flex flex-col sm:flex-row items-center gap-3 sm:gap-5 relative overflow-hidden">
-                {/* Glow effect */}
-                <div className="absolute top-1/2 left-0 -translate-y-1/2 w-32 h-32 bg-orange-500/20 blur-[50px] pointer-events-none rounded-full" />
+            <div className="help-box-glow relative overflow-hidden rounded-[20px] p-[1px] bg-gradient-to-r from-orange-500/35 via-amber-500/20 to-orange-500/35 hover:from-orange-500/50 hover:via-amber-500/30 hover:to-orange-500/50 transition-all duration-300">
+              <div className="bg-[#0b0f19]/95 backdrop-blur-xl rounded-[19px] p-3.5 sm:p-5 flex flex-col sm:flex-row items-center gap-3 sm:gap-5 relative overflow-hidden">
+                {/* Subtle illuminated background spotlight */}
+                <div className="absolute top-1/2 left-0 -translate-y-1/2 w-48 h-48 bg-gradient-to-r from-orange-500/20 via-orange-500/5 to-transparent blur-2xl pointer-events-none rounded-full" />
+                <div className="ambient-glow-breathe absolute inset-0 bg-gradient-to-r from-orange-500/[0.05] via-transparent to-orange-500/[0.03] pointer-events-none" />
                 
-                {/* Icon */}
-                <div className="relative shrink-0">
-                  <div className="absolute inset-0 bg-orange-500/30 rounded-full blur-md animate-pulse" />
-                  <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center relative z-10 shadow-[0_0_15px_rgba(249,115,22,0.4)]">
-                    <PlayCircle className="w-5 h-5 text-white" />
+                {/* Premium Orange Play Icon with Always-on Glow */}
+                <div className="relative shrink-0 flex items-center justify-center">
+                  <div className="ambient-glow-breathe absolute -inset-1 rounded-full bg-orange-500/30 blur-md pointer-events-none" />
+                  <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-br from-orange-400 via-orange-500 to-amber-600 p-[1.5px] shadow-[0_0_18px_rgba(255,121,0,0.5)]">
+                    <div className="w-full h-full rounded-full bg-[#0b0f19] flex items-center justify-center bg-gradient-to-br from-[#161a29] to-[#0b0f19]">
+                      <PlayCircle className="w-5 h-5 sm:w-6 sm:h-6 text-orange-400 drop-shadow-[0_0_8px_rgba(255,121,0,0.6)]" />
+                    </div>
                   </div>
                 </div>
 
@@ -317,14 +340,14 @@ const testimonials = [
                   <p className="text-[12px] sm:text-sm text-slate-400">ওয়েবসাইট থেকে কোর্স কেনার নিয়ম জানতে ভিডিওটি দেখুন</p>
                 </div>
 
-                {/* Button */}
+                {/* Button with Elegant Orange CTA Shadow */}
                 <motion.a 
                   href="https://t.me/hscvip/1394"
                   target="_blank"
                   rel="noopener noreferrer"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="z-10 shrink-0 w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white rounded-full font-bold text-[13px] sm:text-sm shadow-[0_4px_15px_rgba(249,115,22,0.3)] hover:shadow-[0_6px_20px_rgba(249,115,22,0.5)] transition-all flex items-center justify-center gap-2 group"
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="z-10 shrink-0 w-full sm:w-auto px-5 sm:px-6 py-2.5 bg-gradient-to-r from-orange-500 via-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white rounded-full font-bold text-[13px] sm:text-sm shadow-[0_4px_18px_rgba(255,121,0,0.35)] hover:shadow-[0_6px_24px_rgba(255,121,0,0.55)] border border-orange-400/30 hover:border-orange-300/50 transition-all duration-300 flex items-center justify-center gap-2 group"
                 >
                   কীভাবে কিনবেন দেখুন 
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -346,7 +369,7 @@ const testimonials = [
               <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto">Explore our wide range of professional courses.</p>
             </div>
 
-            <div className="grid grid-cols-2 min-[380px]:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-4">
+            <div className="grid grid-cols-2 min-[380px]:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-4">
               {categories.map((category, index) => (
                 <motion.div
                   key={category.id}
@@ -354,19 +377,31 @@ const testimonials = [
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-30px" }}
                   transition={{ duration: 0.3, delay: index * 0.04, ease: "easeOut" }}
+                  className="h-full"
                 >
                   <button 
                     onClick={() => handleCategoryClick(category)} 
-                    className="w-full text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 group block"
+                    className="w-full h-full text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 group block"
                   >
-                    {/* Floating premium card — warm dark bg, no border, gold glow on hover */}
-                    <div className="relative flex flex-col items-center pt-2 pb-1.5 px-1.5 sm:pt-3 sm:pb-2 sm:px-3 rounded-[14px] sm:rounded-2xl bg-[#111318] group-hover:bg-[#16181f] transition-all duration-300 group-hover:-translate-y-0.5 shadow-sm group-hover:shadow-[0_8px_28px_-6px_rgba(0,0,0,0.7),0_0_20px_-8px_rgba(251,146,60,0.18)]">
+                    {/* Premium Always-On Glowing Card Container */}
+                    <div 
+                      style={{ animationDelay: `${(index % 6) * 0.4}s` }}
+                      className="category-card-glow h-full relative flex flex-col items-center justify-between pt-2 pb-1.5 px-1.5 sm:pt-3 sm:pb-2 sm:px-3 rounded-[14px] sm:rounded-2xl overflow-hidden"
+                    >
+                      {/* Inner ambient radial glow */}
+                      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,121,0,0.08)_0%,transparent_70%)] pointer-events-none rounded-[inherit]" />
+
+                      {/* Always-on subtle breathing ambient glow */}
+                      <div 
+                        style={{ animationDelay: `${(index % 6) * 0.4}s` }}
+                        className="ambient-glow-breathe absolute inset-0 bg-gradient-to-b from-orange-500/[0.05] via-transparent to-orange-500/[0.02] pointer-events-none rounded-[inherit]" 
+                      />
 
                       {/* Subtle warm top-edge accent line on hover */}
-                      <div className="absolute top-0 inset-x-4 h-px bg-gradient-to-r from-transparent via-orange-400/0 to-transparent group-hover:via-orange-400/30 transition-all duration-500 rounded-full" />
+                      <div className="absolute top-0 inset-x-3 sm:inset-x-4 h-[1.5px] bg-gradient-to-r from-transparent via-orange-400/40 to-transparent group-hover:via-orange-400/80 transition-all duration-300 rounded-full pointer-events-none" />
 
-                      {/* Image — full width, natural height, no frame */}
-                      <div className="w-full flex items-center justify-center mb-1 sm:mb-2 transition-transform duration-300 group-hover:scale-[1.05]">
+                      {/* Image — full width, natural height, perfectly centered, no blur/glow on image */}
+                      <div className="w-full flex-1 flex items-center justify-center mb-1 sm:mb-2 transition-transform duration-300 group-hover:scale-[1.04] z-10">
                         {category.imageURL ? (
                           <img 
                             src={category.imageURL} 
@@ -375,13 +410,13 @@ const testimonials = [
                           />
                         ) : (
                           <div className="w-full flex items-center justify-center py-3">
-                            <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-slate-600 group-hover:text-orange-400/70 transition-colors duration-300" />
+                            <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-slate-500 group-hover:text-orange-400 transition-colors duration-300" />
                           </div>
                         )}
                       </div>
 
                       {/* Title */}
-                      <h3 className="text-[10px] sm:text-[12px] md:text-sm font-medium text-slate-400 group-hover:text-slate-100 transition-colors duration-300 line-clamp-2 leading-snug text-center w-full">
+                      <h3 className="text-[10px] sm:text-[12px] md:text-sm font-medium text-slate-300 group-hover:text-white transition-colors duration-300 line-clamp-2 leading-snug text-center w-full z-10">
                         {category.title}
                       </h3>
                     </div>
@@ -394,11 +429,11 @@ const testimonials = [
       )}
 
       {/* 4. FEATURED COURSES */}
-      <section className="py-8 sm:py-12 px-4 bg-gradient-to-b from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-950 border-t border-slate-200 dark:border-slate-800">
+      <section className="py-6 sm:py-10 md:py-12 px-3 sm:px-4 bg-gradient-to-b from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-950 border-t border-slate-200 dark:border-slate-800">
         <div className="container mx-auto max-w-6xl">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-5 sm:mb-8 gap-3 sm:gap-4">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 sm:mb-6 md:mb-8 gap-2.5 sm:gap-4">
             <div className="space-y-1 sm:space-y-1.5">
-              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] sm:text-xs font-bold tracking-wide uppercase border border-indigo-100 dark:border-indigo-500/20">
+              <div className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-0.5 rounded-full bg-orange-500/10 text-orange-400 text-[10px] sm:text-xs font-bold tracking-wide uppercase border border-orange-500/20">
                 <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Recommended
               </div>
               <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -411,28 +446,30 @@ const testimonials = [
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-2.5 md:gap-4 lg:gap-5">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="bg-card border border-border rounded-2xl p-3 animate-pulse h-64">
-                  <div className="aspect-[16/9] bg-muted rounded-xl mb-3"></div>
-                  <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                  <div className="h-3 bg-muted rounded w-1/2 mb-3"></div>
-                  <div className="h-8 bg-muted rounded-lg mt-auto"></div>
+                <div key={i} className="bg-[#0c101c] border border-slate-800/80 rounded-xl sm:rounded-2xl p-2 sm:p-2.5 animate-pulse flex flex-col justify-between h-[230px] sm:h-[260px]">
+                  <div>
+                    <div className="aspect-[16/9] bg-slate-800/80 rounded-lg mb-2"></div>
+                    <div className="h-3.5 bg-slate-800 rounded w-3/4 mb-1.5"></div>
+                    <div className="h-3 bg-slate-800/60 rounded w-1/2 mb-2"></div>
+                  </div>
+                  <div className="h-7 bg-slate-800 rounded-lg mt-auto"></div>
                 </div>
               ))}
             </div>
           ) : trendingCourses.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-10">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-2.5 md:gap-4 lg:gap-5 mb-6 sm:mb-10">
               {trendingCourses.map((course, index) => (
                 <motion.div
                   key={course.id}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 15 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
+                  viewport={{ once: true, margin: "-20px" }}
+                  transition={{ delay: index * 0.05, duration: 0.3 }}
                   className="h-full"
                 >
-                  <CourseCard course={course} paymentStatus={paymentStatusMap[course.id]} showButton={true} />
+                  <CourseCard course={course} paymentStatus={paymentStatusMap[course.id]} showButton={true} variant="compact" />
                 </motion.div>
               ))}
             </div>
@@ -471,10 +508,10 @@ const testimonials = [
                   {/* Text */}
                   <div className="text-left flex-1 min-w-0 pr-8 sm:pr-0">
                     <h3 className="text-[17px] sm:text-2xl md:text-3xl font-bold text-white mb-0.5 sm:mb-2 tracking-tight">
-                      Explore All Courses
+                      সব কোর্স একসাথে দেখুন
                     </h3>
                     <p className="text-[12px] sm:text-base text-slate-400 line-clamp-2 sm:line-clamp-none max-w-lg leading-snug sm:leading-relaxed">
-                      Discover 100+ premium courses designed for your success
+                      আপনার পছন্দের কোর্স খুঁজে নিতে এখানে ক্লিক করুন।
                     </p>
                   </div>
                 </div>

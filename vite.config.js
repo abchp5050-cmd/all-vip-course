@@ -11,6 +11,19 @@ const hmr = isReplit ? { clientPort: 443, protocol: 'wss' } : undefined;
 export default defineConfig({
   base: '/', 
   plugins: [react()],
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/messaging'],
+          'vendor-motion': ['framer-motion'],
+          'vendor-ui': ['lucide-react'],
+        },
+      },
+    },
+  },
   server: {
     host: '0.0.0.0',
     port: 5050,

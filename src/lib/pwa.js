@@ -1,3 +1,5 @@
+import { messaging } from './firebase';
+
 export function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -25,7 +27,6 @@ export function registerServiceWorker() {
 export async function getFCMToken() {
   try {
     const { getToken } = await import('firebase/messaging')
-    const { messaging } = await import('./firebase')
     
     if (!messaging) {
       console.warn('Firebase Messaging not available')
@@ -52,7 +53,6 @@ export async function getFCMToken() {
 export async function subscribeFCM(onMessageCallback) {
   try {
     const { onMessage } = await import('firebase/messaging')
-    const { messaging } = await import('./firebase')
     
     if (!messaging) {
       console.warn('Firebase Messaging not available')

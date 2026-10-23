@@ -1,0 +1,147 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===== Helper Functions =====
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'admin@gmail.com' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    // ===== Users Collection =====
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      // Users can only create their own profile, role must not be admin (unless default admin email)
+      allow create: if isSignedIn() && 
+                       request.auth.uid == userId && 
+                       ((!request.resource.data.keys().hasAny(['role']) || request.resource.data.role == 'user') ||
+                        (request.auth.token.email == 'admin@gmail.com' && request.resource.data.role == 'admin'));
+      // Users cannot elevate their own role to admin
+      allow update: if (isOwner(userId) && 
+                         (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']) ||
+                          (request.auth.token.email == 'admin@gmail.com' && request.resource.data.role == 'admin'))) ||
+                       isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ===== Public Read / Admin Manage Collections =====
+    match /courses/{courseId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /subcategories/{subcategoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /teachers/{teacherId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /headerConfigs/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /footerConfigs/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /sitePages/{pageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ===== Payments Collection =====
+    match /payments/{paymentId} {
+      // Students can only read their own payments; Admin can read all
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      // Students can only submit pending payments with their own userId
+      allow create: if isSignedIn() && 
+                       request.resource.data.userId == request.auth.uid && 
+                       request.resource.data.status == 'pending';
+      // Only admins can approve, reject or update payments
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ===== Enrollments Collection =====
+    match /enrollments/{enrollmentId} {
+      // Students can only read their own enrollments; Admin can read all
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      // Students can only create pending enrollments with their own userId
+      allow create: if isSignedIn() && 
+                       request.resource.data.userId == request.auth.uid && 
+                       (request.resource.data.status == 'PENDING' || request.resource.data.status == 'pending');
+      // Only admins can approve or modify enrollments
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ===== User Courses Collection =====
+    match /userCourses/{docId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // ===== Telegram Submissions Collection =====
+    match /telegramSubmissions/{submissionId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // ===== Admin Tokens Collection =====
+    match /adminTokens/{tokenId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ===== Notifications Collection =====
+    match /notifications/{notifId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // ===== Coupons Collection =====
+    match /coupons/{couponId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ===== Community Votes Collection =====
+    match /votes/{voteId} {
+      allow read: if true;
+      allow create, update: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    // Fallback: Deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

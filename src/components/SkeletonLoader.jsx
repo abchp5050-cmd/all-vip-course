@@ -2,28 +2,21 @@ import React from "react"
 
 export function CourseCardSkeleton() {
   return (
-    <div className="h-full bg-white dark:bg-[#111318] border border-slate-100 dark:border-white/[0.06] rounded-xl overflow-hidden shadow-sm flex flex-col animate-pulse">
-      {/* Thumbnail aspect-[2/1] */}
-      <div className="aspect-[2/1] w-full bg-slate-200 dark:bg-slate-800/80 relative">
-        <div className="absolute top-2 left-2 w-16 h-4 bg-slate-300 dark:bg-slate-700/60 rounded-full" />
+    <div className="h-full bg-white dark:bg-[#111318] border border-slate-100 dark:border-white/[0.06] rounded-xl sm:rounded-2xl overflow-hidden shadow-sm flex flex-col animate-pulse">
+      {/* Thumbnail aspect-[16/9] */}
+      <div className="aspect-[16/9] w-full bg-slate-200 dark:bg-slate-800/80 relative">
+        <div className="absolute top-2 left-2 w-12 sm:w-16 h-3.5 sm:h-4 bg-slate-300 dark:bg-slate-700/60 rounded-md" />
       </div>
 
       {/* Body */}
-      <div className="flex-1 flex flex-col p-2.5 sm:p-3 space-y-2.5">
-        {/* Title Lines */}
-        <div className="h-3.5 bg-slate-200 dark:bg-slate-800 rounded-md w-11/12" />
+      <div className="flex-1 flex flex-col p-2.5 sm:p-3.5 space-y-2">
+        <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-20" />
+        <div className="h-3.5 bg-slate-200 dark:bg-slate-800 rounded-md w-full" />
         <div className="h-3.5 bg-slate-200 dark:bg-slate-800 rounded-md w-3/4" />
 
-        {/* Rating and Price row */}
-        <div className="flex items-center justify-between pt-1 mt-auto">
-          <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-20" />
-          <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-14" />
-        </div>
-
-        {/* Instructor */}
-        <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-white/[0.05]">
-          <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-800 shrink-0" />
-          <div className="h-2.5 bg-slate-200 dark:bg-slate-800 rounded w-24" />
+        <div className="flex items-center justify-between pt-2 mt-auto border-t border-slate-100 dark:border-white/[0.05]">
+          <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-12" />
+          <div className="h-6 bg-slate-200 dark:bg-slate-800 rounded-lg w-16" />
         </div>
       </div>
     </div>
@@ -32,7 +25,7 @@ export function CourseCardSkeleton() {
 
 export function CourseGridSkeleton({ count = 8 }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+    <div className="grid grid-cols-1 min-[340px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 md:gap-5 lg:gap-6">
       {Array.from({ length: count }).map((_, i) => (
         <CourseCardSkeleton key={i} />
       ))}

@@ -4,12 +4,14 @@ import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp
 import { db } from "../../lib/firebase"
 import { uploadImageToImgBB } from "../../lib/imgbb"
 import { generateSlug } from "../../lib/slug"
+import { parseTelegramLinks } from "../../lib/utils"
 import ConfirmDialog from "../../components/ConfirmDialog"
 import { toast } from "../../hooks/use-toast"
 import { 
   Plus, Search, Edit2, Trash2, X, BookOpen, Upload, 
   Link as LinkIcon, Tag, Filter, Clock, Users, DollarSign,
-  CheckCircle, MoreVertical, LayoutGrid, List, Send
+  CheckCircle, MoreVertical, LayoutGrid, List, Send,
+  ChevronLeft, ChevronRight
 } from "lucide-react"
 
 export default function ManageCourses() {
@@ -29,7 +31,11 @@ export default function ManageCourses() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [viewMode, setViewMode] = useState("grid") // grid | list
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 8
+  const itemsPerPage = 10
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, categoryFilter, statusFilter])
   
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: "", message: "", onConfirm: () => {} })
   
@@ -49,6 +55,7 @@ export default function ManageCourses() {
   })
   const [tagInput, setTagInput] = useState("")
   const [imageFile, setImageFile] = useState(null)
+  const [telegramLinks, setTelegramLinks] = useState([""])
   
   useEffect(() => {
     fetchData()
@@ -81,6 +88,8 @@ export default function ManageCourses() {
   const handleOpenModal = (course = null) => {
     if (course) {
       setEditingCourse(course)
+      const existingTgLinks = parseTelegramLinks(course.telegramLink || course.telegramGroupLink)
+      setTelegramLinks(existingTgLinks.length > 0 ? existingTgLinks : [""])
       setFormData({
         title: course.title || "",
         description: course.description || "",
@@ -97,6 +106,7 @@ export default function ManageCourses() {
       })
     } else {
       setEditingCourse(null)
+      setTelegramLinks([""])
       setFormData({
         title: "",
         description: "",
@@ -123,6 +133,25 @@ export default function ManageCourses() {
     setImageFile(null)
   }
 
+  const handleTelegramLinkChange = (index, value) => {
+    setTelegramLinks((prev) => {
+      const updated = [...prev]
+      updated[index] = value
+      return updated
+    })
+  }
+
+  const handleAddTelegramLink = () => {
+    setTelegramLinks((prev) => [...prev, ""])
+  }
+
+  const handleRemoveTelegramLink = (index) => {
+    setTelegramLinks((prev) => {
+      if (prev.length <= 1) return [""]
+      return prev.filter((_, i) => i !== index)
+    })
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!formData.title.trim()) {
@@ -138,6 +167,11 @@ export default function ManageCourses() {
         thumbnailURL = await uploadImageToImgBB(imageFile)
       }
 
+      const finalTelegramLink = telegramLinks
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .join("\n")
+
       const courseData = {
         title: formData.title,
         description: formData.description,
@@ -149,7 +183,7 @@ export default function ManageCourses() {
         status: formData.status,
         publishStatus: formData.publishStatus,
         thumbnailURL: thumbnailURL || "",
-        telegramLink: formData.telegramLink || "",
+        telegramLink: finalTelegramLink,
         tags: formData.tags || [],
         slug: editingCourse?.slug || generateSlug(formData.title),
         updatedAt: serverTimestamp(),
@@ -205,71 +239,83 @@ export default function ManageCourses() {
     return matchesSearch && matchesCategory && matchesStatus
   })
   
-  const totalPages = Math.ceil(filteredCourses.length / itemsPerPage)
+  const totalPages = Math.max(1, Math.ceil(filteredCourses.length / itemsPerPage))
   const currentCourses = filteredCourses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [totalPages, currentPage])
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header Area */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white dark:bg-[#0b0f19] p-4 sm:p-5 rounded-xl sm:rounded-2xl shadow-sm border border-slate-200/80 dark:border-white/[0.08]">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Courses</h2>
-          <p className="text-slate-500 text-sm mt-1">Manage and organize your platform's courses</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white">Courses</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-0.5">
+            Manage your courses ({filteredCourses.length} {filteredCourses.length === 1 ? 'course' : 'courses'} found)
+          </p>
         </div>
         <button
           onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-sm hover:shadow transition-all font-medium text-sm w-full sm:w-auto justify-center"
+          className="flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white rounded-xl shadow-sm hover:shadow-orange-500/20 transition-all font-semibold text-xs sm:text-sm w-full sm:w-auto justify-center"
         >
-          <Plus size={18} />
-          Create Course
+          <Plus size={16} />
+          <span>Create Course</span>
         </button>
       </div>
 
       {/* Filters Area */}
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col md:flex-row gap-4">
+      <div className="bg-white dark:bg-[#0b0f19] p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-sm border border-slate-200/80 dark:border-white/[0.08] flex flex-col md:flex-row gap-2.5 sm:gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
           <input
             type="text"
-            placeholder="Search courses..."
+            placeholder="Search courses by title or category..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+            className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/[0.08] rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-orange-500/40 focus:border-orange-500 outline-none transition-all"
           />
         </div>
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 min-w-[150px]"
+            className="flex-1 sm:flex-none px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/[0.08] rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-orange-500/40 min-w-[120px]"
           >
             <option value="all">All Categories</option>
-            {categories.map(c => (
-              <option key={c.id} value={c.title}>{c.title}</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.title}>
+                {c.title}
+              </option>
             ))}
           </select>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 min-w-[140px]"
+            className="flex-1 sm:flex-none px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/[0.08] rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-orange-500/40 min-w-[110px]"
           >
             <option value="all">All Status</option>
             <option value="running">Running</option>
             <option value="ongoing">Ongoing</option>
             <option value="complete">Complete</option>
           </select>
-          <div className="flex items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+          <div className="hidden md:flex items-center p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/60 dark:border-white/[0.05]">
             <button 
               onClick={() => setViewMode("grid")}
-              className={`p-1.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600' : 'text-slate-500'}`}
+              title="Grid View"
+              className={`p-1.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 shadow-sm text-orange-500' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
             >
-              <LayoutGrid size={18} />
+              <LayoutGrid size={16} />
             </button>
             <button 
               onClick={() => setViewMode("list")}
-              className={`p-1.5 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow-sm text-indigo-600' : 'text-slate-500'}`}
+              title="List View"
+              className={`p-1.5 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow-sm text-orange-500' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
             >
-              <List size={18} />
+              <List size={16} />
             </button>
           </div>
         </div>
@@ -277,150 +323,316 @@ export default function ManageCourses() {
 
       {/* Courses Display */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[1,2,3,4,5,6,7,8].map(n => (
-            <div key={n} className="bg-slate-100 dark:bg-slate-800 h-[320px] rounded-2xl animate-pulse"></div>
-          ))}
-        </div>
+        <>
+          {/* Mobile loading skeleton */}
+          <div className="block md:hidden space-y-2">
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <div key={n} className="bg-white dark:bg-[#0b0f19] border border-slate-200/80 dark:border-white/[0.08] rounded-xl p-2.5 flex items-center gap-2.5 animate-pulse h-[82px]">
+                <div className="w-[75px] h-[60px] rounded-lg bg-slate-200 dark:bg-slate-800 flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3.5 bg-slate-200 dark:bg-slate-800 rounded w-3/4" />
+                  <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-1/3" />
+                </div>
+                <div className="w-16 h-7 bg-slate-200 dark:bg-slate-800 rounded-lg shrink-0" />
+              </div>
+            ))}
+          </div>
+          {/* Desktop loading skeleton */}
+          <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+              <div key={n} className="bg-white dark:bg-[#0b0f19] border border-slate-200/80 dark:border-white/[0.08] h-[260px] rounded-xl animate-pulse" />
+            ))}
+          </div>
+        </>
       ) : filteredCourses.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 py-16 px-6 text-center rounded-2xl border border-slate-100 dark:border-slate-800">
-          <BookOpen className="w-16 h-16 text-slate-300 dark:text-slate-700 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-slate-700 dark:text-slate-300">No courses found</h3>
-          <p className="text-slate-500 mt-2">Try adjusting your search or filters, or create a new course.</p>
+        <div className="bg-white dark:bg-[#0b0f19] py-12 px-6 text-center rounded-2xl border border-slate-200/80 dark:border-white/[0.08]">
+          <BookOpen className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
+          <h3 className="text-base sm:text-lg font-bold text-slate-700 dark:text-slate-300">No courses found</h3>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">Try adjusting your search or filters, or create a new course.</p>
         </div>
       ) : (
         <>
-          {viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {currentCourses.map((course) => (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
+          {/* Mobile View (< md): Professional Compact Row (height ~85-110px) */}
+          <div className="block md:hidden space-y-2">
+            {currentCourses.map((course) => {
+              const courseImage = course.thumbnailURL || course.imageURL || course.image || course.coverImage
+              return (
+                <div
                   key={course.id}
-                  className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all group flex flex-col"
+                  className="relative bg-white dark:bg-[#0b0f19] border border-slate-200/80 dark:border-white/[0.08] hover:border-orange-500/30 rounded-xl p-2.5 flex items-center gap-2.5 shadow-sm transition-all overflow-hidden"
                 >
-                  <div className="relative aspect-video bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                    {course.thumbnailURL ? (
-                      <img src={course.thumbnailURL} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  {/* LEFT: Real Course Thumbnail (75x60px) */}
+                  <div className="w-[75px] h-[60px] min-w-[75px] max-w-[75px] rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-850 flex-shrink-0 relative border border-black/5 dark:border-white/5">
+                    {courseImage ? (
+                      <img
+                        src={courseImage}
+                        alt={course.title}
+                        loading="lazy"
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-400">No Image</div>
-                    )}
-                    <div className="absolute top-3 left-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur text-xs font-semibold px-2.5 py-1 rounded-full shadow-sm text-slate-700 dark:text-slate-300">
-                      {course.category || "Uncategorized"}
-                    </div>
-                    {course.publishStatus === "draft" && (
-                      <div className="absolute top-3 right-3 bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
-                        Draft
+                      <div className="w-full h-full flex items-center justify-center text-slate-400">
+                        <BookOpen className="w-5 h-5 text-slate-400" />
                       </div>
                     )}
+                    {course.publishStatus === "draft" && (
+                      <span className="absolute bottom-1 left-1 bg-amber-500 text-[9px] font-bold text-white px-1 py-0.5 rounded shadow-sm">
+                        Draft
+                      </span>
+                    )}
                   </div>
-                  
-                  <div className="p-5 flex-1 flex flex-col">
-                    <h3 className="font-bold text-slate-800 dark:text-white line-clamp-2 mb-2 leading-tight">
+
+                  {/* CENTER: Title (max 2 lines with ellipsis), Price & Status */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-center py-0.5">
+                    <h3 className="font-semibold text-xs text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug mb-1" title={course.title}>
                       {course.title}
                     </h3>
-                    
-                    <div className="flex items-center gap-4 text-xs text-slate-500 mb-4 mt-auto">
-                      <div className="flex items-center gap-1">
-                        <Users className="w-3.5 h-3.5" />
-                        {course.instructors?.length > 0 ? course.instructors.length + ' Teacher' : 'No teacher'}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span className="capitalize">{course.status}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
-                      <div className="font-bold text-indigo-600 dark:text-indigo-400 text-lg">
+                    <div className="flex items-center flex-wrap gap-1.5 text-[11px]">
+                      <span className="font-bold text-orange-500 dark:text-orange-400">
                         {course.price > 0 ? `৳${course.price}` : "Free"}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => handleOpenModal(course)} className="p-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-lg transition-colors">
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleDelete(course.id)} className="p-2 bg-rose-50 dark:bg-rose-500/10 text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-500/20 rounded-lg transition-colors">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      </span>
+                      <span className="text-slate-300 dark:text-slate-700">•</span>
+                      <span
+                        className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                          course.status === "running"
+                            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                            : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${course.status === "running" ? "bg-emerald-500" : "bg-amber-500"}`} />
+                        <span className="capitalize">{course.status || "Running"}</span>
+                      </span>
+                      {course.category && (
+                        <span className="hidden min-[380px]:inline-block text-[10px] text-slate-400 dark:text-slate-500 truncate max-w-[85px]">
+                          {course.category}
+                        </span>
+                      )}
                     </div>
                   </div>
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800 text-xs uppercase font-semibold text-slate-500 tracking-wider">
-                      <th className="px-6 py-4">Course</th>
-                      <th className="px-6 py-4">Category</th>
-                      <th className="px-6 py-4">Price</th>
-                      <th className="px-6 py-4">Status</th>
-                      <th className="px-6 py-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {currentCourses.map((course) => (
-                      <tr key={course.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0">
-                              {course.thumbnailURL ? (
-                                <img src={course.thumbnailURL} alt="" className="w-full h-full object-cover" />
-                              ) : <BookOpen className="w-6 h-6 text-slate-400 m-3" />}
-                            </div>
-                            <div>
-                              <p className="font-bold text-slate-800 dark:text-white text-sm">{course.title}</p>
-                              <p className="text-xs text-slate-500 mt-1 truncate max-w-[200px]">{course.instructorName || "No instructor"}</p>
-                            </div>
+
+                  {/* RIGHT: Edit and Delete Buttons */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => handleOpenModal(course)}
+                      title="Edit Course"
+                      className="p-2 rounded-lg text-slate-500 hover:text-orange-500 hover:bg-orange-500/10 dark:text-slate-400 dark:hover:text-orange-400 dark:hover:bg-orange-500/15 transition-colors"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(course.id)}
+                      title="Delete Course"
+                      className="p-2 rounded-lg text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 dark:text-slate-400 dark:hover:text-rose-400 dark:hover:bg-rose-500/15 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Desktop View (>= md): Grid or List toggle */}
+          <div className="hidden md:block">
+            {viewMode === "grid" ? (
+              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {currentCourses.map((course) => {
+                  const courseImage = course.thumbnailURL || course.imageURL || course.image || course.coverImage
+                  return (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      key={course.id}
+                      className="bg-white dark:bg-[#0b0f19] rounded-xl overflow-hidden border border-slate-200/80 dark:border-white/[0.08] shadow-sm hover:shadow-md hover:border-orange-500/30 transition-all flex flex-col group"
+                    >
+                      <div className="relative aspect-[16/10] bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                        {courseImage ? (
+                          <img
+                            src={courseImage}
+                            alt={course.title}
+                            loading="lazy"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-400">
+                            <BookOpen className="w-6 h-6 text-slate-400" />
                           </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                            {course.category}
+                        )}
+                        <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-[10px] font-semibold px-2 py-0.5 rounded text-white">
+                          {course.category || "Uncategorized"}
+                        </div>
+                        {course.publishStatus === "draft" && (
+                          <div className="absolute top-2 right-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">
+                            Draft
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="p-3.5 flex-1 flex flex-col">
+                        <h3 className="font-semibold text-xs sm:text-sm text-slate-800 dark:text-white line-clamp-2 mb-2 leading-snug" title={course.title}>
+                          {course.title}
+                        </h3>
+
+                        <div className="flex items-center gap-2 text-[11px] text-slate-400 mb-3 mt-auto">
+                          <span
+                            className={`inline-flex items-center gap-1 font-medium capitalize ${
+                              course.status === "running" ? "text-emerald-500" : "text-amber-500"
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${course.status === "running" ? "bg-emerald-500" : "bg-amber-500"}`} />
+                            {course.status || "Running"}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 font-semibold text-indigo-600 dark:text-indigo-400">
-                          {course.price > 0 ? `৳${course.price}` : "Free"}
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${course.status === 'running' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10' : 'bg-amber-50 text-amber-700 dark:bg-amber-500/10'}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${course.status === 'running' ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-                            <span className="capitalize">{course.status}</span>
+                          <span>•</span>
+                          <span className="truncate">
+                            {course.instructors?.length > 0
+                              ? `${course.instructors.length} Teacher(s)`
+                              : course.instructorName || "No teacher"}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <button onClick={() => handleOpenModal(course)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 dark:border-white/[0.05]">
+                          <div className="font-bold text-orange-500 dark:text-orange-400 text-sm sm:text-base">
+                            {course.price > 0 ? `৳${course.price}` : "Free"}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleOpenModal(course)}
+                              title="Edit Course"
+                              className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-500/10 dark:hover:bg-orange-500/15 rounded-lg transition-colors"
+                            >
                               <Edit2 className="w-4 h-4" />
                             </button>
-                            <button onClick={() => handleDelete(course.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                            <button
+                              onClick={() => handleDelete(course.id)}
+                              title="Delete Course"
+                              className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 dark:hover:bg-rose-500/15 rounded-lg transition-colors"
+                            >
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
-                        </td>
-                      </tr>
-                    ))}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="bg-white dark:bg-[#0b0f19] rounded-2xl shadow-sm border border-slate-200/80 dark:border-white/[0.08] overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50/70 dark:bg-slate-950/60 border-b border-slate-200/80 dark:border-white/[0.08] text-xs uppercase font-semibold text-slate-500 tracking-wider">
+                      <th className="px-5 py-3.5">Course</th>
+                      <th className="px-4 py-3.5">Category</th>
+                      <th className="px-4 py-3.5">Price</th>
+                      <th className="px-4 py-3.5">Status</th>
+                      <th className="px-5 py-3.5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-white/[0.05]">
+                    {currentCourses.map((course) => {
+                      const courseImage = course.thumbnailURL || course.imageURL || course.image || course.coverImage
+                      return (
+                        <tr key={course.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/25 transition-colors">
+                          <td className="px-5 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-[60px] h-[45px] rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0 relative border border-black/5 dark:border-white/5">
+                                {courseImage ? (
+                                  <img src={courseImage} alt={course.title} loading="lazy" className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                    <BookOpen className="w-4 h-4 text-slate-400" />
+                                  </div>
+                                )}
+                                {course.publishStatus === "draft" && (
+                                  <span className="absolute bottom-0.5 left-0.5 bg-amber-500 text-[8px] font-bold text-white px-1 py-0.2 rounded">
+                                    Draft
+                                  </span>
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-semibold text-slate-800 dark:text-slate-100 text-xs sm:text-sm line-clamp-2 leading-snug">
+                                  {course.title}
+                                </p>
+                                <p className="text-[11px] text-slate-400 mt-0.5 truncate max-w-[240px]">
+                                  {course.instructors?.length > 0
+                                    ? course.instructors.join(", ")
+                                    : course.instructorName || "No instructor"}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                              {course.category || "Uncategorized"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 font-bold text-xs sm:text-sm text-orange-500 dark:text-orange-400">
+                            {course.price > 0 ? `৳${course.price}` : "Free"}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                course.status === "running"
+                                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                                  : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                              }`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${course.status === "running" ? "bg-emerald-500" : "bg-amber-500"}`} />
+                              <span className="capitalize">{course.status || "Running"}</span>
+                            </span>
+                          </td>
+                          <td className="px-5 py-3 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => handleOpenModal(course)}
+                                title="Edit Course"
+                                className="p-1.5 text-slate-400 hover:text-orange-500 hover:bg-orange-500/10 dark:hover:bg-orange-500/15 rounded-lg transition-colors"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(course.id)}
+                                title="Delete Course"
+                                className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 dark:hover:bg-rose-500/15 rounded-lg transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
-          
-          {/* Pagination */}
+            )}
+          </div>
+
+          {/* Pagination: [Previous] Page X of Y [Next] */}
           {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-8">
-              {Array.from({ length: totalPages }).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors ${currentPage === i + 1 ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'}`}
-                >
-                  {i + 1}
-                </button>
-              ))}
+            <div className="flex items-center justify-between sm:justify-center gap-3 pt-3 border-t border-slate-200/80 dark:border-white/[0.08]">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border border-slate-200 dark:border-white/[0.1] bg-white dark:bg-[#0b0f19] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Previous</span>
+              </button>
+
+              <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium">
+                Page <span className="font-bold text-slate-900 dark:text-white">{currentPage}</span> of{" "}
+                <span className="font-bold text-slate-900 dark:text-white">{totalPages}</span>
+              </div>
+
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg border border-slate-200 dark:border-white/[0.1] bg-white dark:bg-[#0b0f19] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
+              >
+                <span>Next</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
           )}
         </>
@@ -573,21 +785,58 @@ export default function ManageCourses() {
                         </select>
                       </div>
 
-                      <div className="sm:col-span-2">
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Telegram Group Link</label>
-                        <div className="relative">
-                          <Send className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                          <input
-                            type="url"
-                            value={formData.telegramLink}
-                            onChange={(e) => setFormData({ ...formData, telegramLink: e.target.value })}
-                            placeholder="https://t.me/your_group"
-                            className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm"
-                          />
+                      <div className="sm:col-span-2 space-y-2.5">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                          Telegram Group Link{telegramLinks.length > 1 ? "s" : ""}
+                        </label>
+                        
+                        {telegramLinks.map((link, idx) => (
+                          <div key={idx} className="space-y-1">
+                            {idx > 0 && (
+                              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">
+                                Additional Link #{idx + 1}
+                              </label>
+                            )}
+                            <div className="flex items-center gap-2">
+                              <div className="relative flex-1">
+                                <Send className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                <input
+                                  type="url"
+                                  value={link}
+                                  onChange={(e) => handleTelegramLinkChange(idx, e.target.value)}
+                                  placeholder={idx === 0 ? "https://t.me/your_group" : `https://t.me/additional_group_${idx + 1}`}
+                                  className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
+                                />
+                              </div>
+                              {idx > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveTelegramLink(idx)}
+                                  className="p-2.5 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200 dark:border-slate-800 rounded-xl transition-colors shrink-0"
+                                  title="Remove this link"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={handleAddTelegramLink}
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 py-1.5 px-3 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors border border-indigo-200/50 dark:border-indigo-800/50 w-fit"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>+ Add Another Link</span>
+                          </button>
+                          <p className="text-xs text-slate-500">
+                            {telegramLinks.filter((l) => l.trim()).length > 1
+                              ? `${telegramLinks.filter((l) => l.trim()).length} links configured (each shown as a separate Join button)`
+                              : "Students will see this link to join the course Telegram community"}
+                          </p>
                         </div>
-                        <p className="text-xs text-slate-500 mt-1">
-                          Students will see this link to join the course Telegram community
-                        </p>
                       </div>
                     </div>
                   </section>

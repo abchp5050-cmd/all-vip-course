@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { BookOpen, Send, Check, Clock, CheckCircle, XCircle, GraduationCap, Star, Shield, Users, Sparkles, ChevronRight, AlertTriangle, X } from "lucide-react"
+import { BookOpen, Send, Check, Clock, CheckCircle, XCircle, GraduationCap, Star, Shield, Users, Sparkles, ChevronRight, AlertTriangle, X, AlertCircle, Headset, Info } from "lucide-react"
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore"
 import { db } from "../lib/firebase"
 import { useAuth } from "../contexts/AuthContext"
+import { parseTelegramLinks } from "../lib/utils"
 import TelegramJoinButton from "../components/TelegramJoinButton"
 import { MyCoursesSkeleton } from "../components/SkeletonLoader"
 
@@ -31,56 +32,121 @@ export default function MyCourses() {
     }
   }
 
-  const saveClickedLink = (courseId) => {
-    const updated = { ...clickedLinks, [courseId]: true }
+  const saveClickedLink = (courseId, linkIndex = 0) => {
+    const updated = {
+      ...clickedLinks,
+      [`${courseId}_${linkIndex}`]: true,
+    }
+    if (linkIndex === 0) {
+      updated[courseId] = true
+    }
     setClickedLinks(updated)
     localStorage.setItem(`telegram_clicks_${currentUser?.uid}`, JSON.stringify(updated))
+  }
+
+  const isLinkDisabled = (courseId, linkIndex) => {
+    if (clickedLinks[`${courseId}_${linkIndex}`]) return true
+    if (linkIndex === 0 && clickedLinks[courseId]) return true
+    return false
   }
 
   const fetchEnrollments = async () => {
     try {
       const paymentsQuery = query(
         collection(db, "payments"),
-        where("userId", "==", currentUser.uid),
-        where("status", "==", "approved")
+        where("userId", "==", currentUser.uid)
       )
       const paymentsSnapshot = await getDocs(paymentsQuery)
 
-      const enrollmentsData = []
-      
-      for (const paymentDoc of paymentsSnapshot.docs) {
-        const payment = paymentDoc.data()
-        
+      const paymentsList = paymentsSnapshot.docs.map(paymentDoc => ({ id: paymentDoc.id, ...paymentDoc.data() }))
+
+      // Sort newest to oldest so latest submissions take precedence
+      paymentsList.sort((a, b) => {
+        const timeA = a.submittedAt?.toMillis ? a.submittedAt.toMillis() : (a.submittedAt?.seconds * 1000 || 0)
+        const timeB = b.submittedAt?.toMillis ? b.submittedAt.toMillis() : (b.submittedAt?.seconds * 1000 || 0)
+        return timeB - timeA
+      })
+
+      // Aggregate course statuses per course:
+      // Priority:
+      // 1. If any payment is approved, course is approved and rejectionReason is cleared.
+      // 2. Else if any payment is pending, course is pending.
+      // 3. Else if rejected, store paymentStatus = 'rejected' and rejectionReason.
+      const courseStatusMap = new Map()
+
+      for (const payment of paymentsList) {
         if (payment.courses && payment.courses.length > 0) {
           for (const courseInfo of payment.courses) {
-            try {
-              const courseDoc = await getDoc(doc(db, "courses", courseInfo.id))
-              if (courseDoc.exists()) {
-                const enrollmentQuery = query(
-                  collection(db, "enrollments"),
-                  where("userId", "==", currentUser.uid),
-                  where("courseId", "==", courseInfo.id)
-                )
-                const enrollmentSnapshot = await getDocs(enrollmentQuery)
-                const enrollmentId = !enrollmentSnapshot.empty ? enrollmentSnapshot.docs[0].id : null
+            const itemStatus = courseInfo.status || payment.status || "pending"
+            const itemReason = courseInfo.rejectionReason !== undefined
+              ? courseInfo.rejectionReason
+              : (itemStatus === "rejected" ? (payment.rejectionReason || null) : null)
 
-                enrollmentsData.push({
-                  id: enrollmentId || `${paymentDoc.id}_${courseInfo.id}`,
-                  enrollmentId,
-                  paymentId: paymentDoc.id,
-                  userId: currentUser.uid,
-                  courseId: courseInfo.id,
-                  status: 'APPROVED',
-                  paymentStatus: 'approved',
-                  course: { id: courseDoc.id, ...courseDoc.data() }
-                })
-              }
-            } catch (error) {
-              console.error("Error fetching course:", error)
+            const existing = courseStatusMap.get(courseInfo.id)
+            if (!existing) {
+              courseStatusMap.set(courseInfo.id, {
+                paymentId: payment.id,
+                courseInfo,
+                paymentStatus: itemStatus,
+                rejectionReason: itemReason || null,
+              })
+            } else if (itemStatus === "approved") {
+              // Approved always takes precedence; hide/clear previous rejection reason
+              courseStatusMap.set(courseInfo.id, {
+                paymentId: payment.id,
+                courseInfo,
+                paymentStatus: "approved",
+                rejectionReason: null,
+              })
+            } else if (existing.paymentStatus === "rejected" && itemStatus === "pending") {
+              // Active pending submission overrides older rejected submission
+              courseStatusMap.set(courseInfo.id, {
+                paymentId: payment.id,
+                courseInfo,
+                paymentStatus: "pending",
+                rejectionReason: null,
+              })
             }
           }
         }
       }
+
+      const enrollmentsData = []
+
+      for (const [courseId, info] of courseStatusMap.entries()) {
+        try {
+          const courseDoc = await getDoc(doc(db, "courses", courseId))
+          if (courseDoc.exists()) {
+            const enrollmentQuery = query(
+              collection(db, "enrollments"),
+              where("userId", "==", currentUser.uid),
+              where("courseId", "==", courseId)
+            )
+            const enrollmentSnapshot = await getDocs(enrollmentQuery)
+            const enrollmentId = !enrollmentSnapshot.empty ? enrollmentSnapshot.docs[0].id : null
+
+            enrollmentsData.push({
+              id: enrollmentId || `${info.paymentId}_${courseId}`,
+              enrollmentId,
+              paymentId: info.paymentId,
+              userId: currentUser.uid,
+              courseId,
+              status: info.paymentStatus === 'approved' ? 'APPROVED' : info.paymentStatus === 'rejected' ? 'REJECTED' : 'PENDING',
+              paymentStatus: info.paymentStatus,
+              rejectionReason: info.rejectionReason,
+              course: { id: courseDoc.id, ...courseDoc.data() }
+            })
+          }
+        } catch (error) {
+          console.error("Error fetching course:", error)
+        }
+      }
+
+      // Sort: approved first, then pending, then rejected
+      enrollmentsData.sort((a, b) => {
+        const order = { approved: 1, pending: 2, rejected: 3 }
+        return (order[a.paymentStatus] || 4) - (order[b.paymentStatus] || 4)
+      })
 
       setEnrollments(enrollmentsData)
     } catch (error) {
@@ -90,21 +156,18 @@ export default function MyCourses() {
     }
   }
 
-  const handleTelegramClick = (enrollment) => {
-    const course = enrollment.course
-    if (!course.telegramLink) return
+  const handleTelegramClick = (courseId, link, linkIndex = 0) => {
+    if (!link) return
     
     let telegramAppUrl
-    const link = course.telegramLink
-    
     // Check if it's a joinchat or + invite link (private group)
     if (link.includes('joinchat/') || link.includes('+')) {
       // Extract invite code
       let inviteCode = link
       if (inviteCode.includes('joinchat/')) {
-        inviteCode = inviteCode.split('joinchat/')[1]
+        inviteCode = inviteCode.split('joinchat/')[1].split('?')[0]
       } else if (inviteCode.includes('+')) {
-        inviteCode = inviteCode.split('+')[1]
+        inviteCode = inviteCode.split('+')[1].split('?')[0]
       }
       // Use join protocol for private groups
       telegramAppUrl = `tg://join?invite=${inviteCode}`
@@ -123,7 +186,7 @@ export default function MyCourses() {
     
     // Mark as clicked after a short delay
     setTimeout(() => {
-      saveClickedLink(course.id)
+      saveClickedLink(courseId, linkIndex)
     }, 500)
   }
 
@@ -184,10 +247,14 @@ export default function MyCourses() {
         </motion.div>
 
         {/* Courses Grid */}
-        {enrollments.length > 0 && enrollments.filter(e => e.paymentStatus === 'approved').length > 0 ? (
+        {enrollments.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {enrollments.filter(e => e.paymentStatus === 'approved').map((enrollment, index) => {
+            {enrollments.map((enrollment, index) => {
               const course = enrollment.course
+              const isApproved = enrollment.paymentStatus === 'approved'
+              const isRejected = enrollment.paymentStatus === 'rejected'
+              const isPending = !isApproved && !isRejected
+
               return (
                 <motion.div
                   key={enrollment.id}
@@ -195,7 +262,13 @@ export default function MyCourses() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1, duration: 0.5, type: "spring" }}
                   whileHover={{ y: -5 }}
-                  className="bg-[#111827] border border-slate-800 rounded-[24px] overflow-hidden hover:shadow-2xl hover:shadow-orange-500/10 transition-all duration-300 group"
+                  className={`bg-[#111827] border ${
+                    isRejected
+                      ? 'border-rose-500/30 hover:border-rose-500/50 hover:shadow-rose-500/10'
+                      : isPending
+                      ? 'border-amber-500/30 hover:border-amber-500/50 hover:shadow-amber-500/10'
+                      : 'border-slate-800 hover:border-orange-500/40 hover:shadow-orange-500/10'
+                  } rounded-[24px] overflow-hidden hover:shadow-2xl transition-all duration-300 group flex flex-col justify-between`}
                 >
                   {/* Course Image */}
                   <div className="relative aspect-video bg-slate-900 overflow-hidden">
@@ -215,57 +288,159 @@ export default function MyCourses() {
                       </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-[#111827] via-transparent to-transparent opacity-80" />
+
+                    {/* Status Badge */}
+                    {isRejected ? (
+                      <div className="absolute top-3 right-3 bg-rose-600/95 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border border-rose-400/30 flex items-center gap-1 shadow-lg shadow-rose-600/25">
+                        <XCircle className="w-3.5 h-3.5" />
+                        <span>Rejected</span>
+                      </div>
+                    ) : isPending ? (
+                      <div className="absolute top-3 right-3 bg-amber-500/95 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border border-amber-400/30 flex items-center gap-1 shadow-lg shadow-amber-500/25">
+                        <Clock className="w-3.5 h-3.5 animate-pulse" />
+                        <span>Pending</span>
+                      </div>
+                    ) : (
+                      <div className="absolute top-3 right-3 bg-emerald-500/90 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border border-emerald-400/30 flex items-center gap-1 shadow-lg shadow-emerald-500/20">
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Enrolled</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Course Info */}
-                  <div className="p-6 space-y-5 relative">
+                  <div className="p-5 sm:p-6 space-y-4 relative flex-1 flex flex-col justify-between">
                     <div className="absolute -top-6 right-4 w-12 h-12 bg-[#111827] rounded-full border border-slate-800 flex items-center justify-center shadow-lg">
-                      <GraduationCap className="w-6 h-6 text-orange-400" />
+                      {isRejected ? (
+                        <AlertCircle className="w-6 h-6 text-rose-400" />
+                      ) : isPending ? (
+                        <Clock className="w-6 h-6 text-amber-400" />
+                      ) : (
+                        <GraduationCap className="w-6 h-6 text-orange-400" />
+                      )}
                     </div>
                     <div>
                       {course.category && (
-                        <p className="text-xs font-semibold text-orange-400 uppercase tracking-wider mb-2">{course.category}</p>
+                        <p className={`text-xs font-semibold ${
+                          isRejected ? 'text-rose-400' : isPending ? 'text-amber-400' : 'text-orange-400'
+                        } uppercase tracking-wider mb-2`}>
+                          {course.category}
+                        </p>
                       )}
-                      <h3 className="font-bold text-xl text-white leading-snug line-clamp-2">{course.title}</h3>
+                      <h3 className="font-bold text-lg sm:text-xl text-white leading-snug line-clamp-2">{course.title}</h3>
                     </div>
 
-                    {/* Telegram Group Access */}
-                    {course.telegramLink ? (
-                      <div className="space-y-3 pt-2">
-                        <motion.button
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => handleTelegramClick(enrollment)}
-                          disabled={clickedLinks[course.id]}
-                          className={`w-full py-3.5 rounded-xl transition-all duration-300 font-semibold flex items-center justify-center gap-2 ${
-                            clickedLinks[course.id]
-                              ? 'bg-slate-800 border border-slate-700 text-slate-400 cursor-not-allowed'
-                              : 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white shadow-lg shadow-orange-500/25'
-                          }`}
+                    {isRejected ? (
+                      <div className="space-y-3 pt-1">
+                        {/* Status Tag */}
+                        <div className="flex items-center gap-2 text-rose-400 bg-rose-500/10 border border-rose-500/25 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold">
+                          <XCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                          <span>পেমেন্ট বাতিল হয়েছে (Payment Rejected)</span>
+                        </div>
+
+                        {/* Rejection Reason Box (shown only if rejectionReason exists) */}
+                        {enrollment.rejectionReason && (
+                          <div className="p-3.5 sm:p-4 rounded-2xl bg-rose-500/5 border border-rose-500/30 space-y-2">
+                            <div className="flex items-center gap-1.5 text-rose-400 text-xs sm:text-sm font-bold">
+                              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                              <span>পেমেন্ট বাতিলের কারণ</span>
+                            </div>
+                            <p className="text-xs sm:text-sm text-slate-200 bg-slate-950/60 p-2.5 sm:p-3 rounded-xl border border-rose-500/20 leading-relaxed font-sans break-words whitespace-pre-wrap">
+                              {enrollment.rejectionReason}
+                            </p>
+                            <div className="pt-1 flex items-start gap-1.5 text-[11px] sm:text-xs text-slate-400 leading-snug">
+                              <Info className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                              <span>সঠিক তথ্য দিয়ে পুনরায় পেমেন্ট করুন অথবা সহায়তার জন্য অ্যাডমিনের সাথে যোগাযোগ করুন।</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Admin Support CTA */}
+                        <a
+                          href="https://t.me/hscvip/1394"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full py-2.5 sm:py-3 rounded-xl border border-slate-700 hover:border-orange-500/40 bg-slate-800/70 hover:bg-slate-800 text-slate-300 hover:text-white transition-all text-xs sm:text-sm font-semibold flex items-center justify-center gap-2"
                         >
-                          {clickedLinks[course.id] ? (
-                            <>
-                              <Check className="w-5 h-5" />
-                              Opened in Telegram
-                            </>
-                          ) : (
-                            <>
-                              <Send className="w-5 h-5" />
-                              Join Telegram Group
-                            </>
-                          )}
-                        </motion.button>
-                        <p className="text-[11px] text-center text-slate-500 font-medium">
-                          {clickedLinks[course.id]
-                            ? 'Button disabled after opening'
-                            : 'Secure access via Telegram'}
-                        </p>
+                          <Headset className="w-4 h-4 text-orange-400" />
+                          <span>Admin Support এ যোগাযোগ করুন</span>
+                        </a>
+                      </div>
+                    ) : isPending ? (
+                      <div className="space-y-3 pt-1">
+                        {/* Status Tag */}
+                        <div className="flex items-center gap-2 text-amber-400 bg-amber-500/10 border border-amber-500/25 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold">
+                          <Clock className="w-4 h-4 shrink-0 text-amber-400 animate-pulse" />
+                          <span>পেমেন্ট ভেরিফিকেশন চলছে</span>
+                        </div>
+
+                        {/* Pending Info Notice */}
+                        <div className="p-3.5 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-1.5">
+                          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                            আপনার পেমেন্ট তথ্য সফলভাবে গ্রহণ করা হয়েছে। অ্যাডমিন পেমেন্ট যাচাই করার পর কোর্স ও টেলিগ্রাম এক্সেস আনলক হবে।
+                          </p>
+                          <p className="text-[11px] text-amber-400/90 font-medium">
+                            সাধারণত ৩০ মিনিট থেকে ১ ঘণ্টার মধ্যে অনুমোদন সম্পন্ন হয়।
+                          </p>
+                        </div>
+
+                        {/* Disabled Pending Button */}
+                        <div className="w-full py-3 rounded-xl bg-slate-800/80 border border-slate-700/80 text-slate-400 flex items-center justify-center gap-2 text-xs sm:text-sm font-medium">
+                          <Clock className="w-4 h-4 text-amber-400 animate-pulse" />
+                          <span>অপেক্ষমান (Pending Verification)</span>
+                        </div>
                       </div>
                     ) : (
-                      <div className="py-3 px-4 bg-slate-800/50 border border-slate-800 rounded-xl text-center mt-2">
-                        <p className="text-xs text-slate-400 font-medium">
-                          Community link coming soon
-                        </p>
-                      </div>
+                      /* Telegram Group Access */
+                      (() => {
+                        const tgLinks = parseTelegramLinks(course.telegramLink || course.telegramGroupLink)
+                        return tgLinks.length > 0 ? (
+                          <div className="space-y-2.5 pt-2">
+                            {tgLinks.map((link, idx) => {
+                              const disabled = isLinkDisabled(course.id, idx)
+                              const label = tgLinks.length === 1 ? "Join Telegram Group" : `Join Telegram Group ${idx + 1}`
+                              const disabledLabel = tgLinks.length === 1 ? "Opened in Telegram" : `Group ${idx + 1} Opened in Telegram`
+
+                              return (
+                                <motion.button
+                                  key={idx}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => handleTelegramClick(course.id, link, idx)}
+                                  disabled={disabled}
+                                  className={`w-full py-3 sm:py-3.5 rounded-xl transition-all duration-300 font-semibold flex items-center justify-center gap-2 text-sm sm:text-base ${
+                                    disabled
+                                      ? 'bg-slate-800 border border-slate-700 text-slate-400 cursor-not-allowed'
+                                      : 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white shadow-lg shadow-orange-500/25'
+                                  }`}
+                                >
+                                  {disabled ? (
+                                    <>
+                                      <Check className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
+                                      <span>{disabledLabel}</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+                                      <span>{label}</span>
+                                    </>
+                                  )}
+                                </motion.button>
+                              )
+                            })}
+                            <p className="text-[11px] text-center text-slate-500 font-medium">
+                              {tgLinks.every((_, i) => isLinkDisabled(course.id, i))
+                                ? 'Button disabled after opening'
+                                : 'Secure access via Telegram'}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="py-3 px-4 bg-slate-800/50 border border-slate-800 rounded-xl text-center mt-2">
+                            <p className="text-xs text-slate-400 font-medium">
+                              Telegram group will be available soon
+                            </p>
+                          </div>
+                        )
+                      })()
                     )}
                   </div>
                 </motion.div>
