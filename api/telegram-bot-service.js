@@ -17,7 +17,8 @@ let pollingOffset = 0;
 /**
  * Handle Approve action triggered from Telegram inline button
  */
-async function handleApproveOrder(paymentId, callbackQuery, botToken) {
+export async function handleApproveOrder(paymentId, callbackQuery, botToken) {
+  const token = botToken || (process.env.TELEGRAM_BOT_TOKEN || "").trim();
   const callbackId = callbackQuery.id;
   const message = callbackQuery.message;
   const chatId = message?.chat?.id;
@@ -29,7 +30,7 @@ async function handleApproveOrder(paymentId, callbackQuery, botToken) {
     const paymentSnap = await getDoc(paymentRef);
 
     if (!paymentSnap.exists()) {
-      await answerCallbackQuery(botToken, callbackId, "⚠️ Order not found in database!", true);
+      await answerCallbackQuery(token, callbackId, "⚠️ Order not found in database!", true);
       return;
     }
 
@@ -37,11 +38,11 @@ async function handleApproveOrder(paymentId, callbackQuery, botToken) {
 
     // If already approved, notify user and ensure message is updated
     if (payment.status === "approved") {
-      await answerCallbackQuery(botToken, callbackId, "Order is already approved!", false);
+      await answerCallbackQuery(token, callbackId, "Order is already approved!", false);
       const cleanText = currentText
         .replace(/\n\n🟢 Status:.*$/s, "")
         .replace(/\n\n🔴 Status:.*$/s, "");
-      await editMessageText(botToken, chatId, messageId, `${cleanText}\n\n🟢 Status: APPROVED ✅`);
+      await editMessageText(token, chatId, messageId, `${cleanText}\n\n🟢 Status: APPROVED ✅`);
       return;
     }
 
@@ -96,21 +97,22 @@ async function handleApproveOrder(paymentId, callbackQuery, botToken) {
     const cleanText = currentText
       .replace(/\n\n🟢 Status:.*$/s, "")
       .replace(/\n\n🔴 Status:.*$/s, "");
-    await editMessageText(botToken, chatId, messageId, `${cleanText}\n\n🟢 Status: APPROVED ✅`);
+    await editMessageText(token, chatId, messageId, `${cleanText}\n\n🟢 Status: APPROVED ✅`);
 
     // 4. Send popup notification to Telegram user
-    await answerCallbackQuery(botToken, callbackId, "Order Approved & Course Unlocked!", true);
+    await answerCallbackQuery(token, callbackId, "Order Approved & Course Unlocked!", true);
     console.log(`[TelegramBot] Payment ${paymentId} APPROVED successfully via Telegram button.`);
   } catch (error) {
     console.error(`[TelegramBot] Error approving payment ${paymentId}:`, error);
-    await answerCallbackQuery(botToken, callbackId, `Error approving order: ${error.message}`, true);
+    await answerCallbackQuery(token, callbackId, `Error approving order: ${error.message}`, true);
   }
 }
 
 /**
  * Handle Reject action triggered from Telegram inline button
  */
-async function handleRejectOrder(paymentId, callbackQuery, botToken) {
+export async function handleRejectOrder(paymentId, callbackQuery, botToken) {
+  const token = botToken || (process.env.TELEGRAM_BOT_TOKEN || "").trim();
   const callbackId = callbackQuery.id;
   const message = callbackQuery.message;
   const chatId = message?.chat?.id;
@@ -122,7 +124,7 @@ async function handleRejectOrder(paymentId, callbackQuery, botToken) {
     const paymentSnap = await getDoc(paymentRef);
 
     if (!paymentSnap.exists()) {
-      await answerCallbackQuery(botToken, callbackId, "⚠️ Order not found in database!", true);
+      await answerCallbackQuery(token, callbackId, "⚠️ Order not found in database!", true);
       return;
     }
 
@@ -169,21 +171,38 @@ async function handleRejectOrder(paymentId, callbackQuery, botToken) {
     const cleanText = currentText
       .replace(/\n\n🟢 Status:.*$/s, "")
       .replace(/\n\n🔴 Status:.*$/s, "");
-    await editMessageText(botToken, chatId, messageId, `${cleanText}\n\n🔴 Status: REJECTED ❌`);
+    await editMessageText(token, chatId, messageId, `${cleanText}\n\n🔴 Status: REJECTED ❌`);
 
     // 4. Send popup notification to Telegram user
-    await answerCallbackQuery(botToken, callbackId, "Order Rejected!", true);
+    await answerCallbackQuery(token, callbackId, "Order Rejected!", true);
     console.log(`[TelegramBot] Payment ${paymentId} REJECTED successfully via Telegram button.`);
   } catch (error) {
     console.error(`[TelegramBot] Error rejecting payment ${paymentId}:`, error);
-    await answerCallbackQuery(botToken, callbackId, `Error rejecting order: ${error.message}`, true);
+    await answerCallbackQuery(token, callbackId, `Error rejecting order: ${error.message}`, true);
+  }
+}
+
+/**
+ * Universal dispatcher for any callback query update (shared by Polling & Webhook)
+ */
+export async function handleTelegramCallbackQuery(callbackQuery, botToken) {
+  if (!callbackQuery) return;
+  const token = botToken || (process.env.TELEGRAM_BOT_TOKEN || "").trim();
+  const callbackData = (callbackQuery.data || "").trim();
+
+  if (callbackData.startsWith("approve_")) {
+    const paymentId = callbackData.replace("approve_", "").trim();
+    await handleApproveOrder(paymentId, callbackQuery, token);
+  } else if (callbackData.startsWith("reject_")) {
+    const paymentId = callbackData.replace("reject_", "").trim();
+    await handleRejectOrder(paymentId, callbackQuery, token);
   }
 }
 
 /**
  * Helper to answer callback query with a popup alert
  */
-async function answerCallbackQuery(botToken, callbackQueryId, text, showAlert = true) {
+export async function answerCallbackQuery(botToken, callbackQueryId, text, showAlert = true) {
   try {
     await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
       method: "POST",
@@ -202,7 +221,7 @@ async function answerCallbackQuery(botToken, callbackQueryId, text, showAlert = 
 /**
  * Helper to edit message text and remove inline buttons
  */
-async function editMessageText(botToken, chatId, messageId, newText) {
+export async function editMessageText(botToken, chatId, messageId, newText) {
   try {
     await fetch(`https://api.telegram.org/bot${botToken}/editMessageText`, {
       method: "POST",
@@ -220,9 +239,36 @@ async function editMessageText(botToken, chatId, messageId, newText) {
 }
 
 /**
- * Start Telegram Polling Loop in background
+ * Register Webhook for Vercel Production
+ */
+export async function registerTelegramWebhook(customUrl = null) {
+  const botToken = (process.env.TELEGRAM_BOT_TOKEN || "").trim();
+  if (!botToken) {
+    return { success: false, error: "TELEGRAM_BOT_TOKEN missing" };
+  }
+
+  const webhookUrl = customUrl || "https://all-vip-course.vercel.app/api/telegram-webhook";
+  try {
+    const res = await fetch(
+      `https://api.telegram.org/bot${botToken}/setWebhook?url=${encodeURIComponent(webhookUrl)}&allowed_updates=${encodeURIComponent(JSON.stringify(["callback_query"]))}`
+    );
+    const data = await res.json().catch(() => ({}));
+    return { success: data.ok, details: data, webhookUrl };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Start Telegram Polling Loop in background (Local Development Only)
  */
 export async function startTelegramPolling() {
+  // If running on Vercel Serverless or production, do NOT poll; Webhooks handle it
+  if (process.env.VERCEL || process.env.NODE_ENV === "production") {
+    console.log("[TelegramBot] Running in production/serverless environment — Webhook mode active.");
+    return;
+  }
+
   if (isPolling) {
     return;
   }
@@ -233,15 +279,20 @@ export async function startTelegramPolling() {
     return;
   }
 
-  isPolling = true;
-  console.log("[TelegramBot] Starting background Telegram polling for order approval buttons...");
-
-  // Delete any existing webhook to prevent 409 Conflict with getUpdates
+  // Check if production webhook is active
   try {
-    await fetch(`https://api.telegram.org/bot${botToken}/deleteWebhook?drop_pending_updates=false`);
-  } catch (e) {
-    console.warn("[TelegramBot] deleteWebhook note:", e.message);
+    const webhookInfoRes = await fetch(`https://api.telegram.org/bot${botToken}/getWebhookInfo`);
+    const webhookInfo = await webhookInfoRes.json().catch(() => ({}));
+    if (webhookInfo.ok && webhookInfo.result?.url) {
+      console.log(`[TelegramBot] Production webhook is active (${webhookInfo.result.url}). Webhook handles Telegram callbacks.`);
+      return;
+    }
+  } catch (err) {
+    console.warn("[TelegramBot] Webhook check notice:", err.message);
   }
+
+  isPolling = true;
+  console.log("[TelegramBot] Webhook not active. Starting background Telegram polling for order approval buttons (Local Mode)...");
 
   // Polling loop
   (async function pollLoop() {
@@ -254,26 +305,14 @@ export async function startTelegramPolling() {
         if (data.ok && Array.isArray(data.result)) {
           for (const update of data.result) {
             pollingOffset = Math.max(pollingOffset, update.update_id + 1);
-
             if (update.callback_query) {
-              const callbackQuery = update.callback_query;
-              const callbackData = (callbackQuery.data || "").trim();
-
-              if (callbackData.startsWith("approve_")) {
-                const paymentId = callbackData.replace("approve_", "").trim();
-                await handleApproveOrder(paymentId, callbackQuery, botToken);
-              } else if (callbackData.startsWith("reject_")) {
-                const paymentId = callbackData.replace("reject_", "").trim();
-                await handleRejectOrder(paymentId, callbackQuery, botToken);
-              }
+              await handleTelegramCallbackQuery(update.callback_query, botToken);
             }
           }
         } else if (!data.ok) {
-          // If conflict or rate limited, back off slightly
           await new Promise((r) => setTimeout(r, 3000));
         }
       } catch (pollErr) {
-        // Network blip or timeout; back off and retry cleanly
         await new Promise((r) => setTimeout(r, 2000));
       }
     }

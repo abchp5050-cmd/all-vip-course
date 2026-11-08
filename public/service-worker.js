@@ -1,14 +1,18 @@
 // Minimal PWA service worker.
-// Intentionally does not cache responses so that deployed updates are always
-// served immediately and no stale content is shown to users.
+// Intentionally clears any stale caches and does not cache HTTP responses
+// so that deployed updates are always served immediately to users.
 self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(keys.map((key) => caches.delete(key)));
+    }).then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener('fetch', () => {
-  // Network passthrough: let the browser handle all requests normally.
+  // Network passthrough: let the browser handle all requests directly.
 });

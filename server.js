@@ -11,6 +11,7 @@ import dynamicManifestHandler from './api/dynamic-manifest.js';
 import getTelegramLinkHandler from './api/get-telegram-link.js';
 import updateEnrollmentStatusHandler from './api/update-enrollment-status.js';
 import sendOrderNotificationHandler from './api/send-order-notification.js';
+import telegramWebhookHandler from './api/telegram-webhook.js';
 import { startTelegramPolling } from './api/telegram-bot-service.js';
 
 try {
@@ -94,6 +95,10 @@ app.post('/api/update-enrollment-status', (req, res) => {
 
 app.post('/api/send-order-notification', (req, res) => {
   sendOrderNotificationHandler(req, res);
+});
+
+app.all('/api/telegram-webhook', (req, res) => {
+  telegramWebhookHandler(req, res);
 });
 
 if (IS_PRODUCTION) {
