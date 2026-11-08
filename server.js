@@ -11,6 +11,7 @@ import dynamicManifestHandler from './api/dynamic-manifest.js';
 import getTelegramLinkHandler from './api/get-telegram-link.js';
 import updateEnrollmentStatusHandler from './api/update-enrollment-status.js';
 import sendOrderNotificationHandler from './api/send-order-notification.js';
+import { startTelegramPolling } from './api/telegram-bot-service.js';
 
 try {
   if (process.loadEnvFile) {
@@ -134,4 +135,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${IS_PRODUCTION ? 'production' : 'development'}`);
   console.log(`Serving from: ${IS_PRODUCTION ? 'dist/' : 'vite dev server'}`);
+
+  // Automatically start background Telegram polling for interactive Approve/Reject buttons
+  startTelegramPolling();
 });

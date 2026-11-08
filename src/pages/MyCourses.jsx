@@ -201,7 +201,7 @@ export default function MyCourses() {
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-24 pb-12 px-4 bg-[#050816] relative overflow-hidden">
+      <div className="min-h-screen pt-28 pb-12 px-5 sm:px-6 bg-[#050816] relative overflow-hidden">
         <div className="container mx-auto max-w-5xl relative z-10">
           <MyCoursesSkeleton />
         </div>
@@ -215,7 +215,7 @@ export default function MyCourses() {
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
       transition={{ duration: 0.5 }}
-      className="min-h-screen pt-24 pb-12 px-4 bg-[#050816] relative overflow-hidden"
+      className="min-h-screen pt-28 pb-12 px-5 sm:px-6 bg-[#050816] relative overflow-hidden"
     >
       {/* Background Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-64 bg-orange-500/10 blur-[100px] rounded-full pointer-events-none" />
@@ -226,29 +226,29 @@ export default function MyCourses() {
           initial={{ opacity: 0, y: -20 }} 
           animate={{ opacity: 1, y: 0 }} 
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="mb-10 text-center sm:text-left flex flex-col sm:flex-row items-center gap-4 sm:justify-between"
+          className="mb-7 text-center sm:text-left flex flex-col sm:flex-row items-center gap-3 sm:justify-between"
         >
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-sm font-medium mb-4">
-              <Sparkles className="w-4 h-4" />
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-medium mb-3">
+              <Sparkles className="w-3.5 h-3.5" />
               <span>Your Learning Hub</span>
             </div>
-            <h1 className="text-3xl sm:text-5xl font-extrabold mb-3 text-white tracking-tight">
+            <h1 className="text-2xl sm:text-4xl font-extrabold mb-2 text-white tracking-tight">
               My <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-500">Courses</span>
             </h1>
-            <p className="text-slate-400 text-sm sm:text-base max-w-md">
+            <p className="text-slate-400 text-xs sm:text-sm max-w-md">
               Access your purchased courses and join exclusive Telegram communities to accelerate your learning.
             </p>
           </div>
-          <div className="hidden sm:flex items-center justify-center w-24 h-24 bg-gradient-to-br from-[#111827] to-[#050816] rounded-2xl border border-slate-800 shadow-xl shadow-orange-500/5 relative overflow-hidden">
+          <div className="hidden sm:flex items-center justify-center w-20 h-20 bg-gradient-to-br from-[#111827] to-[#050816] rounded-2xl border border-slate-800 shadow-xl shadow-orange-500/5 relative overflow-hidden flex-shrink-0">
             <div className="absolute inset-0 bg-orange-500/10 animate-pulse"></div>
-            <GraduationCap className="w-12 h-12 text-orange-400 relative z-10" />
+            <GraduationCap className="w-9 h-9 text-orange-400 relative z-10" />
           </div>
         </motion.div>
 
         {/* Courses Grid */}
         {enrollments.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 max-w-[340px] md:max-w-none mx-auto w-full">
             {enrollments.map((enrollment, index) => {
               const course = enrollment.course
               const isApproved = enrollment.paymentStatus === 'approved'
@@ -258,20 +258,20 @@ export default function MyCourses() {
               return (
                 <motion.div
                   key={enrollment.id}
-                  initial={{ opacity: 0, y: 30 }}
+                  initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1, duration: 0.5, type: "spring" }}
-                  whileHover={{ y: -5 }}
+                  transition={{ delay: index * 0.07, duration: 0.4, type: "spring" }}
+                  whileHover={{ y: -4 }}
                   className={`bg-[#111827] border ${
                     isRejected
                       ? 'border-rose-500/30 hover:border-rose-500/50 hover:shadow-rose-500/10'
                       : isPending
                       ? 'border-amber-500/30 hover:border-amber-500/50 hover:shadow-amber-500/10'
                       : 'border-slate-800 hover:border-orange-500/40 hover:shadow-orange-500/10'
-                  } rounded-[24px] overflow-hidden hover:shadow-2xl transition-all duration-300 group flex flex-col justify-between`}
+                  } rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col w-full`}
                 >
-                  {/* Course Image */}
-                  <div className="relative aspect-video bg-slate-900 overflow-hidden">
+                  {/* Course Thumbnail */}
+                  <div className="relative aspect-[16/9] bg-slate-900 overflow-hidden">
                     {course.thumbnailURL ? (
                       <img
                         src={course.thumbnailURL}
@@ -280,77 +280,85 @@ export default function MyCourses() {
                         decoding="async"
                         width="400"
                         height="225"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          if (e.currentTarget.nextElementSibling) {
+                            e.currentTarget.nextElementSibling.style.display = 'flex';
+                          }
+                        }}
                         className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
                       />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
-                        <BookOpen className="w-12 h-12 text-slate-700" />
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#111827] via-transparent to-transparent opacity-80" />
+                    ) : null}
+                    <div 
+                      className="w-full h-full items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900"
+                      style={{ display: course.thumbnailURL ? 'none' : 'flex' }}
+                    >
+                      <BookOpen className="w-10 h-10 text-slate-700" />
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#111827] via-transparent to-transparent opacity-75" />
 
                     {/* Status Badge */}
                     {isRejected ? (
-                      <div className="absolute top-3 right-3 bg-rose-600/95 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border border-rose-400/30 flex items-center gap-1 shadow-lg shadow-rose-600/25">
-                        <XCircle className="w-3.5 h-3.5" />
+                      <div className="absolute top-2.5 right-2.5 bg-rose-600/95 backdrop-blur-md text-white text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border border-rose-400/30 flex items-center gap-1 shadow-md shadow-rose-600/25">
+                        <XCircle className="w-3 h-3" />
                         <span>Rejected</span>
                       </div>
                     ) : isPending ? (
-                      <div className="absolute top-3 right-3 bg-amber-500/95 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border border-amber-400/30 flex items-center gap-1 shadow-lg shadow-amber-500/25">
-                        <Clock className="w-3.5 h-3.5 animate-pulse" />
+                      <div className="absolute top-2.5 right-2.5 bg-amber-500/95 backdrop-blur-md text-white text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border border-amber-400/30 flex items-center gap-1 shadow-md shadow-amber-500/25">
+                        <Clock className="w-3 h-3 animate-pulse" />
                         <span>Pending</span>
                       </div>
                     ) : (
-                      <div className="absolute top-3 right-3 bg-emerald-500/90 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border border-emerald-400/30 flex items-center gap-1 shadow-lg shadow-emerald-500/20">
+                      <div className="absolute top-2.5 right-2.5 bg-emerald-500/90 backdrop-blur-md text-white text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border border-emerald-400/30 flex items-center gap-1 shadow-md shadow-emerald-500/20">
                         <Check className="w-3.5 h-3.5" />
-                        <span>Enrolled</span>
+                        <span>ENROLLED</span>
                       </div>
                     )}
                   </div>
 
                   {/* Course Info */}
-                  <div className="p-5 sm:p-6 space-y-4 relative flex-1 flex flex-col justify-between">
-                    <div className="absolute -top-6 right-4 w-12 h-12 bg-[#111827] rounded-full border border-slate-800 flex items-center justify-center shadow-lg">
+                  <div className="p-4 relative flex-1 flex flex-col justify-between">
+                    <div className="absolute -top-4 right-4 w-8 h-8 bg-[#111827] rounded-full border border-slate-700/80 flex items-center justify-center shadow-lg z-10">
                       {isRejected ? (
-                        <AlertCircle className="w-6 h-6 text-rose-400" />
+                        <AlertCircle className="w-4 h-4 text-rose-400" />
                       ) : isPending ? (
-                        <Clock className="w-6 h-6 text-amber-400" />
+                        <Clock className="w-4 h-4 text-amber-400" />
                       ) : (
-                        <GraduationCap className="w-6 h-6 text-orange-400" />
+                        <GraduationCap className="w-4 h-4 text-orange-400" />
                       )}
                     </div>
                     <div>
                       {course.category && (
-                        <p className={`text-xs font-semibold ${
+                        <p className={`text-xs font-semibold uppercase tracking-wider mb-1 line-clamp-1 ${
                           isRejected ? 'text-rose-400' : isPending ? 'text-amber-400' : 'text-orange-400'
-                        } uppercase tracking-wider mb-2`}>
+                        }`}>
                           {course.category}
                         </p>
                       )}
-                      <h3 className="font-bold text-lg sm:text-xl text-white leading-snug line-clamp-2">{course.title}</h3>
+                      <h3 className="font-bold text-base text-white leading-snug line-clamp-1">{course.title}</h3>
                     </div>
 
                     {isRejected ? (
-                      <div className="space-y-3 pt-1">
+                      <div className="space-y-2 pt-2">
                         {/* Status Tag */}
-                        <div className="flex items-center gap-2 text-rose-400 bg-rose-500/10 border border-rose-500/25 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold">
-                          <XCircle className="w-4 h-4 shrink-0 text-rose-400" />
-                          <span>পেমেন্ট বাতিল হয়েছে (Payment Rejected)</span>
+                        <div className="flex items-center gap-1.5 text-rose-400 bg-rose-500/10 border border-rose-500/25 px-2.5 py-1.5 rounded-lg text-xs font-semibold">
+                          <XCircle className="w-3.5 h-3.5 shrink-0 text-rose-400" />
+                          <span>পেমেন্ট বাতিল হয়েছে</span>
                         </div>
 
-                        {/* Rejection Reason Box (shown only if rejectionReason exists) */}
+                        {/* Rejection Reason Box */}
                         {enrollment.rejectionReason && (
-                          <div className="p-3.5 sm:p-4 rounded-2xl bg-rose-500/5 border border-rose-500/30 space-y-2">
-                            <div className="flex items-center gap-1.5 text-rose-400 text-xs sm:text-sm font-bold">
-                              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-                              <span>পেমেন্ট বাতিলের কারণ</span>
+                          <div className="p-2.5 rounded-xl bg-rose-500/5 border border-rose-500/30 space-y-1">
+                            <div className="flex items-center gap-1 text-rose-400 text-[10px] font-bold">
+                              <AlertCircle className="w-3 h-3 shrink-0 text-rose-400" />
+                              <span>বাতিলের কারণ</span>
                             </div>
-                            <p className="text-xs sm:text-sm text-slate-200 bg-slate-950/60 p-2.5 sm:p-3 rounded-xl border border-rose-500/20 leading-relaxed font-sans break-words whitespace-pre-wrap">
+                            <p className="text-xs text-slate-200 bg-slate-950/60 p-2 rounded-lg border border-rose-500/20 leading-relaxed font-sans break-words whitespace-pre-wrap">
                               {enrollment.rejectionReason}
                             </p>
-                            <div className="pt-1 flex items-start gap-1.5 text-[11px] sm:text-xs text-slate-400 leading-snug">
-                              <Info className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
-                              <span>সঠিক তথ্য দিয়ে পুনরায় পেমেন্ট করুন অথবা সহায়তার জন্য অ্যাডমিনের সাথে যোগাযোগ করুন।</span>
+                            <div className="flex items-start gap-1 text-[9px] text-slate-400 leading-snug">
+                              <Info className="w-3 h-3 text-amber-400 shrink-0 mt-0.5" />
+                              <span>সঠিক তথ্য দিয়ে পুনরায় পেমেন্ট করুন অথবা যোগাযোগ করুন।</span>
                             </div>
                           </div>
                         )}
@@ -360,34 +368,31 @@ export default function MyCourses() {
                           href="https://t.me/hscvip/1394"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="w-full py-2.5 sm:py-3 rounded-xl border border-slate-700 hover:border-orange-500/40 bg-slate-800/70 hover:bg-slate-800 text-slate-300 hover:text-white transition-all text-xs sm:text-sm font-semibold flex items-center justify-center gap-2"
+                          className="w-full py-2.5 px-4 rounded-xl border border-slate-700 hover:border-orange-500/40 bg-slate-800/70 hover:bg-slate-800 text-slate-300 hover:text-white transition-all text-sm font-semibold flex items-center justify-center gap-2"
                         >
                           <Headset className="w-4 h-4 text-orange-400" />
-                          <span>Admin Support এ যোগাযোগ করুন</span>
+                          <span>Admin Support</span>
                         </a>
                       </div>
                     ) : isPending ? (
-                      <div className="space-y-3 pt-1">
+                      <div className="space-y-2 pt-2">
                         {/* Status Tag */}
-                        <div className="flex items-center gap-2 text-amber-400 bg-amber-500/10 border border-amber-500/25 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold">
-                          <Clock className="w-4 h-4 shrink-0 text-amber-400 animate-pulse" />
-                          <span>পেমেন্ট ভেরিফিকেশন চলছে</span>
+                        <div className="flex items-center gap-1.5 text-amber-400 bg-amber-500/10 border border-amber-500/25 px-2.5 py-1.5 rounded-lg text-xs font-semibold">
+                          <Clock className="w-3.5 h-3.5 shrink-0 text-amber-400 animate-pulse" />
+                          <span>ভেরিফিকেশন চলছে</span>
                         </div>
 
                         {/* Pending Info Notice */}
-                        <div className="p-3.5 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-1.5">
-                          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                            আপনার পেমেন্ট তথ্য সফলভাবে গ্রহণ করা হয়েছে। অ্যাডমিন পেমেন্ট যাচাই করার পর কোর্স ও টেলিগ্রাম এক্সেস আনলক হবে।
-                          </p>
-                          <p className="text-[11px] text-amber-400/90 font-medium">
-                            সাধারণত ৩০ মিনিট থেকে ১ ঘণ্টার মধ্যে অনুমোদন সম্পন্ন হয়।
+                        <div className="p-2.5 rounded-xl bg-amber-500/5 border border-amber-500/20 space-y-1">
+                          <p className="text-xs text-slate-300 leading-relaxed">
+                            অ্যাডমিন পেমেন্ট যাচাই করার পর টেলিগ্রাম এক্সেস আনলক হবে।
                           </p>
                         </div>
 
                         {/* Disabled Pending Button */}
-                        <div className="w-full py-3 rounded-xl bg-slate-800/80 border border-slate-700/80 text-slate-400 flex items-center justify-center gap-2 text-xs sm:text-sm font-medium">
+                        <div className="w-full py-2.5 px-4 rounded-xl bg-slate-800/80 border border-slate-700/80 text-slate-400 flex items-center justify-center gap-2 text-sm font-medium">
                           <Clock className="w-4 h-4 text-amber-400 animate-pulse" />
-                          <span>অপেক্ষমান (Pending Verification)</span>
+                          <span>Pending Verification</span>
                         </div>
                       </div>
                     ) : (
@@ -395,46 +400,46 @@ export default function MyCourses() {
                       (() => {
                         const tgLinks = parseTelegramLinks(course.telegramLink || course.telegramGroupLink)
                         return tgLinks.length > 0 ? (
-                          <div className="space-y-2.5 pt-2">
+                          <div className="space-y-2 pt-2">
                             {tgLinks.map((link, idx) => {
                               const disabled = isLinkDisabled(course.id, idx)
-                              const label = tgLinks.length === 1 ? "Join Telegram Group" : `Join Telegram Group ${idx + 1}`
-                              const disabledLabel = tgLinks.length === 1 ? "Opened in Telegram" : `Group ${idx + 1} Opened in Telegram`
+                              const label = tgLinks.length === 1 ? "Join Telegram Group" : `Join Group ${idx + 1}`
+                              const disabledLabel = tgLinks.length === 1 ? "Opened in Telegram" : `Group ${idx + 1} Opened`
 
                               return (
                                 <motion.button
                                   key={idx}
-                                  whileTap={{ scale: 0.95 }}
+                                  whileTap={{ scale: 0.96 }}
                                   onClick={() => handleTelegramClick(course.id, link, idx)}
                                   disabled={disabled}
-                                  className={`w-full py-3 sm:py-3.5 rounded-xl transition-all duration-300 font-semibold flex items-center justify-center gap-2 text-sm sm:text-base ${
+                                  className={`w-full py-2.5 px-4 rounded-xl transition-all duration-300 font-semibold flex items-center justify-center gap-2 text-sm ${
                                     disabled
                                       ? 'bg-slate-800 border border-slate-700 text-slate-400 cursor-not-allowed'
-                                      : 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white shadow-lg shadow-orange-500/25'
+                                      : 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white shadow-md shadow-orange-500/20 hover:shadow-orange-500/35 border border-orange-400/20'
                                   }`}
                                 >
                                   {disabled ? (
                                     <>
-                                      <Check className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
+                                      <Check className="w-4 h-4 text-emerald-400" />
                                       <span>{disabledLabel}</span>
                                     </>
                                   ) : (
                                     <>
-                                      <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+                                      <Send className="w-4 h-4" />
                                       <span>{label}</span>
                                     </>
                                   )}
                                 </motion.button>
                               )
                             })}
-                            <p className="text-[11px] text-center text-slate-500 font-medium">
+                            <p className="text-[11px] text-center text-gray-400 mt-2 font-normal">
                               {tgLinks.every((_, i) => isLinkDisabled(course.id, i))
                                 ? 'Button disabled after opening'
                                 : 'Secure access via Telegram'}
                             </p>
                           </div>
                         ) : (
-                          <div className="py-3 px-4 bg-slate-800/50 border border-slate-800 rounded-xl text-center mt-2">
+                          <div className="py-2.5 px-4 bg-slate-800/50 border border-slate-800 rounded-xl text-center mt-2">
                             <p className="text-xs text-slate-400 font-medium">
                               Telegram group will be available soon
                             </p>

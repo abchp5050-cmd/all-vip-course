@@ -445,10 +445,28 @@ export default function ManageCategories() {
                 <div className="p-5 flex items-start gap-4 border-b border-slate-50 dark:border-slate-800/50">
                   <div className="w-14 h-14 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 flex-shrink-0 flex items-center justify-center overflow-hidden">
                     {category.imageURL ? (
-                      <img src={category.imageURL} alt="" className="w-full h-full object-cover" />
-                    ) : (
+                      <img 
+                        src={category.imageURL} 
+                        alt="" 
+                        loading="lazy"
+                        decoding="async"
+                        width="56"
+                        height="56"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          if (e.currentTarget.nextElementSibling) {
+                            e.currentTarget.nextElementSibling.style.display = 'flex';
+                          }
+                        }}
+                        className="w-full h-full object-cover" 
+                      />
+                    ) : null}
+                    <div 
+                      className="w-full h-full items-center justify-center"
+                      style={{ display: category.imageURL ? 'none' : 'flex' }}
+                    >
                       <Folder className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-                    )}
+                    </div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">

@@ -309,6 +309,9 @@ export default function CourseDetail() {
                           decoding="async" 
                           width="96" 
                           height="96" 
+                          onError={(e) => {
+                            e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(teacher.name || "T")}&background=1e293b&color=f59e0b`;
+                          }}
                           className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-4 border-slate-100 dark:border-slate-800 shrink-0 mx-auto sm:mx-0" 
                         />
                         <div className="text-center sm:text-left">
@@ -342,14 +345,25 @@ export default function CourseDetail() {
                   <img 
                     src={course.thumbnailURL} 
                     alt={course.title} 
+                    loading="lazy"
                     decoding="async"
                     width="600"
                     height="338"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      if (e.currentTarget.nextElementSibling) {
+                        e.currentTarget.nextElementSibling.style.display = 'flex';
+                      }
+                    }}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                   />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center"><PlayCircle className="w-12 h-12 sm:w-16 sm:h-16 text-slate-300" /></div>
-                )}
+                ) : null}
+                <div 
+                  className="w-full h-full items-center justify-center"
+                  style={{ display: course.thumbnailURL ? 'none' : 'flex' }}
+                >
+                  <PlayCircle className="w-12 h-12 sm:w-16 sm:h-16 text-slate-300" />
+                </div>
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                   <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center border border-white/50 shadow-xl">
                     <Play className="w-6 h-6 sm:w-8 sm:h-8 text-white fill-white ml-1" />

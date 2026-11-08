@@ -28,6 +28,8 @@ export default async function handler(req, res) {
     }
 
     const {
+      payment_id,
+      paymentId,
       course_name,
       student_name,
       payment_number,
@@ -37,6 +39,8 @@ export default async function handler(req, res) {
       amount,
       date_time
     } = req.body || {};
+
+    const targetPaymentId = (payment_id || paymentId || '').trim();
 
     const formattedMessage = [
       '🎓 New Course Order Received',
@@ -66,15 +70,28 @@ export default async function handler(req, res) {
       date_time || new Date().toLocaleString('en-US', { timeZone: 'Asia/Dhaka', dateStyle: 'medium', timeStyle: 'short' })
     ].join('\n');
 
+    const messagePayload = {
+      chat_id: chatId,
+      text: formattedMessage
+    };
+
+    if (targetPaymentId) {
+      messagePayload.reply_markup = {
+        inline_keyboard: [
+          [
+            { text: "✅ Approve Order", callback_data: `approve_${targetPaymentId}` },
+            { text: "❌ Reject Order", callback_data: `reject_${targetPaymentId}` }
+          ]
+        ]
+      };
+    }
+
     const telegramRes = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: formattedMessage
-      })
+      body: JSON.stringify(messagePayload)
     });
 
     const telegramData = await telegramRes.json().catch(() => ({}));

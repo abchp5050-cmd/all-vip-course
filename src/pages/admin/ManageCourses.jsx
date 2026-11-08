@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore"
 import { db } from "../../lib/firebase"
@@ -27,15 +27,24 @@ export default function ManageCourses() {
   
   // Filtering & Sorting
   const [searchQuery, setSearchQuery] = useState("")
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
   const [viewMode, setViewMode] = useState("grid") // grid | list
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
+  // 200ms debounce on search
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+    }, 200)
+    return () => clearTimeout(handler)
+  }, [searchQuery])
+
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, categoryFilter, statusFilter])
+  }, [debouncedSearchQuery, categoryFilter, statusFilter])
   
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: "", message: "", onConfirm: () => {} })
   
@@ -229,18 +238,24 @@ export default function ManageCourses() {
     })
   }
   
-  // Computed values
-  const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          course.category?.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = categoryFilter === "all" || course.category === categoryFilter
-    const matchesStatus = statusFilter === "all" || course.status === statusFilter
-    
-    return matchesSearch && matchesCategory && matchesStatus
-  })
+  // Memoized filtered courses
+  const filteredCourses = useMemo(() => {
+    const q = debouncedSearchQuery.toLowerCase().trim()
+    return courses.filter(course => {
+      const matchesSearch = !q || 
+                            course.title?.toLowerCase().includes(q) || 
+                            course.category?.toLowerCase().includes(q)
+      const matchesCategory = categoryFilter === "all" || course.category === categoryFilter
+      const matchesStatus = statusFilter === "all" || course.status === statusFilter
+      
+      return matchesSearch && matchesCategory && matchesStatus
+    })
+  }, [courses, debouncedSearchQuery, categoryFilter, statusFilter])
   
   const totalPages = Math.max(1, Math.ceil(filteredCourses.length / itemsPerPage))
-  const currentCourses = filteredCourses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  const currentCourses = useMemo(() => {
+    return filteredCourses.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  }, [filteredCourses, currentPage, itemsPerPage])
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -368,13 +383,24 @@ export default function ManageCourses() {
                         src={courseImage}
                         alt={course.title}
                         loading="lazy"
+                        decoding="async"
+                        width="75"
+                        height="60"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          if (e.currentTarget.nextElementSibling) {
+                            e.currentTarget.nextElementSibling.style.display = 'flex';
+                          }
+                        }}
                         className="w-full h-full object-cover"
                       />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-400">
-                        <BookOpen className="w-5 h-5 text-slate-400" />
-                      </div>
-                    )}
+                    ) : null}
+                    <div 
+                      className="w-full h-full items-center justify-center text-slate-400"
+                      style={{ display: courseImage ? 'none' : 'flex' }}
+                    >
+                      <BookOpen className="w-5 h-5 text-slate-400" />
+                    </div>
                     {course.publishStatus === "draft" && (
                       <span className="absolute bottom-1 left-1 bg-amber-500 text-[9px] font-bold text-white px-1 py-0.5 rounded shadow-sm">
                         Draft

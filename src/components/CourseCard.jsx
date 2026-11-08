@@ -109,13 +109,21 @@ function CourseCard({ course, paymentStatus, showButton = false, variant = "defa
                 decoding="async"
                 width="400"
                 height="225"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  if (e.currentTarget.nextElementSibling) {
+                    e.currentTarget.nextElementSibling.style.display = 'flex';
+                  }
+                }}
                 className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-500 ease-out"
               />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-950">
-                <BookOpen className="w-6 h-6 text-slate-600" />
-              </div>
-            )}
+            ) : null}
+            <div 
+              className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-950"
+              style={{ display: course.thumbnailURL ? 'none' : 'flex' }}
+            >
+              <BookOpen className="w-6 h-6 text-slate-600" />
+            </div>
             
             {/* Subtle bottom gradient */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-40 group-hover/card:opacity-60 transition-opacity duration-300 pointer-events-none" />
@@ -270,16 +278,24 @@ function CourseCard({ course, paymentStatus, showButton = false, variant = "defa
               decoding="async"
               width="400"
               height="200"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                if (e.currentTarget.nextElementSibling) {
+                  e.currentTarget.nextElementSibling.style.display = 'flex';
+                }
+              }}
               className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-500 ease-out"
             />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-200 to-slate-100 dark:from-slate-800 dark:to-slate-900">
-              <div className="text-center text-slate-400">
-                <div className="text-3xl mb-1 opacity-40">📚</div>
-                <p className="text-[9px] font-medium uppercase tracking-wider">{course.category}</p>
-              </div>
+          ) : null}
+          <div 
+            className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-200 to-slate-100 dark:from-slate-800 dark:to-slate-900"
+            style={{ display: course.thumbnailURL ? 'none' : 'flex' }}
+          >
+            <div className="text-center text-slate-400">
+              <div className="text-3xl mb-1 opacity-40">📚</div>
+              <p className="text-[9px] font-medium uppercase tracking-wider">{course.category}</p>
             </div>
-          )}
+          </div>
           {/* Bottom gradient */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-40 group-hover/card:opacity-60 transition-opacity duration-400" />
 

@@ -93,6 +93,11 @@
 }
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+    text-rendering: optimizeLegibility;
+  }
+
   * {
     margin: 0;
     padding: 0;
@@ -331,3 +336,24 @@
     animation: none !important;
   }
 }
+
+/* 60fps GPU Acceleration & Performance Tuning */
+.gpu-accelerated,
+.marquee-track,
+.testimonial-card {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Optimize backdrop-filter blur on mobile devices for smooth 60fps scrolling */
+@media (max-width: 640px) {
+  .backdrop-blur-md,
+  .backdrop-blur-lg,
+  .backdrop-blur-xl,
+  .backdrop-blur-2xl {
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+  }
+}
+

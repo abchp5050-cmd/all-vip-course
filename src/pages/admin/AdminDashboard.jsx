@@ -1,5 +1,5 @@
 import { Routes, Route, Link, useLocation, useNavigate } from "react-router-dom"
-import { useState, useEffect } from "react"
+import { useState, useEffect, lazy, Suspense } from "react"
 import {
   Users,
   BookOpen,
@@ -22,14 +22,24 @@ import {
 import { motion, AnimatePresence } from "framer-motion"
 import { collection, query, where, onSnapshot } from "firebase/firestore"
 import { db } from "../../lib/firebase"
-import ManageUsers from "./ManageUsers"
-import ManageCourses from "./ManageCourses"
-import ManagePayments from "./ManagePayments"
-import ManageCategories from "./ManageCategories"
-import Overview from "./Overview"
-import HeaderFooterBuilder from "./HeaderFooterBuilder"
+// Lazy loaded admin sub-views for ultra-fast load time
+const Overview = lazy(() => import("./Overview"))
+const ManageUsers = lazy(() => import("./ManageUsers"))
+const ManageCategories = lazy(() => import("./ManageCategories"))
+const ManageCourses = lazy(() => import("./ManageCourses"))
+const ManagePayments = lazy(() => import("./ManagePayments"))
+const HeaderFooterBuilder = lazy(() => import("./HeaderFooterBuilder"))
+const WebsiteSettings = lazy(() => import("./WebsiteSettings"))
 
-import WebsiteSettings from "./WebsiteSettings"
+function AdminSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse p-2">
+      <div className="h-7 w-48 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+      <div className="h-32 bg-slate-200 dark:bg-slate-800 rounded-2xl" />
+      <div className="h-64 bg-slate-200 dark:bg-slate-800 rounded-2xl" />
+    </div>
+  )
+}
 
 export default function AdminDashboard() {
   const location = useLocation()
@@ -83,8 +93,8 @@ export default function AdminDashboard() {
   const currentNavItem = navItems.find((item) => item.path === location.pathname) || navItems[0]
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-900 flex flex-col font-sans transition-colors duration-300">
-      <div className="flex flex-1 h-screen overflow-hidden">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-900 flex flex-col font-sans transition-colors duration-300 pt-16 sm:pt-20">
+      <div className="flex flex-1 h-[calc(100vh-4rem)] sm:h-[calc(100vh-5rem)] overflow-hidden">
         
         {/* Desktop Sidebar */}
         <motion.div 
@@ -94,13 +104,13 @@ export default function AdminDashboard() {
           {/* Logo / Brand */}
           <div className="h-[72px] flex items-center justify-between px-6 border-b border-slate-100 dark:border-slate-800">
             <div className={`flex items-center gap-3 overflow-hidden ${sidebarCollapsed ? 'opacity-0 hidden' : 'opacity-100'}`}>
-              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center flex-shrink-0 shadow-sm shadow-amber-500/20">
                 <span className="text-white font-bold text-lg">V</span>
               </div>
               <span className="font-bold text-slate-800 dark:text-white text-lg tracking-tight whitespace-nowrap">VIP Admin</span>
             </div>
             {sidebarCollapsed && (
-              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0 mx-auto">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center flex-shrink-0 mx-auto shadow-sm shadow-amber-500/20">
                 <span className="text-white font-bold text-lg">V</span>
               </div>
             )}
@@ -108,7 +118,7 @@ export default function AdminDashboard() {
 
           <button 
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="absolute -right-3 top-20 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full p-1 shadow-sm text-slate-500 hover:text-indigo-600 transition-colors z-30"
+            className="absolute -right-3 top-20 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full p-1 shadow-sm text-slate-500 hover:text-amber-500 transition-colors z-30"
           >
             {sidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           </button>
@@ -125,19 +135,19 @@ export default function AdminDashboard() {
                     title={sidebarCollapsed ? item.name : ""}
                     className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
                       isActive
-                        ? "bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-semibold"
+                        ? "bg-amber-500/15 text-amber-500 dark:text-amber-400 font-semibold border-l-4 border-amber-500 rounded-l-none"
                         : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
                     }`}
                   >
                     {isActive && (
                       <motion.div
                         layoutId="activeTab"
-                        className="absolute inset-0 bg-indigo-50 dark:bg-indigo-900/40 rounded-xl"
+                        className="absolute inset-0 bg-amber-500/10 rounded-r-xl"
                         initial={false}
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
                       />
                     )}
-                    <item.icon className={`w-5 h-5 flex-shrink-0 relative z-10 transition-colors ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'}`} />
+                    <item.icon className={`w-5 h-5 flex-shrink-0 relative z-10 transition-colors ${isActive ? 'text-amber-500 dark:text-amber-400' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'}`} />
                     
                     {!sidebarCollapsed && (
                       <span className="relative z-10 text-sm whitespace-nowrap">{item.name}</span>
@@ -162,9 +172,13 @@ export default function AdminDashboard() {
           <div className="p-4 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
               <img 
-                src={`https://ui-avatars.com/api/?name=Admin&background=4f46e5&color=fff`} 
+                src={`https://ui-avatars.com/api/?name=Admin&background=f59e0b&color=fff`} 
                 alt="Admin" 
-                className="w-9 h-9 rounded-full ring-2 ring-white dark:ring-slate-800 flex-shrink-0"
+                loading="lazy"
+                decoding="async"
+                width="36"
+                height="36"
+                className="w-9 h-9 rounded-full ring-2 ring-amber-500/30 flex-shrink-0"
               />
               {!sidebarCollapsed && (
                 <div className="overflow-hidden">
@@ -192,11 +206,11 @@ export default function AdminDashboard() {
                 animate={{ x: 0 }}
                 exit={{ x: "-100%" }}
                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                className="lg:hidden fixed inset-y-0 left-0 z-[70] w-72 bg-white dark:bg-slate-950 shadow-2xl flex flex-col"
+                className="lg:hidden fixed inset-y-0 left-0 z-[70] w-72 bg-white dark:bg-slate-950 shadow-2xl flex flex-col pt-16 sm:pt-20"
               >
                 <div className="h-[72px] flex items-center justify-between px-6 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-sm shadow-amber-500/20">
                       <span className="text-white font-bold">V</span>
                     </div>
                     <span className="font-bold text-slate-800 dark:text-white text-lg tracking-tight">VIP Admin</span>
@@ -217,11 +231,11 @@ export default function AdminDashboard() {
                           onClick={() => setMobileMenuOpen(false)}
                           className={`relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-sm font-medium ${
                             isActive
-                              ? "bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300"
+                              ? "bg-amber-500/15 text-amber-500 dark:text-amber-400 font-semibold border-l-4 border-amber-500 rounded-l-none"
                               : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
                           }`}
                         >
-                          <item.icon className="w-5 h-5 flex-shrink-0" />
+                          <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-amber-500 dark:text-amber-400' : 'text-slate-400'}`} />
                           <span>{item.name}</span>
                           {item.badge > 0 && (
                             <span className="ml-auto bg-amber-500 text-white text-xs font-bold rounded-full px-2 py-0.5">
@@ -257,7 +271,7 @@ export default function AdminDashboard() {
                 <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
                   <span>Admin</span>
                   <ChevronRight className="w-3 h-3" />
-                  <span className="text-indigo-600 dark:text-indigo-400">{currentNavItem.name}</span>
+                  <span className="text-amber-500 dark:text-amber-400 font-semibold">{currentNavItem.name}</span>
                 </div>
                 <h1 className="text-xl font-bold text-slate-800 dark:text-white leading-tight">
                   {currentNavItem.name}
@@ -293,7 +307,15 @@ export default function AdminDashboard() {
               {/* Profile Menu Placeholder */}
               <div className="hidden sm:flex items-center pl-4 border-l border-slate-200 dark:border-slate-700">
                 <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                  <img src={`https://ui-avatars.com/api/?name=Admin&background=4f46e5&color=fff`} alt="Admin" className="w-8 h-8 rounded-full" />
+                  <img 
+                    src={`https://ui-avatars.com/api/?name=Admin&background=f59e0b&color=fff`} 
+                    alt="Admin" 
+                    loading="lazy"
+                    decoding="async"
+                    width="32"
+                    height="32"
+                    className="w-8 h-8 rounded-full" 
+                  />
                 </button>
               </div>
             </div>
@@ -316,17 +338,19 @@ export default function AdminDashboard() {
               transition={{ duration: 0.3 }}
               className="max-w-7xl mx-auto pb-12"
             >
-              <Routes>
-                <Route index element={<Overview />} />
-                <Route path="users" element={<ManageUsers />} />
-                <Route path="categories" element={<ManageCategories />} />
-                <Route path="courses" element={<ManageCourses />} />
-                <Route path="payments" element={<ManagePayments />} />
-                <Route path="header-footer" element={<HeaderFooterBuilder />} />
-                {/* Fallbacks for Reviews/Settings routing if they don't exist yet */}
-                <Route path="reviews" element={<div className="p-8 text-center text-slate-500 bg-white rounded-xl shadow-sm border border-slate-100">Reviews Manager Coming Soon</div>} />
-                <Route path="settings" element={<WebsiteSettings />} />
-              </Routes>
+              <Suspense fallback={<AdminSkeleton />}>
+                <Routes>
+                  <Route index element={<Overview />} />
+                  <Route path="users" element={<ManageUsers />} />
+                  <Route path="categories" element={<ManageCategories />} />
+                  <Route path="courses" element={<ManageCourses />} />
+                  <Route path="payments" element={<ManagePayments />} />
+                  <Route path="header-footer" element={<HeaderFooterBuilder />} />
+                  {/* Fallbacks for Reviews/Settings routing if they don't exist yet */}
+                  <Route path="reviews" element={<div className="p-8 text-center text-slate-500 bg-white rounded-xl shadow-sm border border-slate-100">Reviews Manager Coming Soon</div>} />
+                  <Route path="settings" element={<WebsiteSettings />} />
+                </Routes>
+              </Suspense>
             </motion.div>
           </main>
         </div>

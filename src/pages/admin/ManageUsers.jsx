@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { motion } from "framer-motion"
 import { Search, Shield, ShieldOff, Trash2, Ban, BookOpen, X } from "lucide-react"
 import { collection, getDocs, doc, updateDoc, deleteDoc, query, where } from "firebase/firestore"
@@ -8,10 +8,57 @@ import { db } from "../../lib/firebase"
 import { toast } from "../../hooks/use-toast"
 import ConfirmDialog from "../../components/ConfirmDialog"
 
+// Helper function to extract 2-letter uppercase initials cleanly
+function getInitials(name) {
+  if (!name || typeof name !== "string") return "U"
+  const clean = name.trim()
+  if (!clean) return "U"
+  const parts = clean.split(/\s+/).filter(Boolean)
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase()
+  }
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
+// Fixed-dimension Avatar component with robust onError fallback
+function UserAvatar({ src, name, size = "w-10 h-10" }) {
+  const [hasError, setHasError] = useState(false)
+  const initials = getInitials(name)
+  const isValidSrc = src && typeof src === "string" && src.trim().length > 0 && !src.includes("/placeholder.svg")
+
+  if (!isValidSrc || hasError) {
+    return (
+      <div
+        className={`${size} shrink-0 rounded-full bg-gradient-to-br from-amber-500/25 via-amber-600/15 to-slate-900 border border-amber-500/40 flex items-center justify-center shadow-sm select-none`}
+        title={name || "User"}
+      >
+        <span className="text-amber-400 font-bold text-xs tracking-wider">
+          {initials}
+        </span>
+      </div>
+    )
+  }
+
+  return (
+    <div className={`${size} shrink-0 rounded-full overflow-hidden border border-amber-500/30 bg-slate-900 relative shadow-sm`}>
+      <img
+        src={src}
+        alt=""
+        width="40"
+        height="40"
+        onError={() => setHasError(true)}
+        className="w-full h-full object-cover block"
+        loading="lazy"
+        decoding="async"
+      />
+    </div>
+  )
+}
+
 export default function ManageUsers() {
   const [users, setUsers] = useState([])
-  const [filteredUsers, setFilteredUsers] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
   const [loading, setLoading] = useState(true)
   const [successMessage, setSuccessMessage] = useState("")
   const [courses, setCourses] = useState([])
@@ -21,15 +68,19 @@ export default function ManageUsers() {
   const [userEnrollments, setUserEnrollments] = useState({})
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: "", message: "", onConfirm: () => {} })
 
+  // 200ms search debounce
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+    }, 200)
+    return () => clearTimeout(handler)
+  }, [searchQuery])
+
   useEffect(() => {
     fetchUsers()
     fetchCourses()
     fetchUserEnrollments()
   }, [])
-
-  useEffect(() => {
-    filterUsers()
-  }, [users, searchQuery])
 
   const fetchUsers = async () => {
     try {
@@ -91,18 +142,17 @@ export default function ManageUsers() {
     }
   }
 
-  const filterUsers = () => {
-    if (!searchQuery) {
-      setFilteredUsers(users)
-    } else {
-      const filtered = users.filter(
-        (user) =>
-          user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          user.email?.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-      setFilteredUsers(filtered)
+  const filteredUsers = useMemo(() => {
+    if (!debouncedSearchQuery || !debouncedSearchQuery.trim()) {
+      return users
     }
-  }
+    const q = debouncedSearchQuery.toLowerCase().trim()
+    return users.filter(
+      (user) =>
+        user.name?.toLowerCase().includes(q) ||
+        user.email?.toLowerCase().includes(q),
+    )
+  }, [users, debouncedSearchQuery])
 
   const showSuccess = (message) => {
     setSuccessMessage(message)
@@ -303,79 +353,84 @@ export default function ManageUsers() {
               </thead>
               <tbody className="divide-y divide-border">
                 {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-muted/50">
-                    <td className="px-3 sm:px-6 py-3 sm:py-4">
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                          {user.photoURL ? (
-                            <img
-                              src={user.photoURL || "/placeholder.svg"}
-                              alt={user.name}
-                              className="w-full h-full rounded-full object-cover"
-                            />
-                          ) : (
-                            <span className="text-primary font-semibold text-xs sm:text-sm">
-                              {user.name?.[0] || "U"}
-                            </span>
-                          )}
+                  <tr key={user.id} className="hover:bg-muted/40 transition-colors">
+                    <td className="px-3 sm:px-6 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <UserAvatar src={user.photoURL} name={user.name} />
+                        <div className="min-w-0">
+                          <span className="font-semibold text-sm text-foreground truncate max-w-[140px] sm:max-w-xs block">
+                            {user.name || "Unnamed User"}
+                          </span>
+                          <span className="text-xs text-muted-foreground sm:hidden truncate block max-w-[140px]">
+                            {user.email}
+                          </span>
                         </div>
-                        <span className="font-medium text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">
-                          {user.name}
-                        </span>
                       </div>
                     </td>
-                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-muted-foreground">
-                      <span className="truncate block max-w-[150px] sm:max-w-none">{user.email}</span>
+                    <td className="px-3 sm:px-6 py-3.5 text-xs sm:text-sm text-muted-foreground">
+                      <span className="truncate block max-w-[180px] sm:max-w-none">{user.email}</span>
                     </td>
-                    <td className="px-3 sm:px-6 py-3 sm:py-4">
+                    <td className="px-3 sm:px-6 py-3.5">
                       <span
-                        className={`px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-medium whitespace-nowrap ${
-                          user.role === "admin" ? "bg-primary/10 text-primary" : "bg-muted-foreground/10 text-muted-foreground"
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap ${
+                          user.role === "admin"
+                            ? "bg-amber-500/10 text-amber-400 border border-amber-500/25 shadow-sm shadow-amber-500/10"
+                            : "bg-slate-800/60 text-slate-400 border border-slate-700/50"
                         }`}
                       >
                         {user.role === "admin" ? "admin" : "user"}
                       </span>
                     </td>
-                    <td className="px-3 sm:px-6 py-3 sm:py-4">
-                      <span
-                        className={`px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-medium whitespace-nowrap ${
-                          user.banned
-                            ? "bg-red-500/10 text-red-500"
-                            : user.online
-                              ? "bg-green-500/10 text-green-500"
-                              : "bg-muted-foreground/10 text-muted-foreground"
-                        }`}
-                      >
-                        {user.banned ? "Banned" : user.online ? "Online" : "Offline"}
-                      </span>
+                    <td className="px-3 sm:px-6 py-3.5">
+                      {user.banned ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20 whitespace-nowrap">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                          Banned
+                        </span>
+                      ) : user.online ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_12px_rgba(16,185,129,0.15)] whitespace-nowrap">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                          </span>
+                          Online
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-800/60 text-slate-400 border border-slate-700/50 whitespace-nowrap">
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+                          Offline
+                        </span>
+                      )}
                     </td>
-                    <td className="px-3 sm:px-6 py-3 sm:py-4">
-                      <div className="flex items-center justify-end gap-1 sm:gap-2">
+                    <td className="px-3 sm:px-6 py-3.5">
+                      <div className="flex items-center justify-end gap-1.5">
                         {user.role === "admin" ? (
                           <button
                             onClick={() => handleDemoteToUser(user.id)}
-                            className="p-1.5 sm:p-2 hover:bg-muted rounded-lg transition-colors"
+                            className="w-8 h-8 rounded-lg bg-white/5 hover:bg-orange-500/10 border border-white/5 hover:border-orange-500/30 flex items-center justify-center transition-all duration-200 text-orange-400 hover:text-orange-300"
                             title="Demote to User"
                           >
-                            <ShieldOff className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-500" />
+                            <ShieldOff className="w-4 h-4" />
                           </button>
                         ) : (
                           <button
                             onClick={() => handlePromoteToAdmin(user.id)}
-                            className="p-1.5 sm:p-2 hover:bg-muted rounded-lg transition-colors"
+                            className="w-8 h-8 rounded-lg bg-white/5 hover:bg-amber-500/10 border border-white/5 hover:border-amber-500/30 flex items-center justify-center transition-all duration-200 text-amber-400 hover:text-amber-300"
                             title="Promote to Admin"
                           >
-                            <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
+                            <Shield className="w-4 h-4" />
                           </button>
                         )}
                         <button
                           onClick={() => handleBanUser(user.id, user.banned)}
-                          className="p-1.5 sm:p-2 hover:bg-muted rounded-lg transition-colors"
+                          className={`w-8 h-8 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center transition-all duration-200 ${
+                            user.banned
+                              ? "hover:bg-emerald-500/10 hover:border-emerald-500/30 text-emerald-400 hover:text-emerald-300"
+                              : "hover:bg-amber-500/10 hover:border-amber-500/30 text-amber-400 hover:text-amber-300"
+                          }`}
                           title={user.banned ? "Unban User" : "Ban User"}
                         >
-                          <Ban
-                            className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${user.banned ? "text-green-500" : "text-yellow-500"}`}
-                          />
+                          <Ban className="w-4 h-4" />
                         </button>
                         {userEnrollments[user.id] && userEnrollments[user.id].length > 0 && (
                           <button
@@ -383,21 +438,21 @@ export default function ManageUsers() {
                               setSelectedUser(user)
                               setShowRemoveModal(true)
                             }}
-                            className="p-1.5 sm:p-2 hover:bg-muted rounded-lg transition-colors relative"
+                            className="w-8 h-8 rounded-lg bg-white/5 hover:bg-sky-500/10 border border-white/5 hover:border-sky-500/30 flex items-center justify-center transition-all duration-200 text-sky-400 hover:text-sky-300 relative"
                             title={`Manage Courses (${userEnrollments[user.id].length})`}
                           >
-                            <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-500" />
-                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                            <BookOpen className="w-4 h-4" />
+                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-sky-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold shadow-sm">
                               {userEnrollments[user.id].length}
                             </span>
                           </button>
                         )}
                         <button
                           onClick={() => handleDeleteUser(user.id)}
-                          className="p-1.5 sm:p-2 hover:bg-muted rounded-lg transition-colors"
+                          className="w-8 h-8 rounded-lg bg-white/5 hover:bg-rose-500/10 border border-white/5 hover:border-rose-500/30 flex items-center justify-center transition-all duration-200 text-rose-400 hover:text-rose-300"
                           title="Delete User"
                         >
-                          <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-500" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -435,24 +490,12 @@ export default function ManageUsers() {
               </button>
             </div>
 
-            <div className="mb-6 p-4 bg-muted/50 rounded-lg">
-              <div className="flex items-center gap-3">
-                {selectedUser.photoURL ? (
-                  <img
-                    src={selectedUser.photoURL}
-                    alt={selectedUser.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                    <span className="text-primary font-semibold text-lg">
-                      {selectedUser.name?.[0] || "U"}
-                    </span>
-                  </div>
-                )}
+            <div className="mb-6 p-4 bg-muted/50 rounded-xl border border-border/50">
+              <div className="flex items-center gap-3.5">
+                <UserAvatar src={selectedUser.photoURL} name={selectedUser.name} size="w-12 h-12" />
                 <div>
-                  <p className="font-semibold text-lg">{selectedUser.name}</p>
-                  <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
+                  <p className="font-bold text-base sm:text-lg text-foreground">{selectedUser.name || "Unnamed User"}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{selectedUser.email}</p>
                 </div>
               </div>
             </div>

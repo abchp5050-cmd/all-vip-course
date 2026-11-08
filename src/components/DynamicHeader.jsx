@@ -7,18 +7,28 @@ import {
   Menu,
   X,
   User,
+  UserCheck,
   LogOut,
   LayoutDashboard,
+  LayoutGrid,
   Sun,
   Moon,
   Search,
   Home,
   BookOpen,
+  PlayCircle,
   Newspaper,
   Users,
+  MessageSquare,
   Download,
   CreditCard,
   BarChart3,
+  Bell,
+  GraduationCap,
+  ChevronRight,
+  Megaphone,
+  Crown,
+  Sparkles,
 } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 import { useTheme } from "../contexts/ThemeContext"
@@ -42,15 +52,20 @@ const getPaddingValue = (value) => {
   return '4'
 }
 
-// Icon map for dynamic links
+// Icon map for dynamic links — each nav label gets a distinct, meaningful icon
 const iconMap = {
   Home,
   BookOpen,
   Newspaper,
   Users,
+  MessageSquare,
   Download,
   CreditCard,
   BarChart3,
+  GraduationCap,
+  Bell,
+  Megaphone,
+  PlayCircle,
 }
 
 // Default configuration when Firestore config is not available
@@ -349,7 +364,15 @@ export default function DynamicHeader() {
   const { content, styling } = config
   const visibleNavItems = (content.navigation || []).filter(item => item.isVisible)
   
-  const headerClass = `sticky top-0 z-50 bg-background/70 backdrop-blur-xl border-b border-border shadow-sm transition-all duration-300`
+  const headerClass = `sticky top-0 z-50 transition-all duration-300`
+  const headerStyle = {
+    background: "rgba(11, 15, 23, 0.82)",
+    backdropFilter: "blur(16px)",
+    WebkitBackdropFilter: "blur(16px)",
+    borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+    boxShadow: "0 1px 0 rgba(255,255,255,0.03), 0 4px 24px rgba(0,0,0,0.3)",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+  }
   
   const containerClass = `container mx-auto max-w-7xl px-${getPaddingValue(styling?.layout?.padding?.left)} sm:px-6 lg:px-${getPaddingValue(styling?.layout?.padding?.right)} py-${getPaddingValue(styling?.layout?.padding?.top)}`
   
@@ -366,7 +389,7 @@ export default function DynamicHeader() {
 
   return (
     <>
-      <header className={headerClass}>
+      <header className={headerClass} style={headerStyle}>
         <nav className={containerClass}>
           <div className="flex items-center justify-between gap-4">
             {/* Left Section: Mobile Menu + Logo */}
@@ -374,99 +397,197 @@ export default function DynamicHeader() {
               {content?.mobileMenu?.enabled && (
                 <button
                   onClick={() => setSidebarOpen(true)}
-                  className="lg:hidden p-2 hover:bg-accent rounded-lg transition-colors"
+                  className="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200"
+                  style={{
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(245,158,11,0.5)"; e.currentTarget.style.transform = "scale(1.05)" }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.transform = "scale(1)" }}
                   aria-label="Open menu"
                 >
-                  <Menu className="w-5 h-5 text-foreground" />
+                  <Menu className="w-4.5 h-4.5" style={{ color: "#CBD5E1" }} />
                 </button>
               )}
 
-              <Link to={content?.logo?.link || "/"} className="flex items-center">
+              {/* Premium Brand Logo */}
+              <Link to={content?.logo?.link || "/"} className="flex items-center gap-2 group" style={{ textDecoration: "none" }}>
                 {content?.logo?.type === 'image' && content?.logo?.imageUrl ? (
-                  <img src={content.logo.imageUrl} alt={content.logo.alt || "Logo"} className="h-8 sm:h-10 object-contain" />
+                  <img 
+                    src={content.logo.imageUrl} 
+                    alt={content.logo.alt || "Logo"} 
+                    loading="eager"
+                    decoding="async"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    className="h-8 sm:h-10 object-contain" 
+                  />
                 ) : (
-                  <div className={logoClass}>
-                    {content?.logo?.text || "All Vip Courses"}
-                  </div>
+                  <>
+                    {/* Gold emblem badge - hidden on mobile, visible on desktop/PC */}
+                    <div
+                      className="hidden md:flex flex-shrink-0 w-8 h-8 rounded-xl items-center justify-center transition-all duration-300 group-hover:scale-105"
+                      style={{
+                        background: "linear-gradient(135deg, rgba(245,158,11,0.18) 0%, rgba(217,119,6,0.12) 100%)",
+                        border: "1px solid rgba(245,158,11,0.35)",
+                        boxShadow: "0 0 14px rgba(245,158,11,0.2), inset 0 1px 0 rgba(255,255,255,0.08)",
+                      }}
+                    >
+                      <Crown className="w-4 h-4" style={{ color: "#FBBF24", filter: "drop-shadow(0 0 6px rgba(251,191,36,0.5))" }} />
+                    </div>
+
+                    {/* Brand text */}
+                    <span
+                      className="font-extrabold leading-none select-none whitespace-nowrap"
+                      style={{
+                        fontFamily: "'Plus Jakarta Sans', sans-serif",
+                        fontWeight: 800,
+                        fontSize: "clamp(0.9rem, 2.5vw, 1.15rem)",
+                        letterSpacing: "-0.02em",
+                        background: "linear-gradient(135deg, #FFFBEB 0%, #FBBF24 50%, #D97706 100%)",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                        backgroundClip: "text",
+                        filter: "drop-shadow(0 2px 10px rgba(245,158,11,0.25))",
+                      }}
+                    >
+                      {content?.logo?.text || "All Vip Courses"}
+                    </span>
+                  </>
                 )}
               </Link>
             </div>
 
             {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center gap-2">
+            <nav className="hidden lg:flex items-center gap-1">
               {visibleNavItems.map((link, index) => {
+                const isActive = location.pathname === link.url || (link.url !== '/' && location.pathname.startsWith(link.url))
                 const isExternal = link.type === 'external'
-                
+
+                const navItemStyle = {
+                  position: "relative",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "7px 14px",
+                  borderRadius: 10,
+                  fontSize: "0.875rem",
+                  fontWeight: 500,
+                  letterSpacing: "0.01em",
+                  textDecoration: "none",
+                  transition: "all 0.2s ease",
+                  color: isActive ? "#FBBF24" : "#94A3B8",
+                  background: isActive ? "rgba(245,158,11,0.1)" : "transparent",
+                  border: isActive ? "1px solid rgba(245,158,11,0.2)" : "1px solid transparent",
+                }
+
+                const content_inner = (
+                  <>
+                    {link.label}
+                    {isActive && (
+                      <motion.div
+                        layoutId="navbar-active"
+                        className="absolute bottom-0 left-3 right-3 h-[2px] rounded-full"
+                        style={{ background: "#F59E0B", boxShadow: "0 0 12px #F59E0B" }}
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      />
+                    )}
+                  </>
+                )
+
                 if (isExternal) {
                   return (
                     <a
                       key={`desktop-${link.url}-${index}`}
                       href={link.url}
-                      className={getNavLinkClass(link.url)}
+                      style={navItemStyle}
                       target={link.openInNewTab ? "_blank" : "_self"}
                       rel={link.openInNewTab ? "noopener noreferrer" : undefined}
+                      onMouseEnter={e => { if (!isActive) { e.currentTarget.style.color = "#FBBF24"; e.currentTarget.style.background = "rgba(245,158,11,0.07)" } }}
+                      onMouseLeave={e => { if (!isActive) { e.currentTarget.style.color = "#94A3B8"; e.currentTarget.style.background = "transparent" } }}
                     >
-                      {link.label}
+                      {content_inner}
                     </a>
                   )
                 }
-                
+
                 return (
                   <Link
                     key={`desktop-${link.url}-${index}`}
                     to={link.url}
-                    className={getNavLinkClass(link.url)}
+                    style={navItemStyle}
+                    onMouseEnter={e => { if (!isActive) { e.currentTarget.style.color = "#FBBF24"; e.currentTarget.style.background = "rgba(245,158,11,0.07)" } }}
+                    onMouseLeave={e => { if (!isActive) { e.currentTarget.style.color = "#94A3B8"; e.currentTarget.style.background = "transparent" } }}
                   >
-                    {link.label}
-                    {(location.pathname === link.url || (link.url !== '/' && location.pathname.startsWith(link.url))) && (
-                      <motion.div
-                        layoutId="navbar-active"
-                        className="absolute bottom-0 left-4 right-4 h-[3px] bg-primary rounded-t-full"
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                      />
-                    )}
+                    {content_inner}
                   </Link>
                 )
               })}
             </nav>
 
-            {/* Right Section: Search, PWA, User/Login, Theme */}
+            {/* Right Section: Search, User/Login, Theme */}
             <div className="flex items-center gap-2">
-              
-              {/* Search Toggle (Optional based on config, but keeping it visible for courses) */}
+
+              {/* Search — glassmorphic squircle */}
               {content?.elements?.showSearch !== false && (
                 <button
                   onClick={() => setSearchOpen(!searchOpen)}
-                  className="p-2 hover:bg-accent rounded-lg transition-colors"
                   aria-label="Toggle Search"
+                  className="flex items-center justify-center transition-all duration-200"
+                  style={{
+                    width: 38, height: 38, borderRadius: 10,
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    backdropFilter: "blur(10px)",
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(245,158,11,0.5)"; e.currentTarget.style.transform = "scale(1.07)"; e.currentTarget.style.background = "rgba(245,158,11,0.07)" }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.background = "rgba(255,255,255,0.04)" }}
                 >
-                  <Search className="w-5 h-5 text-foreground" />
+                  <Search className="w-4 h-4" style={{ color: "#94A3B8" }} />
                 </button>
               )}
 
-              {/* Install PWA Button (Will be hidden if modal is open or app installed) */}
-              {showInstallButton && (
-                <button
-                  onClick={handleInstallClick}
-                  className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl transition-all text-sm font-bold shadow-md hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 border border-white/10 backdrop-blur-sm"
-                >
-                  <Download className="w-4 h-4" />
-                  Install App
-                </button>
-              )}
-              
               {currentUser ? (
                 <>
+                  {/* Dashboard — luxury gradient pill */}
                   <Link
                     to={isAdmin ? "/admin" : "/dashboard"}
-                    className="hidden sm:flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl transition-all text-sm font-bold shadow-md hover:shadow-lg hover:shadow-orange-500/25 hover:-translate-y-0.5 border border-white/10 backdrop-blur-sm"
+                    className="hidden sm:flex items-center gap-2 transition-all duration-200"
+                    style={{
+                      padding: "7px 16px",
+                      borderRadius: 10,
+                      background: "linear-gradient(135deg, #F59E0B 0%, #EA580C 100%)",
+                      border: "1px solid rgba(255,255,255,0.2)",
+                      color: "#fff",
+                      fontSize: "0.875rem",
+                      fontWeight: 700,
+                      letterSpacing: "0.01em",
+                      boxShadow: "0 4px 20px -2px rgba(245,158,11,0.4)",
+                      textDecoration: "none",
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 6px 28px -2px rgba(245,158,11,0.6)"; e.currentTarget.style.transform = "translateY(-1px)" }}
+                    onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 4px 20px -2px rgba(245,158,11,0.4)"; e.currentTarget.style.transform = "translateY(0)" }}
                   >
-                    <LayoutDashboard className="w-4 h-4" />
+                    <LayoutGrid className="w-4 h-4" />
                     Dashboard
                   </Link>
+
+                  {/* Sign Out — subtle glass → crimson hover */}
                   <button
                     onClick={handleSignOut}
-                    className="hidden sm:flex items-center gap-2 px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-sm font-semibold text-slate-600 dark:text-slate-300"
+                    className="hidden sm:flex items-center gap-2 transition-all duration-200"
+                    style={{
+                      padding: "7px 14px",
+                      borderRadius: 10,
+                      background: "rgba(255,255,255,0.03)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      color: "#94A3B8",
+                      fontSize: "0.875rem",
+                      fontWeight: 600,
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.3)"; e.currentTarget.style.color = "#F87171" }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "#94A3B8" }}
                   >
                     <LogOut className="w-4 h-4" />
                     Sign Out
@@ -475,19 +596,46 @@ export default function DynamicHeader() {
               ) : (
                 <Link
                   to="/login"
-                  className="hidden sm:flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl transition-all text-sm font-bold shadow-md hover:shadow-lg hover:shadow-indigo-500/25 hover:-translate-y-0.5 border border-white/10 backdrop-blur-sm"
+                  className="hidden sm:flex items-center gap-2 transition-all duration-200"
+                  style={{
+                    padding: "7px 20px",
+                    borderRadius: 10,
+                    background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    color: "#0B0F17",
+                    fontSize: "0.875rem",
+                    fontWeight: 700,
+                    boxShadow: "0 4px 16px -2px rgba(245,158,11,0.35)",
+                    textDecoration: "none",
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 6px 24px -2px rgba(245,158,11,0.5)"; e.currentTarget.style.transform = "translateY(-1px)" }}
+                  onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 4px 16px -2px rgba(245,158,11,0.35)"; e.currentTarget.style.transform = "translateY(0)" }}
                 >
                   Login
                 </Link>
               )}
 
+              {/* Theme Toggle — glassmorphic squircle */}
               {content?.elements?.showThemeToggle && (
                 <button
                   onClick={toggleTheme}
-                  className="p-2 hover:bg-accent rounded-lg transition-colors"
                   aria-label="Toggle theme"
+                  className="flex items-center justify-center transition-all duration-200"
+                  style={{
+                    width: 38, height: 38, borderRadius: 10,
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    backdropFilter: "blur(10px)",
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(245,158,11,0.5)"; e.currentTarget.style.transform = "scale(1.07)"; e.currentTarget.style.background = "rgba(245,158,11,0.07)" }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.background = "rgba(255,255,255,0.04)" }}
                 >
-                  {isDark ? <Sun className="w-5 h-5 text-foreground" /> : <Moon className="w-5 h-5 text-foreground" />}
+                  {isDark
+                    ? <Sun className="w-4 h-4" style={{ color: "#FBBF24" }} />
+                    : <Moon className="w-4 h-4" style={{ color: "#94A3B8" }} />
+                  }
                 </button>
               )}
             </div>
@@ -531,160 +679,423 @@ export default function DynamicHeader() {
         )}
       </AnimatePresence>
 
-      {/* Mobile Sidebar */}
+      {/* Mobile Sidebar — Premium Obsidian Drawer */}
       <AnimatePresence>
         {content?.mobileMenu?.enabled && sidebarOpen && (
           <>
+            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSidebarOpen(false)}
-              className="fixed inset-0 bg-black/80 z-50 backdrop-blur-sm lg:hidden"
+              className="fixed inset-0 bg-black/70 z-50 backdrop-blur-sm lg:hidden"
             />
 
+            {/* Drawer Panel */}
             <motion.div
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="fixed left-0 top-0 bottom-0 w-full sm:w-80 bg-card border-r border-border z-50 overflow-y-auto shadow-2xl"
+              transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
+              className="fixed left-0 top-0 bottom-0 w-[300px] sm:w-[320px] z-50 overflow-y-auto lg:hidden flex flex-col"
+              style={{
+                background: "linear-gradient(160deg, #0B0F17 0%, #0f1420 50%, #111827 100%)",
+                borderRight: "1px solid rgba(255,255,255,0.08)",
+                backdropFilter: "blur(16px)",
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                boxShadow: "4px 0 32px rgba(0,0,0,0.6), 1px 0 0 rgba(255,255,255,0.05)",
+              }}
             >
-              <div className="flex items-center justify-between p-4 border-b border-border/50 bg-primary/5">
-                <Link to="/" onClick={() => setSidebarOpen(false)}>
-                  <motion.div
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className={logoClass}
+              {/* ── Header ── */}
+              <div
+                className="flex items-center justify-between px-5 py-4 flex-shrink-0"
+                style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
+              >
+                <Link to="/" onClick={() => setSidebarOpen(false)} className="flex items-center gap-2 group">
+                  <motion.span
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    style={{
+                      background: "linear-gradient(90deg, #F59E0B, #FBBF24, #F59E0B)",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      backgroundClip: "text",
+                      fontWeight: 700,
+                      fontSize: "1.1rem",
+                      letterSpacing: "-0.01em",
+                    }}
                   >
                     {content?.logo?.text || "All Vip Courses"}
-                  </motion.div>
+                  </motion.span>
                 </Link>
-                <button
+
+                {/* Glass Close Button */}
+                <motion.button
                   onClick={() => setSidebarOpen(false)}
-                  className="p-2 hover:bg-muted rounded-lg smooth-transition hover:scale-105 active:scale-95"
+                  whileHover={{ rotate: 90, scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  transition={{ duration: 0.2 }}
                   aria-label="Close menu"
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: "50%",
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    flexShrink: 0,
+                  }}
+                  className="hover:shadow-[0_0_12px_rgba(245,158,11,0.3)] transition-shadow duration-200"
                 >
-                  <X className="w-6 h-6" />
-                </button>
+                  <X className="w-4 h-4 text-slate-300" />
+                </motion.button>
               </div>
 
+              {/* ── User Profile Card ── */}
               {currentUser && (
-                <div className="p-4 border-b border-border/50 bg-primary/5">
-                  <div className="flex items-center gap-3">
-                    {userProfile?.photoURL ? (
-                      <img
-                        src={userProfile.photoURL || "/placeholder.svg"}
-                        alt={userProfile.name}
-                        className="w-12 h-12 rounded-full object-cover ring-2 ring-primary/50"
+                <div className="px-4 pt-4 pb-3 flex-shrink-0">
+                  <div
+                    className="flex items-center gap-3 p-3.5 rounded-xl"
+                    style={{
+                      background: "rgba(255,255,255,0.03)",
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      borderRadius: 12,
+                    }}
+                  >
+                    {/* Avatar with amber glow ring */}
+                    <div className="relative flex-shrink-0">
+                      <div
+                        style={{
+                          position: "absolute",
+                          inset: -2,
+                          borderRadius: "50%",
+                          background: "linear-gradient(135deg, #F59E0B, #FBBF24, #D97706)",
+                          zIndex: 0,
+                          boxShadow: "0 0 12px rgba(245,158,11,0.5)",
+                        }}
                       />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center ring-2 ring-primary/50">
-                        <User className="w-6 h-6 text-white" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold truncate">{userProfile?.name || "User"}</p>
-                      <p className="text-sm text-muted-foreground truncate">{userProfile?.email}</p>
+                      {userProfile?.photoURL ? (
+                        <img
+                          src={userProfile.photoURL}
+                          alt={userProfile.name || "Profile"}
+                          loading="lazy"
+                          decoding="async"
+                          width="44"
+                          height="44"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            if (e.currentTarget.nextElementSibling) {
+                              e.currentTarget.nextElementSibling.style.display = 'flex';
+                            }
+                          }}
+                          className="w-11 h-11 rounded-full object-cover relative z-10"
+                          style={{ border: "2px solid #0B0F17" }}
+                        />
+                      ) : null}
+                      <div
+                        className="w-11 h-11 rounded-full items-center justify-center relative z-10"
+                        style={{
+                          display: userProfile?.photoURL ? 'none' : 'flex',
+                          background: "linear-gradient(135deg, #1e293b, #0f172a)",
+                          border: "2px solid #0B0F17",
+                        }}
+                      >
+                          <User className="w-5 h-5 text-amber-400" />
+                        </div>
                     </div>
+
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="truncate"
+                        style={{ fontWeight: 700, fontSize: "0.875rem", color: "#F1F5F9", letterSpacing: "-0.01em" }}
+                      >
+                        {userProfile?.name || "User"}
+                      </p>
+                      <p className="truncate" style={{ fontSize: "0.72rem", color: "#64748B", fontWeight: 500 }}>
+                        {userProfile?.email}
+                      </p>
+                    </div>
+
+                    {isAdmin && (
+                      <span
+                        className="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{
+                          background: "rgba(245,158,11,0.15)",
+                          color: "#F59E0B",
+                          border: "1px solid rgba(245,158,11,0.3)",
+                        }}
+                      >
+                        ADMIN
+                      </span>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* Mobile Main Navigation Links (Dynamic) */}
-              <div className="p-4 space-y-1">
-                {visibleNavItems.map((link, index) => {
-                  const Icon = link.Icon || Home
-                  const isExternal = link.type === 'external'
-                  const linkClassName = "flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 smooth-transition group hover:scale-[1.02] active:scale-[0.98]"
-                  
-                  if (isExternal) {
-                    return (
-                      <a
-                        key={`mobile-${link.url}-${index}`}
-                        href={link.url}
-                        target={link.openInNewTab ? "_blank" : "_self"}
-                        rel={link.openInNewTab ? "noopener noreferrer" : undefined}
-                        onClick={() => setSidebarOpen(false)}
-                        className={linkClassName}
-                      >
-                        <Icon className="w-5 h-5 text-muted-foreground group-hover:text-primary smooth-transition" />
-                        <span className="font-medium group-hover:text-primary smooth-transition">{link.label}</span>
-                      </a>
+              {/* ── Main Navigation ── */}
+              <div className="px-3 pt-2 pb-1 flex-1">
+                {/* Dynamic nav links from config */}
+                <div className="space-y-0.5">
+                  {visibleNavItems.map((link, index) => {
+                    const isActive = location.pathname === link.url || (link.url !== "/" && location.pathname.startsWith(link.url))
+
+                    // Distinct icon override per label
+                    let NavIcon = link.Icon || Home
+                    const lbl = link.label?.toLowerCase() || ""
+                    if (lbl === "home") NavIcon = Home
+                    else if (lbl === "courses") NavIcon = GraduationCap
+                    else if (lbl.includes("communit")) NavIcon = MessageSquare
+                    else if (lbl.includes("announc")) NavIcon = Megaphone
+                    else if (lbl.includes("news")) NavIcon = Bell
+
+                    const isExternal = link.type === "external"
+
+                    const itemContent = (
+                      <>
+                        {/* Active bar */}
+                        {isActive && (
+                          <motion.div
+                            layoutId="sidebar-active-bar"
+                            className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full"
+                            style={{ background: "linear-gradient(180deg, #F59E0B, #FBBF24)" }}
+                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                          />
+                        )}
+
+                        {/* Icon container */}
+                        <div
+                          className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200"
+                          style={{
+                            background: isActive ? "rgba(245,158,11,0.18)" : "rgba(255,255,255,0.04)",
+                            border: isActive ? "1px solid rgba(245,158,11,0.3)" : "1px solid rgba(255,255,255,0.06)",
+                          }}
+                        >
+                          <NavIcon
+                            className="w-4 h-4 transition-colors duration-200"
+                            style={{ color: isActive ? "#F59E0B" : "#64748B" }}
+                          />
+                        </div>
+
+                        <span
+                          className="flex-1 transition-colors duration-200"
+                          style={{
+                            fontWeight: isActive ? 600 : 500,
+                            fontSize: "0.875rem",
+                            color: isActive ? "#F1F5F9" : "#94A3B8",
+                            letterSpacing: "0.005em",
+                          }}
+                        >
+                          {link.label}
+                        </span>
+
+                        {/* Announcement "New" badge */}
+                        {lbl.includes("announc") && (
+                          <span
+                            className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                            style={{ background: "rgba(245,158,11,0.2)", color: "#FBBF24", border: "1px solid rgba(245,158,11,0.3)" }}
+                          >
+                            NEW
+                          </span>
+                        )}
+
+                        <ChevronRight
+                          className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0.5"
+                          style={{ color: "#64748B" }}
+                        />
+                      </>
                     )
-                  }
-                  
-                  return (
-                    <Link
-                      key={`mobile-${link.url}-${index}`}
-                      to={link.url}
-                      onClick={() => setSidebarOpen(false)}
-                      className={linkClassName}
-                    >
-                      <Icon className="w-5 h-5 text-muted-foreground group-hover:text-primary smooth-transition" />
-                      <span className="font-medium group-hover:text-primary smooth-transition">{link.label}</span>
-                    </Link>
-                  )
-                })}
+
+                    const sharedStyle = {
+                      position: "relative",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                      padding: "10px 10px 10px 14px",
+                      borderRadius: 10,
+                      cursor: "pointer",
+                      transition: "background 0.15s, transform 0.1s",
+                      background: isActive ? "rgba(245,158,11,0.09)" : "transparent",
+                    }
+
+                    if (isExternal) {
+                      return (
+                        <a
+                          key={`mobile-${link.url}-${index}`}
+                          href={link.url}
+                          target={link.openInNewTab ? "_blank" : "_self"}
+                          rel={link.openInNewTab ? "noopener noreferrer" : undefined}
+                          onClick={() => setSidebarOpen(false)}
+                          className="group flex items-center gap-3 hover:bg-white/[0.04] active:scale-[0.98]"
+                          style={sharedStyle}
+                        >
+                          {itemContent}
+                        </a>
+                      )
+                    }
+
+                    return (
+                      <Link
+                        key={`mobile-${link.url}-${index}`}
+                        to={link.url}
+                        onClick={() => setSidebarOpen(false)}
+                        className="group flex items-center gap-3 hover:bg-white/[0.04] active:scale-[0.98]"
+                        style={sharedStyle}
+                      >
+                        {itemContent}
+                      </Link>
+                    )
+                  })}
+                </div>
+
+                {/* ── Logged-in user links ── */}
+                {currentUser && (
+                  <>
+                    <div
+                      className="my-3 mx-1"
+                      style={{ height: 1, background: "rgba(255,255,255,0.06)" }}
+                    />
+                    <div className="space-y-0.5">
+                      {/* Dashboard */}
+                      {(() => {
+                        const path = isAdmin ? "/admin" : "/dashboard"
+                        const isActive = location.pathname === path || location.pathname.startsWith(path)
+                        return (
+                          <Link
+                            to={path}
+                            onClick={() => setSidebarOpen(false)}
+                            className="group flex items-center gap-3 hover:bg-white/[0.04] active:scale-[0.98]"
+                            style={{
+                              position: "relative",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 12,
+                              padding: "10px 10px 10px 14px",
+                              borderRadius: 10,
+                              cursor: "pointer",
+                              transition: "background 0.15s",
+                              background: isActive ? "rgba(245,158,11,0.09)" : "transparent",
+                            }}
+                          >
+                            {isActive && (
+                              <motion.div layoutId="sidebar-active-bar" className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full" style={{ background: "linear-gradient(180deg,#F59E0B,#FBBF24)" }} transition={{ type: "spring", stiffness: 400, damping: 30 }} />
+                            )}
+                            <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: isActive ? "rgba(245,158,11,0.18)" : "rgba(255,255,255,0.04)", border: isActive ? "1px solid rgba(245,158,11,0.3)" : "1px solid rgba(255,255,255,0.06)" }}>
+                              <LayoutGrid className="w-4 h-4" style={{ color: isActive ? "#F59E0B" : "#64748B" }} />
+                            </div>
+                            <span style={{ fontWeight: isActive ? 600 : 500, fontSize: "0.875rem", color: isActive ? "#F1F5F9" : "#94A3B8", letterSpacing: "0.005em", flex: 1 }}>Dashboard</span>
+                            <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0.5" style={{ color: "#64748B" }} />
+                          </Link>
+                        )
+                      })()}
+
+                      {/* My Courses */}
+                      {(() => {
+                        const path = "/my-courses"
+                        const isActive = location.pathname === path
+                        return (
+                          <Link to={path} onClick={() => setSidebarOpen(false)} className="group flex items-center gap-3 hover:bg-white/[0.04] active:scale-[0.98]" style={{ position: "relative", display: "flex", alignItems: "center", gap: 12, padding: "10px 10px 10px 14px", borderRadius: 10, cursor: "pointer", transition: "background 0.15s", background: isActive ? "rgba(245,158,11,0.09)" : "transparent" }}>
+                            {isActive && <motion.div layoutId="sidebar-active-bar" className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full" style={{ background: "linear-gradient(180deg,#F59E0B,#FBBF24)" }} transition={{ type: "spring", stiffness: 400, damping: 30 }} />}
+                            <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: isActive ? "rgba(245,158,11,0.18)" : "rgba(255,255,255,0.04)", border: isActive ? "1px solid rgba(245,158,11,0.3)" : "1px solid rgba(255,255,255,0.06)" }}>
+                              <PlayCircle className="w-4 h-4" style={{ color: isActive ? "#F59E0B" : "#64748B" }} />
+                            </div>
+                            <span style={{ fontWeight: isActive ? 600 : 500, fontSize: "0.875rem", color: isActive ? "#F1F5F9" : "#94A3B8", letterSpacing: "0.005em", flex: 1 }}>My Courses</span>
+                            <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0.5" style={{ color: "#64748B" }} />
+                          </Link>
+                        )
+                      })()}
+
+                      {/* Payment History (non-admin) */}
+                      {!isAdmin && (() => {
+                        const path = "/payment-history"
+                        const isActive = location.pathname === path
+                        return (
+                          <Link to={path} onClick={() => setSidebarOpen(false)} className="group flex items-center gap-3 hover:bg-white/[0.04] active:scale-[0.98]" style={{ position: "relative", display: "flex", alignItems: "center", gap: 12, padding: "10px 10px 10px 14px", borderRadius: 10, cursor: "pointer", transition: "background 0.15s", background: isActive ? "rgba(245,158,11,0.09)" : "transparent" }}>
+                            {isActive && <motion.div layoutId="sidebar-active-bar" className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full" style={{ background: "linear-gradient(180deg,#F59E0B,#FBBF24)" }} transition={{ type: "spring", stiffness: 400, damping: 30 }} />}
+                            <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: isActive ? "rgba(245,158,11,0.18)" : "rgba(255,255,255,0.04)", border: isActive ? "1px solid rgba(245,158,11,0.3)" : "1px solid rgba(255,255,255,0.06)" }}>
+                              <CreditCard className="w-4 h-4" style={{ color: isActive ? "#F59E0B" : "#64748B" }} />
+                            </div>
+                            <span style={{ fontWeight: isActive ? 600 : 500, fontSize: "0.875rem", color: isActive ? "#F1F5F9" : "#94A3B8", letterSpacing: "0.005em", flex: 1 }}>Payment History</span>
+                            <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0.5" style={{ color: "#64748B" }} />
+                          </Link>
+                        )
+                      })()}
+
+                      {/* Profile */}
+                      {(() => {
+                        const path = "/profile"
+                        const isActive = location.pathname === path
+                        return (
+                          <Link to={path} onClick={() => setSidebarOpen(false)} className="group flex items-center gap-3 hover:bg-white/[0.04] active:scale-[0.98]" style={{ position: "relative", display: "flex", alignItems: "center", gap: 12, padding: "10px 10px 10px 14px", borderRadius: 10, cursor: "pointer", transition: "background 0.15s", background: isActive ? "rgba(245,158,11,0.09)" : "transparent" }}>
+                            {isActive && <motion.div layoutId="sidebar-active-bar" className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full" style={{ background: "linear-gradient(180deg,#F59E0B,#FBBF24)" }} transition={{ type: "spring", stiffness: 400, damping: 30 }} />}
+                            <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: isActive ? "rgba(245,158,11,0.18)" : "rgba(255,255,255,0.04)", border: isActive ? "1px solid rgba(245,158,11,0.3)" : "1px solid rgba(255,255,255,0.06)" }}>
+                              <UserCheck className="w-4 h-4" style={{ color: isActive ? "#F59E0B" : "#64748B" }} />
+                            </div>
+                            <span style={{ fontWeight: isActive ? 600 : 500, fontSize: "0.875rem", color: isActive ? "#F1F5F9" : "#94A3B8", letterSpacing: "0.005em", flex: 1 }}>Profile</span>
+                            <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0.5" style={{ color: "#64748B" }} />
+                          </Link>
+                        )
+                      })()}
+                    </div>
+                  </>
+                )}
               </div>
 
-              {currentUser && (
-                <div className="p-4 border-t border-border/50 space-y-1">
-                  <Link
-                    to={isAdmin ? "/admin" : "/dashboard"}
-                    onClick={() => setSidebarOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 smooth-transition group hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <LayoutDashboard className="w-5 h-5 text-muted-foreground group-hover:text-primary smooth-transition" />
-                    <span className="font-medium group-hover:text-primary smooth-transition">Dashboard</span>
-                  </Link>
-                  <Link
-                    to="/my-courses"
-                    onClick={() => setSidebarOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 smooth-transition group hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <BookOpen className="w-5 h-5 text-muted-foreground group-hover:text-primary smooth-transition" />
-                    <span className="font-medium group-hover:text-primary smooth-transition">My Courses</span>
-                  </Link>
-                  {!isAdmin && (
-                    <Link
-                      to="/payment-history"
-                      onClick={() => setSidebarOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 smooth-transition group hover:scale-[1.02] active:scale-[0.98]"
-                    >
-                      <CreditCard className="w-5 h-5 text-muted-foreground group-hover:text-primary smooth-transition" />
-                      <span className="font-medium group-hover:text-primary smooth-transition">Payment History</span>
-                    </Link>
-                  )}
-                  <Link
-                    to="/profile"
-                    onClick={() => setSidebarOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/10 smooth-transition group hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <User className="w-5 h-5 text-muted-foreground group-hover:text-primary smooth-transition" />
-                    <span className="font-medium group-hover:text-primary smooth-transition">Profile</span>
-                  </Link>
-                  <button
+              {/* ── Footer: Sign Out / Login ── */}
+              <div
+                className="px-3 py-4 flex-shrink-0"
+                style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+              >
+                {currentUser ? (
+                  <motion.button
                     onClick={handleSignOut}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-destructive/10 hover:text-destructive smooth-transition group hover:scale-[1.02] active:scale-[0.98]"
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full flex items-center gap-3 group"
+                    style={{
+                      padding: "10px 10px 10px 14px",
+                      borderRadius: 10,
+                      cursor: "pointer",
+                      transition: "background 0.15s",
+                      background: "transparent",
+                      border: "none",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.08)" }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "transparent" }}
                   >
-                    <LogOut className="w-5 h-5" />
-                    <span className="font-medium">Sign Out</span>
-                  </button>
-                </div>
-              )}
-
-              {!currentUser && (
-                <div className="p-4 border-t border-border/50 space-y-2">
+                    <div
+                      className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 group-hover:bg-red-500/20 group-hover:border-red-500/30"
+                      style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}
+                    >
+                      <LogOut className="w-4 h-4 transition-colors duration-200 group-hover:text-red-400" style={{ color: "#64748B" }} />
+                    </div>
+                    <span
+                      className="flex-1 text-left transition-colors duration-200 group-hover:text-red-400"
+                      style={{ fontWeight: 500, fontSize: "0.875rem", color: "#94A3B8" }}
+                    >
+                      Sign Out
+                    </span>
+                  </motion.button>
+                ) : (
                   <Link
                     to="/login"
                     onClick={() => setSidebarOpen(false)}
-                    className="block w-full px-4 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg smooth-transition text-center font-medium hover:scale-[1.02] active:scale-[0.98]"
+                    className="block w-full text-center py-2.5 rounded-xl font-semibold text-sm transition-all"
+                    style={{
+                      background: "linear-gradient(90deg, #F59E0B, #FBBF24)",
+                      color: "#0B0F17",
+                      fontWeight: 700,
+                      letterSpacing: "0.01em",
+                      boxShadow: "0 4px 14px rgba(245,158,11,0.3)",
+                    }}
                   >
                     Login
                   </Link>
-                </div>
-              )}
+                )}
+              </div>
             </motion.div>
           </>
         )}

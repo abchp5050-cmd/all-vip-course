@@ -142,12 +142,15 @@ export default function SubcategoryPage() {
           </div>
 
           {subcategory.imageURL && (
-            <div className="mb-6 rounded-xl overflow-hidden aspect-[16/6] max-h-64">
+            <div className="mb-6 rounded-xl overflow-hidden aspect-[16/6] max-h-64 bg-slate-900">
               <img 
                 src={subcategory.imageURL} 
                 alt={subcategory.title}
                 loading="lazy"
                 decoding="async"
+                width="1200"
+                height="450"
+                onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }}
                 className="w-full h-full object-cover"
               />
             </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Search, Filter, BookOpen, ArrowRight, Star, UsersRound, CheckCircle, Clock, Play, User } from "lucide-react"
@@ -16,13 +16,21 @@ export default function Courses() {
   const [courses, setCourses] = useState([])
   const [categories, setCategories] = useState([])
   const [subcategories, setSubcategories] = useState([])
-  const [filteredCourses, setFilteredCourses] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [subcategoryFilter, setSubcategoryFilter] = useState("all")
   const [sortBy, setSortBy] = useState("newest")
   const [loading, setLoading] = useState(true)
   const [paymentStatusMap, setPaymentStatusMap] = useState({})
+
+  // Debounce search query by 200ms to eliminate typing stutter
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+    }, 200)
+    return () => clearTimeout(handler)
+  }, [searchQuery])
 
   useEffect(() => {
     if (location.state?.searchQuery) {
@@ -49,10 +57,6 @@ export default function Courses() {
       setSubcategoryFilter("all")
     }
   }, [categoryFilter])
-
-  useEffect(() => {
-    filterAndSortCourses()
-  }, [courses, searchQuery, categoryFilter, subcategoryFilter, sortBy])
 
   const fetchCourses = async () => {
     try {
@@ -122,11 +126,8 @@ export default function Courses() {
       
       paymentsSnapshot.docs.forEach((doc) => {
         const payment = doc.data()
-        console.log("[Courses] Payment data:", payment)
-        
         if (payment.courses && Array.isArray(payment.courses)) {
           payment.courses.forEach((course) => {
-            console.log(`[Courses] Course ${course.id} - Payment status: ${payment.status}`)
             if (payment.status === "pending" && !statusMap[course.id]) {
               statusMap[course.id] = "pending"
             } else if (payment.status === "approved") {
@@ -136,50 +137,51 @@ export default function Courses() {
         }
       })
 
-      console.log("[Courses] Final payment status map:", statusMap)
       setPaymentStatusMap(statusMap)
     } catch (error) {
       console.error("Error fetching payment status:", error)
     }
   }
 
-  const filterAndSortCourses = () => {
-    let filtered = courses ? [...courses] : []
+  // Memoized course list filtering and sorting for instant 60fps performance
+  const filteredCourses = useMemo(() => {
+    let result = courses ? [...courses] : []
 
-    if (searchQuery && searchQuery.trim()) {
-      filtered = filtered.filter(
+    if (debouncedSearchQuery && debouncedSearchQuery.trim()) {
+      const q = debouncedSearchQuery.toLowerCase().trim()
+      result = result.filter(
         (course) =>
-          course.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          course.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          course.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          course.subcategory?.toLowerCase().includes(searchQuery.toLowerCase()),
+          course.title?.toLowerCase().includes(q) ||
+          course.description?.toLowerCase().includes(q) ||
+          course.category?.toLowerCase().includes(q) ||
+          course.subcategory?.toLowerCase().includes(q),
       )
     }
 
     if (categoryFilter && categoryFilter !== "all") {
       const selectedCategory = categories.find(cat => cat.id === categoryFilter)
       if (selectedCategory) {
-        filtered = filtered.filter((course) => course.category === selectedCategory.title)
+        result = result.filter((course) => course.category === selectedCategory.title)
       }
     }
 
     if (subcategoryFilter && subcategoryFilter !== "all") {
       const selectedSubcategory = subcategories.find(sub => sub.id === subcategoryFilter)
       if (selectedSubcategory) {
-        filtered = filtered.filter((course) => course.subcategory === selectedSubcategory.title)
+        result = result.filter((course) => course.subcategory === selectedSubcategory.title)
       }
     }
 
     if (sortBy === "newest") {
-      filtered.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
+      result.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
     } else if (sortBy === "oldest") {
-      filtered.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0))
+      result.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0))
     } else if (sortBy === "title") {
-      filtered.sort((a, b) => (a.title || "").localeCompare(b.title || ""))
+      result.sort((a, b) => (a.title || "").localeCompare(b.title || ""))
     }
 
-    setFilteredCourses(filtered)
-  }
+    return result
+  }, [courses, debouncedSearchQuery, categoryFilter, subcategoryFilter, sortBy, categories, subcategories])
 
   return (
     <div className="min-h-screen py-5 sm:py-8 md:py-10 px-2.5 sm:px-4 bg-[#F8FAFC] dark:bg-slate-950 font-sans">

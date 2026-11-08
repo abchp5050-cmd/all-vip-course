@@ -484,6 +484,11 @@ export default function WebsiteSettings() {
                       <img 
                         src={settings.appIcon} 
                         alt="App Icon" 
+                        loading="lazy"
+                        decoding="async"
+                        width="64"
+                        height="64"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
                         className="w-16 h-16 rounded-lg object-cover border border-border"
                       />
                       <div className="flex-1">
@@ -523,6 +528,11 @@ export default function WebsiteSettings() {
                       <img 
                         src={settings.appLogo} 
                         alt="App Logo" 
+                        loading="lazy"
+                        decoding="async"
+                        width="64"
+                        height="64"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
                         className="w-16 h-16 rounded-lg object-contain border border-border bg-white"
                       />
                       <div className="flex-1">

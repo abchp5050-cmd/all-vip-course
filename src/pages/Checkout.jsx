@@ -167,6 +167,7 @@ export default function Checkout() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
+            payment_id: paymentDocRef.id,
             course_name: cartItems.map((c) => c.title).join(", "),
             student_name: customerName.trim(),
             payment_number: phoneNumber.trim(),

@@ -61,7 +61,7 @@ export const createDefaultHeaderConfig = (userId) => ({
       showSearch: true,
       showThemeToggle: true,
       showUserMenu: true,
-      showInstallButton: true,
+      showInstallButton: false,
       customButtons: []
     },
     mobileMenu: {

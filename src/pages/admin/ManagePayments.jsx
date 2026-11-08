@@ -1,7 +1,7 @@
 "use client"
 import { toast } from "../../hooks/use-toast"
 
-import { useState, useEffect, memo } from "react"
+import { useState, useEffect, useMemo, memo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { CreditCard, Check, X, Clock, Download, Trash2, AlertCircle } from "lucide-react"
 import { collection, getDocs, updateDoc, doc, setDoc, serverTimestamp, query, orderBy, deleteDoc, where } from "firebase/firestore"
@@ -363,10 +363,12 @@ export default function ManagePayments() {
     })
   }
 
-  const filteredPayments = payments.filter((payment) => {
-    if (filter === "all") return true
-    return payment.status === filter
-  })
+  const filteredPayments = useMemo(() => {
+    return payments.filter((payment) => {
+      if (filter === "all") return true
+      return payment.status === filter
+    })
+  }, [payments, filter])
 
   const getStatusBadge = (status) => {
     const styles = {

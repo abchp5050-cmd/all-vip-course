@@ -70,7 +70,7 @@ export default function Home() {
         return timeB - timeA;
       })
 
-      setTrendingCourses(coursesData.slice(0, 6))
+      setTrendingCourses(coursesData.slice(0, 12))
 
       const categoriesQuery = query(collection(db, "categories"))
       const categoriesSnapshot = await getDocs(categoriesQuery)
@@ -401,18 +401,30 @@ const testimonials = [
                       <div className="absolute top-0 inset-x-3 sm:inset-x-4 h-[1.5px] bg-gradient-to-r from-transparent via-orange-400/40 to-transparent group-hover:via-orange-400/80 transition-all duration-300 rounded-full pointer-events-none" />
 
                       {/* Image — full width, natural height, perfectly centered, no blur/glow on image */}
-                      <div className="w-full flex-1 flex items-center justify-center mb-1 sm:mb-2 transition-transform duration-300 group-hover:scale-[1.04] z-10">
+                      <div className="w-full flex-1 flex items-center justify-center mb-1 sm:mb-2 transition-transform duration-300 group-hover:scale-[1.04] z-10 aspect-[4/3] max-h-[70px] min-[380px]:max-h-[85px] sm:max-h-[110px] md:max-h-[130px]">
                         {category.imageURL ? (
                           <img 
                             src={category.imageURL} 
-                            alt={category.title} 
-                            className="w-full h-auto object-contain max-h-[70px] min-[380px]:max-h-[85px] sm:max-h-[110px] md:max-h-[130px]"
+                            alt={category.title}
+                            loading="lazy"
+                            decoding="async"
+                            width="120"
+                            height="85"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              if (e.currentTarget.nextElementSibling) {
+                                e.currentTarget.nextElementSibling.style.display = 'flex';
+                              }
+                            }}
+                            className="w-full h-full object-contain"
                           />
-                        ) : (
-                          <div className="w-full flex items-center justify-center py-3">
-                            <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-slate-500 group-hover:text-orange-400 transition-colors duration-300" />
-                          </div>
-                        )}
+                        ) : null}
+                        <div 
+                          className="w-full h-full items-center justify-center py-2"
+                          style={{ display: category.imageURL ? 'none' : 'flex' }}
+                        >
+                          <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-slate-500 group-hover:text-orange-400 transition-colors duration-300" />
+                        </div>
                       </div>
 
                       {/* Title */}
@@ -428,26 +440,26 @@ const testimonials = [
         </section>
       )}
 
-      {/* 4. FEATURED COURSES */}
+      {/* 4. LATEST COURSES */}
       <section className="py-6 sm:py-10 md:py-12 px-3 sm:px-4 bg-gradient-to-b from-slate-50 to-white dark:from-slate-900/50 dark:to-slate-950 border-t border-slate-200 dark:border-slate-800">
         <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 sm:mb-6 md:mb-8 gap-2.5 sm:gap-4">
             <div className="space-y-1 sm:space-y-1.5">
               <div className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-0.5 rounded-full bg-orange-500/10 text-orange-400 text-[10px] sm:text-xs font-bold tracking-wide uppercase border border-orange-500/20">
-                <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Recommended
+                <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> Latest Courses
               </div>
               <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                Featured Courses
+                Latest Courses
               </h2>
               <p className="text-[11px] sm:text-[13px] text-slate-500 dark:text-slate-400 max-w-xl leading-relaxed">
-                Start your learning journey with our most popular and highly-rated premium courses.
+                Start your learning journey with our newly added and highly-rated premium courses.
               </p>
             </div>
           </div>
 
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-2.5 md:gap-4 lg:gap-5">
-              {[...Array(6)].map((_, i) => (
+              {[...Array(12)].map((_, i) => (
                 <div key={i} className="bg-[#0c101c] border border-slate-800/80 rounded-xl sm:rounded-2xl p-2 sm:p-2.5 animate-pulse flex flex-col justify-between h-[230px] sm:h-[260px]">
                   <div>
                     <div className="aspect-[16/9] bg-slate-800/80 rounded-lg mb-2"></div>
@@ -568,58 +580,131 @@ const testimonials = [
         </div>
       </section>
 
-      {/* 6. TESTIMONIALS */}
-      <section className="py-6 sm:py-16 px-0 bg-[#0a0d14] relative border-t border-white/5">
-        <style>
-          {`
-            .hide-scrollbar::-webkit-scrollbar {
-              display: none;
-            }
-            .hide-scrollbar {
-              -ms-overflow-style: none;
-              scrollbar-width: none;
-            }
-          `}
-        </style>
-        
-        <div className="container mx-auto px-4 max-w-6xl mb-4 sm:mb-10 text-center">
-          <h2 className="text-lg sm:text-2xl md:text-3xl font-bold mb-1 text-white font-bengali">শিক্ষার্থীদের মতামত</h2>
-          <p className="text-[10px] sm:text-sm text-slate-500 max-w-2xl mx-auto font-bengali">
-            All VIP Courses-এর সাথে হাজারো শিক্ষার্থীর সাফল্য ও অভিজ্ঞতার গল্প শুনুন।
-          </p>
+      {/* 6. TESTIMONIALS — Infinite Marquee */}
+      <section className="py-6 sm:py-16 px-0 bg-[#0a0d14] relative border-t border-white/5 overflow-hidden">
+        <style>{`
+          @keyframes marquee-scroll {
+            0%   { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(-50%, 0, 0); }
+          }
+          .marquee-track {
+            display: flex;
+            width: max-content;
+            animation: marquee-scroll 38s linear infinite;
+            will-change: transform;
+          }
+          .marquee-track:hover,
+          .marquee-track:has(.testimonial-card:active) {
+            animation-play-state: paused;
+          }
+          .testimonial-card {
+            transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+            cursor: default;
+          }
+          .testimonial-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(245, 158, 11, 0.6) !important;
+            box-shadow: 0 8px 32px -2px rgba(245, 158, 11, 0.28), 0 0 0 1px rgba(245, 158, 11, 0.15) !important;
+          }
+          .marquee-stars svg {
+            filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.45));
+          }
+          .marquee-quote-icon {
+            filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.35));
+          }
+        `}</style>
+
+        {/* Section heading */}
+        <div className="container mx-auto px-4 max-w-6xl mb-6 sm:mb-10 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2 className="text-lg sm:text-2xl md:text-3xl font-bold mb-1 text-white font-bengali">শিক্ষার্থীদের মতামত</h2>
+            <p className="text-[10px] sm:text-sm text-slate-500 max-w-2xl mx-auto font-bengali">
+              All VIP Courses-এর সাথে হাজারো শিক্ষার্থীর সাফল্য ও অভিজ্ঞতার গল্প শুনুন।
+            </p>
+          </motion.div>
         </div>
 
-        <div className="w-full overflow-x-auto snap-x snap-mandatory flex gap-3 px-4 pb-4 hide-scrollbar">
-          {testimonials.map((t, index) => (
-            <div
-              key={index}
-              className="w-[85vw] max-w-[320px] snap-center shrink-0 bg-card border border-border rounded-xl p-4 shadow-sm relative group/card flex flex-col"
-            >
-              <Quote className="absolute top-3 right-3 w-5 h-5 text-primary/10" />
-              <div className="flex gap-0.5 mb-2 text-yellow-500">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-3 h-3 fill-current" />
-                ))}
-              </div>
-              <p className="text-muted-foreground mb-3 text-[11px] sm:text-[13px] italic leading-snug font-bengali line-clamp-3 flex-1">"{t.content}"</p>
-              
-              <div className="flex items-center gap-2.5 mt-auto pt-3 border-t border-border/50">
-                <div className="relative shrink-0">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br from-[#1e293b] to-[#0f172a] border border-primary/20">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                      <circle cx="12" cy="7" r="4" />
-                    </svg>
+        {/* Marquee viewport — fade masks on edges */}
+        <div
+          className="relative w-full"
+          style={{
+            maskImage: "linear-gradient(to right, transparent, black 8%, black 92%, transparent)",
+            WebkitMaskImage: "linear-gradient(to right, transparent, black 8%, black 92%, transparent)",
+          }}
+        >
+          <div className="marquee-track">
+            {/* Original set */}
+            {[...testimonials, ...testimonials].map((t, index) => (
+              <div
+                key={`${t.name || 'testimonial'}-${index}`}
+                className="testimonial-card flex-shrink-0 mx-2.5 w-[280px] sm:w-[310px] rounded-2xl p-4 sm:p-5 flex flex-col relative"
+                style={{
+                  background: "rgba(17, 24, 39, 0.75)",
+                  backdropFilter: "blur(12px)",
+                  WebkitBackdropFilter: "blur(12px)",
+                  border: "1px solid rgba(245, 158, 11, 0.25)",
+                  boxShadow: "0 4px 25px -4px rgba(245, 158, 11, 0.12)",
+                }}
+              >
+                {/* Amber quote mark */}
+                <Quote
+                  className="marquee-quote-icon absolute top-3 right-3 w-5 h-5"
+                  style={{ color: "rgba(245, 158, 11, 0.4)" }}
+                />
+
+                {/* 5-star row */}
+                <div className="marquee-stars flex gap-0.5 mb-2.5">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className="w-3 h-3 fill-current"
+                      style={{ color: "#FBBF24" }}
+                    />
+                  ))}
+                </div>
+
+                {/* Review text */}
+                <p
+                  className="mb-4 text-[11px] sm:text-[13px] italic leading-relaxed font-bengali line-clamp-3 flex-1"
+                  style={{ color: "#94A3B8" }}
+                >
+                  "{t.content}"
+                </p>
+
+                {/* Author row */}
+                <div
+                  className="flex items-center gap-2.5 mt-auto pt-3"
+                  style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
+                >
+                  <div className="relative shrink-0">
+                    <div
+                      className="w-8 h-8 rounded-full flex items-center justify-center"
+                      style={{
+                        background: "linear-gradient(135deg, #1e293b, #0f172a)",
+                        border: "1px solid rgba(245, 158, 11, 0.3)",
+                        boxShadow: "0 0 8px rgba(245, 158, 11, 0.15)",
+                      }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" style={{ color: "#64748B" }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                      </svg>
+                    </div>
+                    <CheckCircle2 className="absolute -bottom-0.5 -right-0.5 w-3 h-3 text-green-500 bg-[#0a0d14] rounded-full" />
                   </div>
-                  <CheckCircle2 className="absolute -bottom-0.5 -right-0.5 w-3 h-3 text-green-500 bg-background rounded-full" />
-                </div>
-                <div className="font-bengali min-w-0">
-                  <div className="font-bold text-[11px] sm:text-xs text-foreground truncate">{t.name}</div>
-                  <div className="text-[9px] sm:text-[10px] text-muted-foreground truncate">{t.role} • {t.location}</div>
+                  <div className="font-bengali min-w-0">
+                    <div className="font-bold text-[11px] sm:text-xs truncate" style={{ color: "#E2E8F0" }}>{t.name}</div>
+                    <div className="text-[9px] sm:text-[10px] truncate" style={{ color: "#475569" }}>{t.role} • {t.location}</div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 

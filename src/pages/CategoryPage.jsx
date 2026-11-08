@@ -141,12 +141,15 @@ export default function CategoryPage() {
           </div>
 
           {category.imageURL && (
-            <div className="mb-6 rounded-xl overflow-hidden aspect-[16/6] max-h-64">
+            <div className="mb-6 rounded-xl overflow-hidden aspect-[16/6] max-h-64 bg-slate-900">
               <img 
                 src={category.imageURL} 
                 alt={category.title}
                 loading="lazy"
                 decoding="async"
+                width="1200"
+                height="450"
+                onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -173,12 +176,28 @@ export default function CategoryPage() {
                 >
                   <div className="bg-card border border-border rounded-xl overflow-hidden hover:border-primary hover:shadow-lg transition-all p-6">
                     {subcategory.imageURL ? (
-                      <div className="mb-4 rounded-lg overflow-hidden aspect-video">
+                      <div className="mb-4 rounded-lg overflow-hidden aspect-video bg-slate-900">
                         <img 
                           src={subcategory.imageURL} 
                           alt={subcategory.title}
+                          loading="lazy"
+                          decoding="async"
+                          width="400"
+                          height="225"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            if (e.currentTarget.nextElementSibling) {
+                              e.currentTarget.nextElementSibling.style.display = 'flex';
+                            }
+                          }}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
+                        <div 
+                          className="w-full h-full items-center justify-center aspect-video bg-primary/5 rounded-lg"
+                          style={{ display: 'none' }}
+                        >
+                          <Folder className="w-12 h-12 text-primary/50" />
+                        </div>
                       </div>
                     ) : (
                       <div className="mb-4 flex items-center justify-center aspect-video bg-primary/5 rounded-lg">
