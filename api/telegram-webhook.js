@@ -1,4 +1,4 @@
-import { handleTelegramCallbackQuery, registerTelegramWebhook } from './telegram-bot-service.js';
+import { handleTelegramCallbackQuery, registerTelegramWebhook } from './_utils/telegram-bot-service.js';
 
 try {
   if (process.loadEnvFile && !process.env.TELEGRAM_BOT_TOKEN) {

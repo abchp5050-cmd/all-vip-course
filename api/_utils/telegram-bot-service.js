@@ -1,4 +1,4 @@
-import { db } from '../src/lib/firebase.js';
+import { db } from '../../src/lib/firebase.js';
 import { 
   doc, 
   getDoc, 

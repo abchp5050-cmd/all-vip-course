@@ -1,4 +1,4 @@
-import { initializeFirebaseAdmin, getFirestoreDb } from './firebase-admin-init.js';
+import { initializeFirebaseAdmin, getFirestoreDb } from './_utils/firebase-admin-init.js';
 
 const admin = initializeFirebaseAdmin();
 const db = getFirestoreDb();

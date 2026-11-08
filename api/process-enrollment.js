@@ -8,7 +8,7 @@
  * 2. Status is string: "COMPLETED", "PENDING", or "ERROR"
  */
 
-import { processPaymentAndEnrollUser } from './utils/process-payment.js';
+import { processPaymentAndEnrollUser } from './_utils/process-payment.js';
 
 const RUPANTORPAY_API_KEY = process.env.RUPANTORPAY_API_KEY;
 const VERIFY_API_URL = 'https://payment.rupantorpay.com/api/payment/verify-payment';
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     
     // Validate coupon code against Firestore
     try {
-      const { getFirestoreDb } = await import('./firebase-admin-init.js');
+      const { getFirestoreDb } = await import('./_utils/firebase-admin-init.js');
       const db = getFirestoreDb();
       if (db) {
         const couponSnapshot = await db.collection('coupons').where('code', '==', couponCode).get();

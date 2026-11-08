@@ -9,7 +9,7 @@
  * 3. Must verify payment with API before processing
  */
 
-import { processPaymentAndEnrollUser } from './utils/process-payment.js';
+import { processPaymentAndEnrollUser } from './_utils/process-payment.js';
 
 const RUPANTORPAY_API_KEY = process.env.RUPANTORPAY_API_KEY;
 const VERIFY_API_URL = 'https://payment.rupantorpay.com/api/payment/verify-payment';
