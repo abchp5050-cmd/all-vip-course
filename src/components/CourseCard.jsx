@@ -4,20 +4,36 @@ import { motion } from "framer-motion"
 import { AlertCircle, UsersRound, Check, ShoppingCart, Send, Star, BookOpen } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 import { parseTelegramLinks } from "../lib/utils"
+import { doc, updateDoc, setDoc } from "firebase/firestore"
+import { db } from "../lib/firebase"
 
 function CourseCard({ course, paymentStatus, showButton = false, variant = "default" }) {
   const navigate = useNavigate()
-  const { currentUser } = useAuth()
+  const { currentUser, userProfile } = useAuth()
   const hasPendingPayment = paymentStatus === "pending"
   const hasAccess = paymentStatus === "approved"
   const [clickedMap, setClickedMap] = useState({})
 
   useEffect(() => {
-    if (hasAccess && currentUser && course.id) {
-      const stored = JSON.parse(localStorage.getItem(`telegram_clicks_${currentUser.uid}`) || '{}')
-      setClickedMap(stored)
+    if (hasAccess && currentUser?.uid) {
+      try {
+        const stored = JSON.parse(localStorage.getItem(`telegram_clicks_${currentUser.uid}`) || '{}')
+        setClickedMap(stored)
+      } catch (e) {
+        // ignore
+      }
     }
-  }, [hasAccess, currentUser, course.id])
+  }, [hasAccess, currentUser?.uid, userProfile?.joinedTelegramLinks])
+
+  const isLinkDisabled = (linkIndex = 0) => {
+    const remoteClicks = userProfile?.joinedTelegramLinks || {}
+    const key = `${course.id}_${linkIndex}`
+    const numIdx = Number(linkIndex)
+    if (clickedMap[key] || remoteClicks[key]) return true
+    if (numIdx === 0 && (clickedMap[course.id] || remoteClicks[course.id])) return true
+    if (numIdx === 0 && (clickedMap[`${course.id}_0`] || remoteClicks[`${course.id}_0`])) return true
+    return false
+  }
 
   const handleButtonClick = (e) => {
     e.preventDefault()
@@ -50,10 +66,50 @@ function CourseCard({ course, paymentStatus, showButton = false, variant = "defa
     e.preventDefault()
     e.stopPropagation()
     
-    if (!link || !currentUser) return
-    const isClicked = !!(clickedMap[`${course.id}_${linkIndex}`] || (linkIndex === 0 && clickedMap[course.id]))
-    if (isClicked) return
+    if (!link || !currentUser?.uid) return
+    if (isLinkDisabled(linkIndex)) return
 
+    const linkKey = `${course.id}_${linkIndex}`
+    const numIdx = Number(linkIndex)
+    const storageKey = `telegram_clicks_${currentUser.uid}`
+
+    // 1. Immediately update local state
+    const updated = {
+      ...clickedMap,
+      [linkKey]: true,
+    }
+    if (numIdx === 0) {
+      updated[course.id] = true
+    }
+    setClickedMap(updated)
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(updated))
+    } catch (err) {
+      // ignore
+    }
+
+    // 2. Persist to Firestore
+    try {
+      const userRef = doc(db, "users", currentUser.uid)
+      const updates = {
+        [`joinedTelegramLinks.${linkKey}`]: true,
+      }
+      if (numIdx === 0) {
+        updates[`joinedTelegramLinks.${course.id}`] = true
+      }
+      updateDoc(userRef, updates).catch(async () => {
+        await setDoc(userRef, {
+          joinedTelegramLinks: {
+            [linkKey]: true,
+            ...(numIdx === 0 ? { [course.id]: true } : {})
+          }
+        }, { merge: true })
+      })
+    } catch (dbErr) {
+      console.error("Error saving telegram click in CourseCard:", dbErr)
+    }
+
+    // 3. Resolve Telegram URL and navigate
     let telegramAppUrl
     if (link.includes('joinchat/') || link.includes('+')) {
       let inviteCode = link
@@ -71,16 +127,6 @@ function CourseCard({ course, paymentStatus, showButton = false, variant = "defa
     }
     
     window.location.href = telegramAppUrl
-    
-    setTimeout(() => {
-      const stored = JSON.parse(localStorage.getItem(`telegram_clicks_${currentUser.uid}`) || '{}')
-      stored[`${course.id}_${linkIndex}`] = true
-      if (linkIndex === 0) {
-        stored[course.id] = true
-      }
-      localStorage.setItem(`telegram_clicks_${currentUser.uid}`, JSON.stringify(stored))
-      setClickedMap(stored)
-    }, 500)
   }
 
   // Deterministic rating and students count based on course id
@@ -240,20 +286,22 @@ function CourseCard({ course, paymentStatus, showButton = false, variant = "defa
                   return (
                     <div className="space-y-1">
                       {tgLinks.map((item, idx) => {
-                        const isClicked = !!(clickedMap[`${course.id}_${idx}`] || (idx === 0 && clickedMap[course.id]))
+                        const isClicked = isLinkDisabled(idx)
                         const customLabel = item.label?.trim()
                         const defaultLabel = tgLinks.length === 1 ? "Join Telegram" : `Join Group #${idx + 1}`
                         const label = customLabel || defaultLabel
-                        const doneLabel = customLabel ? `${customLabel} (Joined)` : (tgLinks.length === 1 ? "Joined" : `Group #${idx + 1} Joined`)
+                        const doneLabel = tgLinks.length === 1
+                          ? "Joined / Link Used"
+                          : (customLabel ? `${customLabel} (Joined / Link Used)` : `Group #${idx + 1} (Joined / Link Used)`)
 
                         return (
                           <button
                             key={idx}
-                            onClick={(e) => handleTelegramClick(e, item.url, idx)}
+                            onClick={(e) => !isClicked && handleTelegramClick(e, item.url, idx)}
                             disabled={isClicked}
-                            className={`w-full py-1.5 px-1.5 rounded-lg text-[9px] sm:text-[10px] font-bold flex items-center justify-center gap-1 transition-all ${
+                            className={`w-full py-1.5 px-1.5 rounded-lg text-[9px] sm:text-[10px] font-bold flex items-center justify-center gap-1 transition-all select-none ${
                               isClicked
-                                ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 cursor-not-allowed'
+                                ? 'bg-slate-800/80 border border-slate-700/80 text-emerald-400 cursor-not-allowed opacity-90'
                                 : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow hover:shadow-indigo-500/25 active:scale-[0.98]'
                             }`}
                           >
@@ -427,36 +475,40 @@ function CourseCard({ course, paymentStatus, showButton = false, variant = "defa
                 return (
                   <div className="space-y-1.5">
                     {tgLinks.map((item, idx) => {
-                      const isClicked = !!(clickedMap[`${course.id}_${idx}`] || (idx === 0 && clickedMap[course.id]))
+                      const isClicked = isLinkDisabled(idx)
                       const customLabel = item.label?.trim()
                       const defaultLabel = tgLinks.length === 1 ? "Join Telegram Group" : `Join Group #${idx + 1}`
                       const label = customLabel || defaultLabel
-                      const doneLabel = customLabel ? `${customLabel} (Joined)` : (tgLinks.length === 1 ? "Joined" : `Group #${idx + 1} Joined`)
+                      const doneLabel = tgLinks.length === 1
+                        ? "Joined / Link Used"
+                        : (customLabel ? `${customLabel} (Joined / Link Used)` : `Group #${idx + 1} (Joined / Link Used)`)
 
                       return (
                         <button
                           key={idx}
-                          onClick={(e) => handleTelegramClick(e, item.url, idx)}
+                          onClick={(e) => !isClicked && handleTelegramClick(e, item.url, idx)}
                           disabled={isClicked}
-                          className={`w-full py-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all ${
+                          className={`w-full py-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all select-none ${
                             isClicked
-                              ? 'bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 cursor-not-allowed'
-                              : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow hover:shadow-md hover:shadow-indigo-500/20 hover:-translate-y-0.5'
+                              ? 'bg-slate-800/80 border border-slate-700/80 text-emerald-400 cursor-not-allowed opacity-90'
+                              : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow hover:shadow-md hover:shadow-indigo-500/20 active:scale-[0.98]'
                           }`}
                         >
                           {isClicked ? (
                             <>
-                              <Check className="w-3 h-3" /> {doneLabel}
+                              <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                              <span className="truncate">{doneLabel}</span>
                             </>
                           ) : (
                             <>
-                              <Send className="w-3 h-3" /> {label}
+                              <Send className="w-3 h-3 shrink-0" />
+                              <span className="truncate">{label}</span>
                             </>
                           )}
                         </button>
                       )
                     })}
-                    {!tgLinks.every((_, i) => clickedMap[`${course.id}_${i}`] || (i === 0 && clickedMap[course.id])) && (
+                    {!tgLinks.every((_, i) => isLinkDisabled(i)) && (
                       <p className="text-[9px] leading-tight text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 px-2 py-1.5 rounded border border-amber-200 dark:border-amber-500/20">
                         <span className="font-bold">Warning:</span> এই Button এক বার ক্লিক করলে পরে আর কাজ করবে না!
                       </p>

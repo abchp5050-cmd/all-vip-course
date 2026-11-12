@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { motion } from "framer-motion"
-import { ShoppingCart, ArrowLeft, ArrowRight, BookOpen, Copy, ShieldCheck, BadgeCheck, Lock, Phone, Loader2, CheckCircle2, Info, User, Tag, Ticket, AlertCircle, X } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { ShoppingCart, ArrowLeft, ArrowRight, BookOpen, Copy, ShieldCheck, BadgeCheck, Lock, Phone, Loader2, CheckCircle2, Info, User, Tag, Ticket, TicketPercent, Sparkles, Check, ChevronDown, AlertCircle, X } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
 import { collection, addDoc, serverTimestamp, getDocs, query, where, doc, updateDoc, increment } from "firebase/firestore"
 import { db } from "../lib/firebase"
@@ -31,6 +31,7 @@ export default function Checkout() {
   const [appliedCoupon, setAppliedCoupon] = useState(null)
   const [validatingCoupon, setValidatingCoupon] = useState(false)
   const [couponError, setCouponError] = useState("")
+  const [isPromoExpanded, setIsPromoExpanded] = useState(false)
 
   useEffect(() => {
     const fetchPaymentNumbers = async () => {
@@ -171,9 +172,10 @@ export default function Checkout() {
         ...couponData,
       })
       setCouponError("")
+      setIsPromoExpanded(false)
       toast({
         variant: "success",
-        title: "🎉 প্রোমো কোড প্রযোজ্য হয়েছে!",
+        title: "প্রোমো কোড প্রযোজ্য হয়েছে!",
         description: `আপনি ৳${discount.toFixed(2)} ছাড় পেয়েছেন!`,
       })
     } catch (err) {
@@ -188,6 +190,7 @@ export default function Checkout() {
     setAppliedCoupon(null)
     setPromoCodeInput("")
     setCouponError("")
+    setIsPromoExpanded(false)
     toast({
       title: "Coupon Removed",
       description: "প্রোমো কোড ডিসকাউন্ট বাতিল করা হয়েছে।",
@@ -457,111 +460,138 @@ export default function Checkout() {
               })}
             </div>
 
-            {/* Promo Code Box */}
-            <div className="border-t border-slate-800/80 pt-3.5 mb-4">
-              {!appliedCoupon ? (
-                <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 rounded-xl p-3">
-                  <label className="flex items-center gap-1.5 text-xs font-semibold text-amber-300 mb-2">
-                    <Tag className="w-3.5 h-3.5 text-amber-400" />
-                    Have a Promo Code?
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex-1">
-                      <input
-                        type="text"
-                        value={promoCodeInput}
-                        onChange={(e) => {
-                          setPromoCodeInput(e.target.value.toUpperCase())
-                          if (couponError) setCouponError("")
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault()
-                            handleApplyPromo()
-                          }
-                        }}
-                        placeholder="e.g. VIP20 or HSC50"
-                        className="w-full h-10 px-3 bg-slate-950/70 border border-amber-500/30 focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 rounded-lg text-white placeholder:text-slate-500 text-xs font-mono uppercase tracking-wider transition-all"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleApplyPromo}
-                      disabled={validatingCoupon || !promoCodeInput.trim()}
-                      className="h-10 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-bold text-xs rounded-lg transition-all shadow-[0_0_12px_rgba(245,158,11,0.25)] flex items-center gap-1.5 shrink-0 active:scale-95 cursor-pointer"
-                    >
-                      {validatingCoupon ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          <span>Applying...</span>
-                        </>
-                      ) : (
-                        <span>Apply</span>
-                      )}
-                    </button>
-                  </div>
-                  {couponError && (
-                    <motion.p 
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="text-[11px] text-red-400 flex items-center gap-1 mt-2"
-                    >
-                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                      {couponError}
-                    </motion.p>
-                  )}
-                </div>
-              ) : (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="p-3 rounded-xl bg-gradient-to-r from-amber-500/15 via-emerald-500/10 to-transparent border border-amber-500/40 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
-                      <Ticket className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-mono font-bold text-amber-300 text-xs tracking-wider">{appliedCoupon.code}</span>
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                          {appliedCoupon.type === "percentage" ? `${appliedCoupon.value}% OFF` : `৳${appliedCoupon.value} OFF`}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-emerald-400 font-medium mt-0.5">
-                        ডিসকাউন্ট প্রয়োগ করা হয়েছে! (৳{discountAmount.toFixed(2)} ছাড়)
-                      </p>
-                    </div>
-                  </div>
+            {/* Promo Code Collapsible Toggle Section */}
+            {!appliedCoupon && (
+              <div className="border-t border-slate-800/80 pt-2.5 pb-1">
+                {/* State 1: Default Collapsed Toggle Link (~28px height) */}
+                {!isPromoExpanded ? (
                   <button
                     type="button"
-                    onClick={handleRemoveCoupon}
-                    className="p-1.5 hover:bg-slate-800/80 rounded-lg text-slate-400 hover:text-red-400 transition-colors ml-2 shrink-0 cursor-pointer"
-                    title="Remove coupon"
+                    onClick={() => {
+                      setIsPromoExpanded(true)
+                      setCouponError("")
+                    }}
+                    className="group flex items-center justify-between w-full h-7 px-1 text-left cursor-pointer transition-colors"
                   >
-                    <X className="w-4 h-4" />
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-5 h-5 rounded-md bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 shadow-[0_0_8px_rgba(245,158,11,0.2)]">
+                        <TicketPercent className="w-3 h-3 text-amber-400" />
+                      </div>
+                      <span className="text-xs font-medium text-slate-300 group-hover:text-amber-300 transition-colors truncate">
+                        প্রোমো কোড আছে? এখানে ক্লিক করুন
+                      </span>
+                    </div>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-400 transition-transform duration-200 shrink-0" />
                   </button>
-                </motion.div>
-              )}
-            </div>
+                ) : (
+                  /* State 2: Expanded Slim Inline Pill Input (38px height) */
+                  <AnimatePresence>
+                    <motion.div
+                      initial={{ opacity: 0, height: 0, y: -4 }}
+                      animate={{ opacity: 1, height: "auto", y: 0 }}
+                      exit={{ opacity: 0, height: 0, y: -4 }}
+                      transition={{ duration: 0.2 }}
+                      className="space-y-1.5"
+                    >
+                      <div className="h-[38px] px-2.5 bg-slate-900/90 border border-amber-500/30 focus-within:border-amber-400 focus-within:ring-1 focus-within:ring-amber-400/40 rounded-xl flex items-center gap-2 shadow-inner transition-all">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400/80 shrink-0" />
+                        <input
+                          type="text"
+                          value={promoCodeInput}
+                          onChange={(e) => {
+                            setPromoCodeInput(e.target.value.toUpperCase())
+                            if (couponError) setCouponError("")
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault()
+                              handleApplyPromo()
+                            }
+                          }}
+                          placeholder="ENTER CODE (E.G. VIP20)"
+                          className="bg-transparent border-0 outline-none text-white placeholder:text-slate-500 text-xs font-mono font-semibold tracking-wider uppercase flex-1 min-w-0 h-full p-0 focus:ring-0"
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={handleApplyPromo}
+                          disabled={validatingCoupon || !promoCodeInput.trim()}
+                          className="h-7 px-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold text-[11px] rounded-lg transition-all flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer shrink-0"
+                        >
+                          {validatingCoupon ? (
+                            <>
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              <span>Applying...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>Apply</span>
+                              <Check className="w-3 h-3 stroke-[2.5]" />
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsPromoExpanded(false)
+                            setCouponError("")
+                          }}
+                          className="p-1 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
+                          title="Close"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
 
-            <div className="border-t border-slate-800 pt-3 lg:pt-4 space-y-2">
+                      {couponError && (
+                        <motion.p
+                          initial={{ opacity: 0, y: -2 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-[11px] text-rose-400 flex items-center gap-1 px-1"
+                        >
+                          <AlertCircle className="w-3 h-3 shrink-0" />
+                          <span>{couponError}</span>
+                        </motion.p>
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
+                )}
+              </div>
+            )}
+
+            <div className="border-t border-slate-800 pt-3 lg:pt-4 space-y-2.5">
               <div className="flex justify-between items-center text-xs lg:text-sm text-slate-400">
                 <span>মূল মূল্য (Subtotal)</span>
                 <span className="font-medium text-slate-200">৳{subtotal.toFixed(2)}</span>
               </div>
 
+              {/* State 3: Applied Discount Badge */}
               {appliedCoupon && (
                 <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  className="flex justify-between items-center text-xs lg:text-sm text-emerald-400 font-medium"
+                  initial={{ opacity: 0, height: 0, y: -4 }}
+                  animate={{ opacity: 1, height: "auto", y: 0 }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex justify-between items-center text-xs lg:text-sm py-0.5"
                 >
-                  <span className="flex items-center gap-1">
-                    <Tag className="w-3.5 h-3.5" />
-                    প্রোমো কোড ডিসকাউন্ট ({appliedCoupon.code})
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-400">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span className="font-mono font-bold text-xs tracking-wider text-emerald-300">{appliedCoupon.code}</span>
+                    <span className="text-[10px] text-emerald-400/80 font-medium">
+                      ({appliedCoupon.type === "percentage" ? `${appliedCoupon.value}%` : `৳${appliedCoupon.value}`} OFF)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleRemoveCoupon}
+                      className="p-0.5 ml-0.5 text-emerald-400/70 hover:text-rose-400 transition-colors rounded cursor-pointer"
+                      title="Remove"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <span className="text-emerald-400 font-semibold font-mono text-xs lg:text-sm">
+                    -৳{discountAmount.toFixed(2)}
                   </span>
-                  <span>-৳{discountAmount.toFixed(2)}</span>
                 </motion.div>
               )}
 

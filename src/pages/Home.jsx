@@ -667,13 +667,15 @@ const testimonials = [
             </div>
             
             <div className="z-10 shrink-0 w-full sm:w-auto">
-              <Link
-                to="/courses"
+              <a
+                href="https://t.me/Newvip69_bot"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 sm:px-8 sm:py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white rounded-xl font-bold text-[12px] sm:text-sm shadow-md hover:shadow-orange-500/25 transition-all"
               >
                 Get Started
                 <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </Link>
+              </a>
             </div>
           </motion.div>
         </div>

@@ -253,6 +253,86 @@ Welcome back, Admin! Select an action below or send a command to manage the plat
 // 2. LIVE ANALYTICS & SALES REPORT
 // ==========================================
 
+/**
+ * Safely parse numeric revenue/amount from a payment document
+ * Checks docData.finalAmount, totalAmount, amount, price, coursePrice, total, subtotal,
+ * strips currency symbols/commas, and optionally falls back to course price lookup.
+ */
+export function parseRevenueAmount(docData, coursePriceLookup = null) {
+  if (!docData || typeof docData !== "object") return 0;
+
+  // Explicit free enrollments with no payment amount
+  if (docData.isFreeEnrollment === true && !docData.finalAmount && !docData.amount && !docData.totalAmount) {
+    return 0;
+  }
+
+  // Priority order of candidate price fields
+  const candidates = [
+    docData.finalAmount,
+    docData.totalAmount,
+    docData.amount,
+    docData.price,
+    docData.coursePrice,
+    docData.total,
+    docData.subtotal,
+  ];
+
+  for (const raw of candidates) {
+    if (raw !== undefined && raw !== null && raw !== "") {
+      const cleanStr = String(raw).replace(/[^0-9.-]+/g, "");
+      const num = parseFloat(cleanStr);
+      if (!isNaN(num) && num > 0) {
+        return num;
+      }
+    }
+  }
+
+  // Check nested courses array if present
+  if (Array.isArray(docData.courses) && docData.courses.length > 0) {
+    let coursesTotal = 0;
+    for (const c of docData.courses) {
+      if (c && typeof c === "object") {
+        const cPrice = c.price ?? c.coursePrice ?? c.amount;
+        if (cPrice !== undefined && cPrice !== null && cPrice !== "") {
+          const clean = String(cPrice).replace(/[^0-9.-]+/g, "");
+          const parsed = parseFloat(clean);
+          if (!isNaN(parsed) && parsed > 0) {
+            coursesTotal += parsed;
+          }
+        } else if (coursePriceLookup && c.id && coursePriceLookup[c.id]) {
+          const fallback = parseFloat(coursePriceLookup[c.id]) || 0;
+          if (fallback > 0) coursesTotal += fallback;
+        }
+      }
+    }
+    if (coursesTotal > 0) {
+      return coursesTotal;
+    }
+  }
+
+  // Fallback: check docData.courseId with coursePriceLookup
+  if (coursePriceLookup && (docData.courseId || docData.course?.id)) {
+    const cid = docData.courseId || docData.course?.id;
+    if (coursePriceLookup[cid] && docData.isFreeEnrollment !== true) {
+      const fallback = parseFloat(coursePriceLookup[cid]) || 0;
+      if (fallback > 0) return fallback;
+    }
+  }
+
+  // Check if any candidate was explicitly 0
+  for (const raw of candidates) {
+    if (raw !== undefined && raw !== null && raw !== "") {
+      const cleanStr = String(raw).replace(/[^0-9.-]+/g, "");
+      const num = parseFloat(cleanStr);
+      if (!isNaN(num)) {
+        return num;
+      }
+    }
+  }
+
+  return 0;
+}
+
 export async function handleStatsCommand(chatId, botToken, messageId = null) {
   const token = botToken || (process.env.TELEGRAM_BOT_TOKEN || "").trim();
 
@@ -266,6 +346,19 @@ export async function handleStatsCommand(chatId, botToken, messageId = null) {
       getDocs(collection(db, "courses")),
     ]);
 
+    // Build course price lookup map from coursesSnap
+    const coursePriceMap = {};
+    coursesSnap.docs.forEach((d) => {
+      const c = d.data();
+      if (c && c.price !== undefined) {
+        const clean = String(c.price).replace(/[^0-9.-]+/g, "");
+        const p = parseFloat(clean);
+        if (!isNaN(p)) {
+          coursePriceMap[d.id] = p;
+        }
+      }
+    });
+
     let totalRevenue = 0;
     let todayRevenue = 0;
     let totalApprovedCount = 0;
@@ -276,7 +369,7 @@ export async function handleStatsCommand(chatId, botToken, messageId = null) {
 
     paymentsSnap.docs.forEach((docSnap) => {
       const data = docSnap.data();
-      const amount = Number(data.totalAmount || data.amount || 0);
+      const amount = parseRevenueAmount(data, coursePriceMap);
       const submittedMs = getTimestampMs(data.submittedAt || data.createdAt);
       const isToday = submittedMs >= todayStartMs;
 
@@ -455,7 +548,7 @@ Showing the latest ${ordersToShow.length} orders. Tap <b>Approve</b> or <b>Rejec
 👤 <b>Student:</b> ${payment.customerName || "N/A"}
 📱 <b>Phone:</b> <code>${payment.phoneNumber || "N/A"}</code>
 💳 <b>Method:</b> ${payment.paymentMethod || "bKash"}
-💰 <b>Amount:</b> <b>৳${payment.totalAmount || payment.amount || 0}</b>
+💰 <b>Amount:</b> <b>৳${parseRevenueAmount(payment).toLocaleString()}</b>
 🏷 <b>TrxID:</b> <code>${payment.trxId || payment.transactionId || "N/A"}</code>
 ✈️ <b>Telegram:</b> ${payment.telegramName || payment.telegramId || "N/A"}
 📚 <b>Courses:</b> ${courseNames}

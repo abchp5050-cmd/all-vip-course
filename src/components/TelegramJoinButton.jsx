@@ -116,7 +116,7 @@ export default function TelegramJoinButton({ enrollmentId, telegramLink, courseN
         }`}
       >
         {hasJoined ? <Check className="w-4 h-4" /> : <Send className="w-4 h-4" />}
-        <span>{hasJoined ? (buttonLabel ? `${buttonLabel} (Joined)` : "Joined Telegram Group") : (buttonLabel || "Join Telegram Group")}</span>
+        <span>{hasJoined ? (buttonLabel ? `${buttonLabel} (Joined / Link Used)` : "Joined / Link Used") : (buttonLabel || "Join Telegram Group")}</span>
       </button>
       {!hasJoined && (
         <p className="text-xs text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950/30 p-2 rounded border border-yellow-200 dark:border-yellow-800">

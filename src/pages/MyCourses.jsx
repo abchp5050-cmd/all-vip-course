@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { BookOpen, Send, Check, Clock, CheckCircle, XCircle, GraduationCap, Star, Shield, Users, Sparkles, ChevronRight, AlertTriangle, X, AlertCircle, Headset, Info } from "lucide-react"
-import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore"
+import { collection, query, where, getDocs, doc, getDoc, onSnapshot, setDoc, updateDoc } from "firebase/firestore"
 import { db } from "../lib/firebase"
 import { useAuth } from "../contexts/AuthContext"
 import { parseTelegramLinks } from "../lib/utils"
@@ -21,32 +21,134 @@ export default function MyCourses() {
   useEffect(() => {
     if (currentUser) {
       fetchEnrollments()
-      loadClickedLinks()
     }
   }, [currentUser])
 
-  const loadClickedLinks = () => {
-    const saved = localStorage.getItem(`telegram_clicks_${currentUser?.uid}`)
-    if (saved) {
-      setClickedLinks(JSON.parse(saved))
-    }
-  }
+  // Real-time Firestore sync & automatic migration of localStorage clicked links
+  useEffect(() => {
+    if (!currentUser?.uid) return
 
-  const saveClickedLink = (courseId, linkIndex = 0) => {
+    const storageKey = `telegram_clicks_${currentUser.uid}`
+    let localCache = {}
+
+    // 1. Immediately hydrate from localStorage for instant zero-lag rendering
+    try {
+      const saved = localStorage.getItem(storageKey)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (parsed && typeof parsed === "object") {
+          localCache = parsed
+          setClickedLinks(parsed)
+        }
+      }
+    } catch (err) {
+      console.error("Failed to read telegram clicks from localStorage:", err)
+    }
+
+    // 2. Real-time onSnapshot listener on users/{uid}
+    const userRef = doc(db, "users", currentUser.uid)
+    const unsubscribe = onSnapshot(
+      userRef,
+      async (docSnapshot) => {
+        try {
+          const userData = docSnapshot.exists() ? docSnapshot.data() : {}
+          const remoteClicks = userData?.joinedTelegramLinks || {}
+
+          // Check if any local flags exist that are not yet recorded in Firestore (migration)
+          let needsMigration = false
+          const migrationUpdates = {}
+
+          for (const [key, val] of Object.entries(localCache)) {
+            if (val && !remoteClicks[key]) {
+              needsMigration = true
+              migrationUpdates[`joinedTelegramLinks.${key}`] = true
+            }
+          }
+
+          if (needsMigration) {
+            try {
+              await updateDoc(userRef, migrationUpdates)
+            } catch (updateErr) {
+              await setDoc(userRef, {
+                joinedTelegramLinks: { ...localCache, ...remoteClicks }
+              }, { merge: true })
+            }
+          }
+
+          // Merge local and remote states
+          const merged = { ...localCache, ...remoteClicks }
+          setClickedLinks(merged)
+
+          // Keep localCache and localStorage updated with latest remote truth
+          localCache = merged
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(merged))
+          } catch (e) {
+            // Ignore storage quota
+          }
+        } catch (err) {
+          console.error("Error processing telegram sync snapshot:", err)
+        }
+      },
+      (error) => {
+        console.error("Real-time telegram sync onSnapshot error:", error)
+      }
+    )
+
+    return () => unsubscribe()
+  }, [currentUser?.uid])
+
+  const saveClickedLink = async (courseId, linkIndex = 0) => {
+    if (!currentUser?.uid || !courseId) return
+
+    const linkKey = `${courseId}_${linkIndex}`
+    const storageKey = `telegram_clicks_${currentUser.uid}`
+
+    // 1. Update local state immediately for zero-lag UI response
     const updated = {
       ...clickedLinks,
-      [`${courseId}_${linkIndex}`]: true,
+      [linkKey]: true,
     }
-    if (linkIndex === 0) {
+    if (Number(linkIndex) === 0) {
       updated[courseId] = true
     }
     setClickedLinks(updated)
-    localStorage.setItem(`telegram_clicks_${currentUser?.uid}`, JSON.stringify(updated))
+
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(updated))
+    } catch (e) {
+      console.error("Error saving clicked link to localStorage:", e)
+    }
+
+    // 2. Immediately persist to Firestore so all other devices reflect the change in real time
+    try {
+      const userRef = doc(db, "users", currentUser.uid)
+      const updates = {
+        [`joinedTelegramLinks.${linkKey}`]: true,
+      }
+      if (Number(linkIndex) === 0) {
+        updates[`joinedTelegramLinks.${courseId}`] = true
+      }
+
+      await updateDoc(userRef, updates).catch(async () => {
+        await setDoc(userRef, {
+          joinedTelegramLinks: {
+            [linkKey]: true,
+            ...(Number(linkIndex) === 0 ? { [courseId]: true } : {})
+          }
+        }, { merge: true })
+      })
+    } catch (dbErr) {
+      console.error("Error saving telegram click to Firestore:", dbErr)
+    }
   }
 
-  const isLinkDisabled = (courseId, linkIndex) => {
+  const isLinkDisabled = (courseId, linkIndex = 0) => {
+    if (!courseId) return false
+    const numIdx = Number(linkIndex)
     if (clickedLinks[`${courseId}_${linkIndex}`]) return true
-    if (linkIndex === 0 && clickedLinks[courseId]) return true
+    if (numIdx === 0 && clickedLinks[courseId]) return true
+    if (numIdx === 0 && clickedLinks[`${courseId}_0`]) return true
     return false
   }
 
@@ -157,8 +259,12 @@ export default function MyCourses() {
   }
 
   const handleTelegramClick = (courseId, link, linkIndex = 0) => {
-    if (!link) return
-    
+    if (!link || !currentUser?.uid) return
+    if (isLinkDisabled(courseId, linkIndex)) return
+
+    // Immediately record click locally and trigger Firestore background sync
+    saveClickedLink(courseId, linkIndex)
+
     let telegramAppUrl
     // Check if it's a joinchat or + invite link (private group)
     if (link.includes('joinchat/') || link.includes('+')) {
@@ -183,11 +289,6 @@ export default function MyCourses() {
     
     // Open in Telegram app
     window.location.href = telegramAppUrl
-    
-    // Mark as clicked after a short delay
-    setTimeout(() => {
-      saveClickedLink(courseId, linkIndex)
-    }, 500)
   }
 
   useEffect(() => {
@@ -412,28 +513,30 @@ export default function MyCourses() {
                               const customLabel = item.label?.trim()
                               const defaultLabel = tgLinks.length === 1 ? "Join Telegram Group" : `Join Group #${idx + 1}`
                               const label = customLabel || defaultLabel
-                              const disabledLabel = customLabel ? `${customLabel} (Opened)` : (tgLinks.length === 1 ? "Opened in Telegram" : `Group #${idx + 1} Opened`)
+                              const disabledLabel = tgLinks.length === 1
+                                ? "Joined / Link Used"
+                                : (customLabel ? `${customLabel} (Joined / Link Used)` : `Group #${idx + 1} (Joined / Link Used)`)
 
                               return (
                                 <motion.button
                                   key={idx}
-                                  whileTap={{ scale: 0.96 }}
-                                  onClick={() => handleTelegramClick(course.id, item.url, idx)}
+                                  whileTap={disabled ? undefined : { scale: 0.96 }}
+                                  onClick={() => !disabled && handleTelegramClick(course.id, item.url, idx)}
                                   disabled={disabled}
-                                  className={`w-full py-2.5 px-4 rounded-xl transition-all duration-300 font-semibold flex items-center justify-center gap-2 text-sm ${
+                                  className={`w-full py-2.5 px-4 rounded-xl transition-all duration-300 font-semibold flex items-center justify-center gap-2 text-sm select-none ${
                                     disabled
-                                      ? 'bg-slate-800 border border-slate-700 text-slate-400 cursor-not-allowed'
-                                      : 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white shadow-md shadow-orange-500/20 hover:shadow-orange-500/35 border border-orange-400/20'
+                                      ? 'bg-slate-800/80 border border-slate-700/80 text-emerald-400 cursor-not-allowed opacity-90'
+                                      : 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white shadow-md shadow-orange-500/20 hover:shadow-orange-500/35 border border-orange-400/20 active:scale-[0.98]'
                                   }`}
                                 >
                                   {disabled ? (
                                     <>
-                                      <Check className="w-4 h-4 text-emerald-400" />
+                                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
                                       <span className="truncate">{disabledLabel}</span>
                                     </>
                                   ) : (
                                     <>
-                                      <Send className="w-4 h-4" />
+                                      <Send className="w-4 h-4 shrink-0" />
                                       <span className="truncate">{label}</span>
                                     </>
                                   )}
@@ -442,7 +545,7 @@ export default function MyCourses() {
                             })}
                             <p className="text-[11px] text-center text-gray-400 mt-2 font-normal">
                               {tgLinks.every((_, i) => isLinkDisabled(course.id, i))
-                                ? 'Button disabled after opening'
+                                ? 'Joined / Link Used on this account'
                                 : 'Secure access via Telegram'}
                             </p>
                           </div>
