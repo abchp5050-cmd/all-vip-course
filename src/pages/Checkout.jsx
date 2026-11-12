@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
-import { ShoppingCart, ArrowLeft, ArrowRight, BookOpen, Copy, ShieldCheck, BadgeCheck, Lock, Phone, Loader2, CheckCircle2, Info, User } from "lucide-react"
+import { ShoppingCart, ArrowLeft, ArrowRight, BookOpen, Copy, ShieldCheck, BadgeCheck, Lock, Phone, Loader2, CheckCircle2, Info, User, Tag, Ticket, AlertCircle, X } from "lucide-react"
 import { useAuth } from "../contexts/AuthContext"
-import { collection, addDoc, serverTimestamp, getDocs, query, where } from "firebase/firestore"
+import { collection, addDoc, serverTimestamp, getDocs, query, where, doc, updateDoc, increment } from "firebase/firestore"
 import { db } from "../lib/firebase"
 import { toast } from "../hooks/use-toast"
 
@@ -21,6 +21,35 @@ export default function Checkout() {
   const [telegramName, setTelegramName] = useState("")
   const [customerName, setCustomerName] = useState("")
   const [copied, setCopied] = useState(null)
+  const [paymentNumbers, setPaymentNumbers] = useState({
+    bkash: "01831952349",
+    nagad: "01815307903",
+  })
+
+  // Promo Code States
+  const [promoCodeInput, setPromoCodeInput] = useState("")
+  const [appliedCoupon, setAppliedCoupon] = useState(null)
+  const [validatingCoupon, setValidatingCoupon] = useState(false)
+  const [couponError, setCouponError] = useState("")
+
+  useEffect(() => {
+    const fetchPaymentNumbers = async () => {
+      try {
+        const q = query(collection(db, "settings"), where("type", "==", "payment"))
+        const snap = await getDocs(q)
+        if (!snap.empty) {
+          const data = snap.docs[0].data()
+          setPaymentNumbers({
+            bkash: data.bkashNumber || "01831952349",
+            nagad: data.nagadNumber || "01815307903",
+          })
+        }
+      } catch (err) {
+        console.error("Error fetching payment settings:", err)
+      }
+    }
+    fetchPaymentNumbers()
+  }, [])
 
   useEffect(() => {
     if (userProfile?.name || currentUser?.displayName) {
@@ -65,6 +94,104 @@ export default function Checkout() {
 
   const getTotal = () => {
     return cartItems.reduce((total, item) => total + (item.price || 0), 0)
+  }
+
+  const calculateCouponDiscount = (coupon, currentSubtotal) => {
+    if (!coupon) return 0
+    let discount = 0
+    if (coupon.type === "percentage") {
+      const pct = parseFloat(coupon.value) || 0
+      discount = (currentSubtotal * pct) / 100
+      if (coupon.maxDiscount && discount > Number(coupon.maxDiscount)) {
+        discount = Number(coupon.maxDiscount)
+      }
+    } else {
+      discount = parseFloat(coupon.value) || 0
+    }
+    return Math.min(discount, currentSubtotal)
+  }
+
+  const handleApplyPromo = async () => {
+    const cleanCode = promoCodeInput.trim().toUpperCase()
+    if (!cleanCode) {
+      setCouponError("অনুগ্রহ করে একটি প্রোমো কোড লিখুন।")
+      return
+    }
+
+    setValidatingCoupon(true)
+    setCouponError("")
+
+    try {
+      const q = query(collection(db, "coupons"), where("code", "==", cleanCode))
+      const snap = await getDocs(q)
+
+      if (snap.empty) {
+        setCouponError("প্রোমো কোডটি সঠিক নয়। অনুগ্রহ করে যাচাই করে পুনরায় চেষ্টা করুন।")
+        setValidatingCoupon(false)
+        return
+      }
+
+      const couponDoc = snap.docs[0]
+      const couponData = couponDoc.data()
+
+      if (couponData.active === false) {
+        setCouponError("এই প্রোমো কোডটি বর্তমানে নিষ্ক্রিয় রয়েছে।")
+        setValidatingCoupon(false)
+        return
+      }
+
+      const currentUsed = Number(couponData.usedCount) || 0
+      const limit = Number(couponData.usageLimit)
+      if (limit > 0 && currentUsed >= limit) {
+        setCouponError("এই প্রোমো কোডটির ব্যবহারের সর্বোচ্চ সীমা শেষ হয়ে গেছে।")
+        setValidatingCoupon(false)
+        return
+      }
+
+      if (couponData.expiresAt) {
+        const expiryDate = couponData.expiresAt.toDate ? couponData.expiresAt.toDate() : new Date(couponData.expiresAt)
+        if (expiryDate < new Date()) {
+          setCouponError("এই প্রোমো কোডটির মেয়াদ উত্তীর্ণ হয়েছে।")
+          setValidatingCoupon(false)
+          return
+        }
+      }
+
+      const currentSubtotal = getTotal()
+      if (couponData.minPurchase && currentSubtotal < Number(couponData.minPurchase)) {
+        setCouponError(`এই কোডটি ব্যবহার করতে ন্যূনতম ৳${couponData.minPurchase} টাকার কোর্স প্রয়োজন।`)
+        setValidatingCoupon(false)
+        return
+      }
+
+      const discount = calculateCouponDiscount(couponData, currentSubtotal)
+
+      setAppliedCoupon({
+        id: couponDoc.id,
+        ...couponData,
+      })
+      setCouponError("")
+      toast({
+        variant: "success",
+        title: "🎉 প্রোমো কোড প্রযোজ্য হয়েছে!",
+        description: `আপনি ৳${discount.toFixed(2)} ছাড় পেয়েছেন!`,
+      })
+    } catch (err) {
+      console.error("Error validating promo code:", err)
+      setCouponError("প্রোমো কোড যাচাই করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।")
+    } finally {
+      setValidatingCoupon(false)
+    }
+  }
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null)
+    setPromoCodeInput("")
+    setCouponError("")
+    toast({
+      title: "Coupon Removed",
+      description: "প্রোমো কোড ডিসকাউন্ট বাতিল করা হয়েছে।",
+    })
   }
 
   const clearCart = () => {
@@ -115,9 +242,10 @@ export default function Checkout() {
     setLoading(true)
 
     try {
-      const subtotal = getTotal()
+      const currentSubtotal = getTotal()
+      const discount = appliedCoupon ? calculateCouponDiscount(appliedCoupon, currentSubtotal) : 0
+      const finalAmount = Math.max(0, currentSubtotal - discount)
 
-      
       // Create payment record
       const paymentDocRef = await addDoc(collection(db, "payments"), {
         userId: currentUser.uid,
@@ -132,12 +260,27 @@ export default function Checkout() {
           price: parseFloat(item.price) || 0,
           status: "pending",
         })),
-        subtotal: parseFloat(subtotal.toFixed(2)),
-        discount: 0,
-        finalAmount: parseFloat(subtotal.toFixed(2)),
+        subtotal: parseFloat(currentSubtotal.toFixed(2)),
+        discount: parseFloat(discount.toFixed(2)),
+        finalAmount: parseFloat(finalAmount.toFixed(2)),
+        totalAmount: parseFloat(finalAmount.toFixed(2)),
+        promoCode: appliedCoupon ? appliedCoupon.code : null,
+        couponId: appliedCoupon ? appliedCoupon.id : null,
+        paymentMethod: paymentMethod || "bKash",
         status: "pending",
         submittedAt: serverTimestamp(),
       })
+
+      // Increment coupon usedCount if promo was applied
+      if (appliedCoupon?.id) {
+        try {
+          await updateDoc(doc(db, "coupons", appliedCoupon.id), {
+            usedCount: increment(1)
+          })
+        } catch (couponErr) {
+          console.warn("Failed to increment coupon usedCount:", couponErr)
+        }
+      }
 
       // Create PENDING enrollment for each course
       for (const course of cartItems) {
@@ -151,7 +294,8 @@ export default function Checkout() {
             amount: parseFloat(course.price) || 0,
             telegramId: telegramId.trim(),
             telegramName: telegramName.trim() || "",
-            customerName: customerName.trim()
+            customerName: customerName.trim(),
+            promoCode: appliedCoupon ? appliedCoupon.code : null
           },
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
@@ -174,7 +318,8 @@ export default function Checkout() {
             payment_method: paymentMethod || "bKash",
             telegram_id_name: telegramName.trim(),
             telegram_username: telegramId.trim() || "Not provided",
-            amount: `৳${subtotal.toFixed(2)}`,
+            amount: `৳${finalAmount.toFixed(2)}${appliedCoupon ? ` (Original: ৳${currentSubtotal.toFixed(2)})` : ""}`,
+            promo_code: appliedCoupon ? `${appliedCoupon.code} (-৳${discount.toFixed(2)})` : null,
             date_time: new Date().toLocaleString("en-US", {
               timeZone: "Asia/Dhaka",
               dateStyle: "medium",
@@ -198,7 +343,7 @@ export default function Checkout() {
       navigate("/checkout-complete", {
         state: {
           phoneNumber: phoneNumber.trim(),
-          amount: subtotal.toFixed(2),
+          amount: finalAmount.toFixed(2),
           courses: cartItems
         }
       })
@@ -215,6 +360,8 @@ export default function Checkout() {
   }
 
   const subtotal = getTotal()
+  const discountAmount = appliedCoupon ? calculateCouponDiscount(appliedCoupon, subtotal) : 0
+  const finalPayable = Math.max(0, subtotal - discountAmount)
 
   return (
     <div className="min-h-screen bg-[#0a0f1c] text-slate-200 py-4 lg:py-10 relative overflow-hidden font-sans">
@@ -310,15 +457,129 @@ export default function Checkout() {
               })}
             </div>
 
-            <div className="border-t border-slate-800 pt-3 lg:pt-5">
-              <div className="flex justify-between items-end">
+            {/* Promo Code Box */}
+            <div className="border-t border-slate-800/80 pt-3.5 mb-4">
+              {!appliedCoupon ? (
+                <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 rounded-xl p-3">
+                  <label className="flex items-center gap-1.5 text-xs font-semibold text-amber-300 mb-2">
+                    <Tag className="w-3.5 h-3.5 text-amber-400" />
+                    Have a Promo Code?
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        value={promoCodeInput}
+                        onChange={(e) => {
+                          setPromoCodeInput(e.target.value.toUpperCase())
+                          if (couponError) setCouponError("")
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault()
+                            handleApplyPromo()
+                          }
+                        }}
+                        placeholder="e.g. VIP20 or HSC50"
+                        className="w-full h-10 px-3 bg-slate-950/70 border border-amber-500/30 focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50 rounded-lg text-white placeholder:text-slate-500 text-xs font-mono uppercase tracking-wider transition-all"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleApplyPromo}
+                      disabled={validatingCoupon || !promoCodeInput.trim()}
+                      className="h-10 px-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-bold text-xs rounded-lg transition-all shadow-[0_0_12px_rgba(245,158,11,0.25)] flex items-center gap-1.5 shrink-0 active:scale-95 cursor-pointer"
+                    >
+                      {validatingCoupon ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Applying...</span>
+                        </>
+                      ) : (
+                        <span>Apply</span>
+                      )}
+                    </button>
+                  </div>
+                  {couponError && (
+                    <motion.p 
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-[11px] text-red-400 flex items-center gap-1 mt-2"
+                    >
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      {couponError}
+                    </motion.p>
+                  )}
+                </div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="p-3 rounded-xl bg-gradient-to-r from-amber-500/15 via-emerald-500/10 to-transparent border border-amber-500/40 flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                      <Ticket className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono font-bold text-amber-300 text-xs tracking-wider">{appliedCoupon.code}</span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                          {appliedCoupon.type === "percentage" ? `${appliedCoupon.value}% OFF` : `৳${appliedCoupon.value} OFF`}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-emerald-400 font-medium mt-0.5">
+                        ডিসকাউন্ট প্রয়োগ করা হয়েছে! (৳{discountAmount.toFixed(2)} ছাড়)
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoupon}
+                    className="p-1.5 hover:bg-slate-800/80 rounded-lg text-slate-400 hover:text-red-400 transition-colors ml-2 shrink-0 cursor-pointer"
+                    title="Remove coupon"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </motion.div>
+              )}
+            </div>
+
+            <div className="border-t border-slate-800 pt-3 lg:pt-4 space-y-2">
+              <div className="flex justify-between items-center text-xs lg:text-sm text-slate-400">
+                <span>মূল মূল্য (Subtotal)</span>
+                <span className="font-medium text-slate-200">৳{subtotal.toFixed(2)}</span>
+              </div>
+
+              {appliedCoupon && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="flex justify-between items-center text-xs lg:text-sm text-emerald-400 font-medium"
+                >
+                  <span className="flex items-center gap-1">
+                    <Tag className="w-3.5 h-3.5" />
+                    প্রোমো কোড ডিসকাউন্ট ({appliedCoupon.code})
+                  </span>
+                  <span>-৳{discountAmount.toFixed(2)}</span>
+                </motion.div>
+              )}
+
+              <div className="border-t border-slate-800/80 pt-2.5 flex justify-between items-end">
                 <div>
-                  <p className="text-[11px] lg:text-sm text-slate-400 mb-0.5">Total Payable Amount</p>
+                  <p className="text-[11px] lg:text-sm text-slate-300 font-medium">Total Payable Amount</p>
                   <p className="text-[9px] lg:text-xs text-emerald-400 font-medium">One-time payment</p>
                 </div>
-                <span className="text-xl lg:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400">
-                  ৳{subtotal.toFixed(2)}
-                </span>
+                <div className="text-right">
+                  {appliedCoupon && (
+                    <span className="block text-xs line-through text-slate-500 font-mono">
+                      ৳{subtotal.toFixed(2)}
+                    </span>
+                  )}
+                  <span className="text-xl lg:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-amber-300">
+                    ৳{finalPayable.toFixed(2)}
+                  </span>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -434,17 +695,17 @@ export default function Checkout() {
                   বিকাশ নম্বরে টাকা পাঠান
                 </p>
                 <div className="flex items-center justify-between bg-slate-950/60 px-3 py-2.5 rounded-lg border border-[#E2136E]/25">
-                  <span className="text-base font-mono font-bold text-white tracking-widest">01831952349</span>
+                  <span className="text-base font-mono font-bold text-white tracking-widest">{paymentNumbers.bkash}</span>
                   <button
                     type="button"
-                    onClick={() => handleCopy("01831952349")}
+                    onClick={() => handleCopy(paymentNumbers.bkash)}
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${
-                      copied === "01831952349"
+                      copied === paymentNumbers.bkash
                         ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                         : "bg-[#E2136E] hover:bg-[#c4105f] text-white"
                     }`}
                   >
-                    {copied === "01831952349" ? (
+                    {copied === paymentNumbers.bkash ? (
                       <><CheckCircle2 className="w-3.5 h-3.5" /> কপি হয়েছে</>
                     ) : (
                       <><Copy className="w-3.5 h-3.5" /> কপি করুন</>
@@ -470,17 +731,17 @@ export default function Checkout() {
                   নগদ নম্বরে টাকা পাঠান
                 </p>
                 <div className="flex items-center justify-between bg-slate-950/60 px-3 py-2.5 rounded-lg border border-[#F7931E]/25">
-                  <span className="text-base font-mono font-bold text-white tracking-widest">01815307903</span>
+                  <span className="text-base font-mono font-bold text-white tracking-widest">{paymentNumbers.nagad}</span>
                   <button
                     type="button"
-                    onClick={() => handleCopy("01815307903")}
+                    onClick={() => handleCopy(paymentNumbers.nagad)}
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all ${
-                      copied === "01815307903"
+                      copied === paymentNumbers.nagad
                         ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                         : "bg-[#F7931E] hover:bg-[#d97c12] text-white"
                     }`}
                   >
-                    {copied === "01815307903" ? (
+                    {copied === paymentNumbers.nagad ? (
                       <><CheckCircle2 className="w-3.5 h-3.5" /> কপি হয়েছে</>
                     ) : (
                       <><Copy className="w-3.5 h-3.5" /> কপি করুন</>

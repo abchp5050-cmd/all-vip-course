@@ -17,7 +17,8 @@ import {
   ChevronRight,
   ChevronLeft,
   Star,
-  Settings
+  Settings,
+  Ticket
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { collection, query, where, onSnapshot } from "firebase/firestore"
@@ -28,6 +29,7 @@ const ManageUsers = lazy(() => import("./ManageUsers"))
 const ManageCategories = lazy(() => import("./ManageCategories"))
 const ManageCourses = lazy(() => import("./ManageCourses"))
 const ManagePayments = lazy(() => import("./ManagePayments"))
+const ManageCoupons = lazy(() => import("./ManageCoupons"))
 const HeaderFooterBuilder = lazy(() => import("./HeaderFooterBuilder"))
 const WebsiteSettings = lazy(() => import("./WebsiteSettings"))
 
@@ -85,6 +87,7 @@ export default function AdminDashboard() {
     { name: "Categories", path: "/admin/categories", icon: FolderTree },
     { name: "Courses", path: "/admin/courses", icon: BookOpen },
     { name: "Payments", path: "/admin/payments", icon: CreditCard, badge: pendingPaymentsCount },
+    { name: "Coupons", path: "/admin/coupons", icon: Ticket },
     { name: "Header & Footer", path: "/admin/header-footer", icon: Layout },
     { name: "Reviews", path: "/admin/reviews", icon: Star },
     { name: "Settings", path: "/admin/settings", icon: Settings },
@@ -345,6 +348,7 @@ export default function AdminDashboard() {
                   <Route path="categories" element={<ManageCategories />} />
                   <Route path="courses" element={<ManageCourses />} />
                   <Route path="payments" element={<ManagePayments />} />
+                  <Route path="coupons" element={<ManageCoupons />} />
                   <Route path="header-footer" element={<HeaderFooterBuilder />} />
                   {/* Fallbacks for Reviews/Settings routing if they don't exist yet */}
                   <Route path="reviews" element={<div className="p-8 text-center text-slate-500 bg-white rounded-xl shadow-sm border border-slate-100">Reviews Manager Coming Soon</div>} />

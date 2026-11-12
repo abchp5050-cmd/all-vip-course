@@ -328,13 +328,19 @@ export default function MyCourses() {
                       )}
                     </div>
                     <div>
-                      {course.category && (
-                        <p className={`text-xs font-semibold uppercase tracking-wider mb-1 line-clamp-1 ${
-                          isRejected ? 'text-rose-400' : isPending ? 'text-amber-400' : 'text-orange-400'
-                        }`}>
-                          {course.category}
-                        </p>
-                      )}
+                      {(() => {
+                        const cats = Array.isArray(course.categories) && course.categories.length > 0
+                          ? course.categories
+                          : (course.category ? [course.category] : [])
+                        if (cats.length === 0) return null
+                        return (
+                          <p className={`text-xs font-semibold uppercase tracking-wider mb-1 line-clamp-1 ${
+                            isRejected ? 'text-rose-400' : isPending ? 'text-amber-400' : 'text-orange-400'
+                          }`}>
+                            {cats.join(" • ")}
+                          </p>
+                        )
+                      })()}
                       <h3 className="font-bold text-base text-white leading-snug line-clamp-1">{course.title}</h3>
                     </div>
 
@@ -398,19 +404,21 @@ export default function MyCourses() {
                     ) : (
                       /* Telegram Group Access */
                       (() => {
-                        const tgLinks = parseTelegramLinks(course.telegramLink || course.telegramGroupLink)
+                        const tgLinks = parseTelegramLinks(course.telegramLinks || course.telegramLink || course.telegramGroupLink)
                         return tgLinks.length > 0 ? (
                           <div className="space-y-2 pt-2">
-                            {tgLinks.map((link, idx) => {
+                            {tgLinks.map((item, idx) => {
                               const disabled = isLinkDisabled(course.id, idx)
-                              const label = tgLinks.length === 1 ? "Join Telegram Group" : `Join Group ${idx + 1}`
-                              const disabledLabel = tgLinks.length === 1 ? "Opened in Telegram" : `Group ${idx + 1} Opened`
+                              const customLabel = item.label?.trim()
+                              const defaultLabel = tgLinks.length === 1 ? "Join Telegram Group" : `Join Group #${idx + 1}`
+                              const label = customLabel || defaultLabel
+                              const disabledLabel = customLabel ? `${customLabel} (Opened)` : (tgLinks.length === 1 ? "Opened in Telegram" : `Group #${idx + 1} Opened`)
 
                               return (
                                 <motion.button
                                   key={idx}
                                   whileTap={{ scale: 0.96 }}
-                                  onClick={() => handleTelegramClick(course.id, link, idx)}
+                                  onClick={() => handleTelegramClick(course.id, item.url, idx)}
                                   disabled={disabled}
                                   className={`w-full py-2.5 px-4 rounded-xl transition-all duration-300 font-semibold flex items-center justify-center gap-2 text-sm ${
                                     disabled
@@ -421,12 +429,12 @@ export default function MyCourses() {
                                   {disabled ? (
                                     <>
                                       <Check className="w-4 h-4 text-emerald-400" />
-                                      <span>{disabledLabel}</span>
+                                      <span className="truncate">{disabledLabel}</span>
                                     </>
                                   ) : (
                                     <>
                                       <Send className="w-4 h-4" />
-                                      <span>{label}</span>
+                                      <span className="truncate">{label}</span>
                                     </>
                                   )}
                                 </motion.button>

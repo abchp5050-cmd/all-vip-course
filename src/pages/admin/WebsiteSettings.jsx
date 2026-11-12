@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { Settings, Save, AlertCircle, Bell, BellOff, CheckCircle, Upload, Smartphone, Loader2, Megaphone, Plus, Trash2, GripVertical } from "lucide-react" 
+import { Settings, Save, AlertCircle, Bell, BellOff, CheckCircle, Upload, Smartphone, Loader2, Megaphone, Plus, Trash2, GripVertical, HelpCircle, ChevronUp, ChevronDown as ChevronDownIcon, Eye, EyeOff, MessageSquare } from "lucide-react" 
 import { collection, getDocs, query, where, updateDoc, doc, setDoc, serverTimestamp } from "firebase/firestore"
 import { db, auth } from "../../lib/firebase"
 import { saveAdminFCMToken } from "../../lib/notifications"
@@ -22,6 +22,20 @@ export default function WebsiteSettings() {
     enabled: true,
     items: []
   })
+
+  // FAQ State
+  const [faqSettings, setFaqSettings] = useState({
+    enabled: true,
+    badgeText: "✨ FAQ / সাধারণ জিজ্ঞাসা",
+    title: "সচরাচর জিজ্ঞাসিত প্রশ্নসমূহ",
+    subtitle: "কোর্স কেনা, পেমেন্ট ও টেলিগ্রাম গ্রুপ অ্যাক্সেস সংক্রান্ত সকল প্রশ্নের তাত্ক্ষণিক সমাধান।",
+    supportUrl: "https://t.me/allvipcourses",
+    items: []
+  })
+  const [faqDocId, setFaqDocId] = useState(null)
+  const [savingFaq, setSavingFaq] = useState(false)
+  const [faqSuccessMessage, setFaqSuccessMessage] = useState("")
+  const [faqExpanded, setFaqExpanded] = useState(null) // which FAQ card is expanded in editor
 
 
   const [settings, setSettings] = useState({
@@ -108,8 +122,17 @@ export default function WebsiteSettings() {
               enabled: data.enabled !== false,
               items: data.items || []
             })
+          } else if (data.type === "faqs") {
+            setFaqDocId(doc.id)
+            setFaqSettings({
+              enabled: data.enabled !== false,
+              badgeText: data.badgeText || "✨ FAQ / সাধারণ জিজ্ঞাসা",
+              title: data.title || "সচরাচর জিজ্ঞাসিত প্রশ্নসমূহ",
+              subtitle: data.subtitle || "কোর্স কেনা, পেমেন্ট ও টেলিগ্রাম গ্রুপ অ্যাক্সেস সংক্রান্ত সকল প্রশ্নের তাত্ক্ষণিক সমাধান।",
+              supportUrl: data.supportUrl || "https://t.me/allvipcourses",
+              items: data.items || []
+            })
           }
-
         })
         setSettings((prev) => ({ ...prev, ...settingsData }))
       }
@@ -138,6 +161,80 @@ export default function WebsiteSettings() {
   const removeAnnouncement = (index) => {
     const newItems = announcements.items.filter((_, i) => i !== index)
     setAnnouncements({ ...announcements, items: newItems })
+  }
+
+  // ── FAQ Handlers ──────────────────────────────────────────────────────────
+  const DEFAULT_FAQ_ITEMS = [
+    { id: "faq-1", question: "পেমেন্ট করার কতক্ষণ পর কোর্সের অ্যাক্সেস ও টেলিগ্রাম গ্রুপ লিংক পাব?", answer: "পেমেন্ট সম্পন্ন করে অর্ডার সাবমিট করার সাথে সাথে আমাদের টিম ভেরিফাই করে দ্রুত আপনার অর্ডার Approve করে দেবে। Approve হওয়া মাত্রই ওয়েবসাইটের \"My Courses\" পেজে আপনার প্রাইভেট টেলিগ্রাম গ্রুপ ও চ্যানেলের জয়েন বাটন আনলক হয়ে যাবে।", order: 0 },
+    { id: "faq-2", question: "কোর্সের মেয়াদ কতদিন থাকবে? (Course Validity)", answer: "আমাদের যেকোনো কোর্সে একবার এনরোল করলে সেটির মেয়াদ আজীবন (Lifetime Access) থাকবে! আপনি যেকোনো সময় সব ক্লাস, ভিডিও এবং লেকচার শিট আনলিমিটেড বার দেখতে পারবেন।", order: 1 },
+    { id: "faq-3", question: "টেলিগ্রাম প্রাইভেট গ্রুপ বা চ্যানেলে জয়েন করার নিয়ম কী?", answer: "প্রথমে আপনার ফোনে বা পিসিতে Telegram অ্যাপটি ইনস্টল ও লগইন করা থাকতে হবে। এরপর ওয়েবসাইটের \"My Courses\" সেকশনে গিয়ে কোর্সের নিচে থাকা বাটনে ক্লিক করলেই জয়েন হয়ে যাবেন।", order: 2 },
+    { id: "faq-4", question: "কোর্সের ক্লাস, ভিডিও এবং লেকচার শিটগুলো কীভাবে সাজানো থাকে?", answer: "আমাদের প্রতিটি প্রাইভেট টেলিগ্রাম চ্যানেলে অধ্যায় ও টপিক অনুযায়ী (Cycle / Chapter wise) সব রেকর্ডেড এইচডি ক্লাস, লেকচার পিডিএফ এবং প্র্যাকটিস শিট পিন করে সুন্দরভাবে সাজানো থাকে।", order: 3 },
+    { id: "faq-5", question: "আমি কীভাবে পেমেন্ট করব এবং প্রোমো কোড কীভাবে ব্যবহার করব?", answer: "আপনার পছন্দের কোর্সের \"Buy Now\" বাটনে ক্লিক করে চেকআউট পেজে যান। সেখানে বিকাশ বা নগদ নাম্বারে Send Money করে ফর্ম সাবমিট করুন। ডিসকাউন্ট কোড থাকলে \"Have a Promo Code?\" বক্সে লিখে Apply করুন।", order: 4 },
+  ]
+
+  const addFaqItem = () => {
+    const newItem = {
+      id: `faq-${Date.now()}`,
+      question: "",
+      answer: "",
+      order: faqSettings.items.length
+    }
+    setFaqSettings(prev => ({ ...prev, items: [...prev.items, newItem] }))
+    setFaqExpanded(newItem.id)
+  }
+
+  const updateFaqItem = (id, field, value) => {
+    setFaqSettings(prev => ({
+      ...prev,
+      items: prev.items.map(item => item.id === id ? { ...item, [field]: value } : item)
+    }))
+  }
+
+  const removeFaqItem = (id) => {
+    setFaqSettings(prev => ({
+      ...prev,
+      items: prev.items.filter(item => item.id !== id).map((item, i) => ({ ...item, order: i }))
+    }))
+    if (faqExpanded === id) setFaqExpanded(null)
+  }
+
+  const moveFaqItem = (index, direction) => {
+    const items = [...faqSettings.items]
+    const target = index + direction
+    if (target < 0 || target >= items.length) return
+    ;[items[index], items[target]] = [items[target], items[index]]
+    setFaqSettings(prev => ({ ...prev, items: items.map((item, i) => ({ ...item, order: i })) }))
+  }
+
+  const handleSaveFaqs = async () => {
+    setSavingFaq(true)
+    setFaqSuccessMessage("")
+    try {
+      const payload = {
+        type: "faqs",
+        enabled: faqSettings.enabled,
+        badgeText: faqSettings.badgeText,
+        title: faqSettings.title,
+        subtitle: faqSettings.subtitle,
+        supportUrl: faqSettings.supportUrl,
+        items: faqSettings.items.length > 0 ? faqSettings.items : DEFAULT_FAQ_ITEMS,
+        updatedAt: serverTimestamp(),
+      }
+      if (faqDocId) {
+        await updateDoc(doc(db, "settings", faqDocId), payload)
+      } else {
+        const { addDoc } = await import("firebase/firestore")
+        const newRef = await addDoc(collection(db, "settings"), payload)
+        setFaqDocId(newRef.id)
+      }
+      setFaqSuccessMessage("✅ FAQ Settings saved successfully!")
+      setTimeout(() => setFaqSuccessMessage(""), 3000)
+    } catch (err) {
+      console.error("Error saving FAQ settings:", err)
+      setFaqSuccessMessage("❌ Failed to save. Please try again.")
+    } finally {
+      setSavingFaq(false)
+    }
   }
 
   const handleIconUpload = async (e) => {
@@ -627,6 +724,231 @@ export default function WebsiteSettings() {
           </div>
           <p className="text-xs text-muted-foreground mt-2">
             Announcements will rotate automatically every 5 seconds on the frontend header.
+          </p>
+        </div>
+
+        {/* ── FAQ MANAGER SECTION ─────────────────────────────────────── */}
+        <div className="border-t border-border pt-6 mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-amber-500" />
+              Homepage FAQ Manager
+            </h2>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium">Show FAQ Section</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={faqSettings.enabled}
+                  onChange={(e) => setFaqSettings(prev => ({ ...prev, enabled: e.target.checked }))}
+                />
+                <div className="w-11 h-6 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+              </label>
+            </div>
+          </div>
+
+          {/* Section Text Config */}
+          <div className="bg-slate-50 dark:bg-slate-900 border border-border rounded-xl p-4 mb-4 space-y-3">
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Section Header</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium text-slate-500 block mb-1">Badge Label</label>
+                <input
+                  type="text"
+                  value={faqSettings.badgeText}
+                  onChange={(e) => setFaqSettings(prev => ({ ...prev, badgeText: e.target.value }))}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                  placeholder="✨ FAQ / সাধারণ জিজ্ঞাসা"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-500 block mb-1">Support Telegram URL</label>
+                <input
+                  type="url"
+                  value={faqSettings.supportUrl}
+                  onChange={(e) => setFaqSettings(prev => ({ ...prev, supportUrl: e.target.value }))}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 font-mono"
+                  placeholder="https://t.me/allvipcourses"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-500 block mb-1">Section Heading</label>
+              <input
+                type="text"
+                value={faqSettings.title}
+                onChange={(e) => setFaqSettings(prev => ({ ...prev, title: e.target.value }))}
+                className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                placeholder="সচরাচর জিজ্ঞাসিত প্রশ্নসমূহ"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-500 block mb-1">Subtitle / Description</label>
+              <input
+                type="text"
+                value={faqSettings.subtitle}
+                onChange={(e) => setFaqSettings(prev => ({ ...prev, subtitle: e.target.value }))}
+                className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                placeholder="Section subtitle text..."
+              />
+            </div>
+          </div>
+
+          {/* FAQ Items List */}
+          <div className="bg-slate-50 dark:bg-slate-900 border border-border rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                FAQ Items ({faqSettings.items.length === 0 ? "Using defaults" : `${faqSettings.items.length} custom`})
+              </h3>
+              {faqSettings.items.length === 0 && (
+                <span className="text-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full font-medium">
+                  5 built-in defaults active
+                </span>
+              )}
+            </div>
+
+            {faqSettings.items.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <HelpCircle className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                <p className="text-sm mb-1">No custom FAQs yet.</p>
+                <p className="text-xs text-muted-foreground">The 5 built-in default FAQs are shown on the homepage. Click below to customise them.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {faqSettings.items.map((item, index) => (
+                  <div
+                    key={item.id}
+                    className="bg-white dark:bg-slate-950 border border-border rounded-xl overflow-hidden shadow-sm"
+                  >
+                    {/* FAQ Item Header */}
+                    <div className="flex items-center gap-2 px-3 py-2.5">
+                      <div className="flex flex-col gap-0.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => moveFaqItem(index, -1)}
+                          disabled={index === 0}
+                          className="p-0.5 text-slate-400 hover:text-slate-600 disabled:opacity-25 disabled:cursor-not-allowed"
+                          title="Move Up"
+                        >
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveFaqItem(index, 1)}
+                          disabled={index === faqSettings.items.length - 1}
+                          className="p-0.5 text-slate-400 hover:text-slate-600 disabled:opacity-25 disabled:cursor-not-allowed"
+                          title="Move Down"
+                        >
+                          <ChevronDownIcon className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <span className="w-6 h-6 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-bold flex items-center justify-center shrink-0">
+                        {index + 1}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => setFaqExpanded(faqExpanded === item.id ? null : item.id)}
+                        className="flex-1 text-left text-sm font-medium text-slate-700 dark:text-slate-300 truncate pr-2"
+                      >
+                        {item.question || <span className="italic text-slate-400">Untitled question...</span>}
+                      </button>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setFaqExpanded(faqExpanded === item.id ? null : item.id)}
+                          className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-md transition-colors"
+                          title={faqExpanded === item.id ? "Collapse" : "Expand to edit"}
+                        >
+                          {faqExpanded === item.id ? <ChevronUp className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeFaqItem(item.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors"
+                          title="Delete FAQ"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Expandable Edit Area */}
+                    {faqExpanded === item.id && (
+                      <div className="border-t border-border px-3 py-3 space-y-2 bg-slate-50/50 dark:bg-slate-900/50">
+                        <div>
+                          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Question</label>
+                          <input
+                            type="text"
+                            value={item.question}
+                            onChange={(e) => updateFaqItem(item.id, "question", e.target.value)}
+                            placeholder="প্রশ্নটি এখানে লিখুন..."
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Answer</label>
+                          <textarea
+                            value={item.answer}
+                            onChange={(e) => updateFaqItem(item.id, "answer", e.target.value)}
+                            placeholder="উত্তরটি এখানে লিখুন..."
+                            rows={4}
+                            className="w-full px-3 py-2 bg-white dark:bg-slate-950 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 resize-y"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex gap-2 mt-4">
+              <button
+                type="button"
+                onClick={addFaqItem}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-amber-600 bg-amber-50 hover:bg-amber-100 dark:text-amber-400 dark:bg-amber-500/10 dark:hover:bg-amber-500/20 rounded-lg transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Add FAQ Item
+              </button>
+              {faqSettings.items.length === 0 && (
+                <button
+                  type="button"
+                  onClick={() => setFaqSettings(prev => ({ ...prev, items: DEFAULT_FAQ_ITEMS }))}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 dark:text-slate-400 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                >
+                  Load Defaults to Edit
+                </button>
+              )}
+            </div>
+          </div>
+
+          {faqSuccessMessage && (
+            <div className={`mt-3 p-3 rounded-lg text-sm font-medium flex items-center gap-2 ${faqSuccessMessage.startsWith("✅") ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" : "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"}`}>
+              {faqSuccessMessage}
+            </div>
+          )}
+
+          <div className="flex justify-end mt-4">
+            <button
+              type="button"
+              onClick={handleSaveFaqs}
+              disabled={savingFaq}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl text-sm font-semibold shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+            >
+              {savingFaq ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Saving FAQ...</>
+              ) : (
+                <><Save className="w-4 h-4" /> Save FAQ Settings</>
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Changes are live immediately on the homepage. If no custom FAQs are added, the 5 default built-in FAQs will be displayed automatically.
           </p>
         </div>
 

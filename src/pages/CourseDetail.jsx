@@ -222,7 +222,11 @@ export default function CourseDetail() {
             <div className="lg:col-span-2 space-y-4 sm:space-y-6">
               
               <div className="flex items-center gap-2 text-indigo-300 font-semibold text-xs sm:text-sm uppercase tracking-wider">
-                <span>{course.category || "General"}</span>
+                <span>
+                  {Array.isArray(course.categories) && course.categories.length > 0
+                    ? course.categories.join(" • ")
+                    : course.category || "General"}
+                </span>
                 {course.subcategory && (
                   <>
                     <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500" />

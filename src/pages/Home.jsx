@@ -11,10 +11,6 @@ import {
   BookOpen, 
   Award, 
   CheckCircle2, 
-  ShieldCheck, 
-  Zap, 
-  Video, 
-  MessageSquare,
   Star,
   Quote,
   Sparkles,
@@ -24,6 +20,7 @@ import {
 } from "lucide-react"
 import CourseCard from "../components/CourseCard"
 import BannerCarousel from "../components/BannerCarousel"
+import HomeFAQ from "../components/HomeFAQ"
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore"
 import { db } from "../lib/firebase"
 import { useAuth } from "../contexts/AuthContext"
@@ -130,29 +127,6 @@ export default function Home() {
     { Icon: BookOpen, count: "250+", label: "Premium Courses" },
     { Icon: UsersRound, count: "2000+", label: "Students Enrolled" },
     { Icon: Headset, count: "24/7", label: "Learning Support" }
-  ]
-
-  const features = [
-    {
-      icon: <ShieldCheck className="w-5 h-5" />,
-      title: "Premium Learning",
-      description: "High quality courses"
-    },
-    {
-      icon: <Zap className="w-5 h-5" />,
-      title: "Updated Content",
-      description: "Latest materials"
-    },
-    {
-      icon: <Video className="w-5 h-5" />,
-      title: "Expert Guidance",
-      description: "Learn from experts"
-    },
-    {
-      icon: <MessageSquare className="w-5 h-5" />,
-      title: "Community",
-      description: "Connect with learners"
-    }
   ]
 
 const testimonials = [
@@ -543,45 +517,8 @@ const testimonials = [
         </div>
       </section>
 
-      {/* 5. WHY CHOOSE US */}
-      <section className="py-6 sm:py-16 px-4 border-t border-white/5 bg-[#07080f]">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-4 sm:mb-10">
-            <h2 className="text-lg sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2 text-white">Why Choose Us</h2>
-            <p className="text-[10px] sm:text-sm text-slate-500 max-w-2xl mx-auto">Experience the difference with our premium platform.</p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4 md:gap-6">
-            {features.map((feature, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-20px" }}
-                transition={{ delay: index * 0.05, duration: 0.4 }}
-                className="bg-[#111318]/80 backdrop-blur-md border border-white/5 rounded-2xl p-2.5 sm:p-4 hover:border-orange-500/30 transition-all duration-300 group relative flex flex-col justify-center min-h-[75px] sm:min-h-[90px]"
-              >
-                <div className="absolute top-0 inset-x-3 h-px bg-gradient-to-r from-transparent via-orange-500/0 to-transparent group-hover:via-orange-500/30 transition-all duration-300" />
-                
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="shrink-0 w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center group-hover:scale-105 group-hover:bg-orange-500 group-hover:text-white transition-all duration-300">
-                    <div className="scale-75 sm:scale-100">{feature.icon}</div>
-                  </div>
-                  <h3 className="text-[11px] sm:text-[13px] font-bold text-slate-200 leading-tight truncate">
-                    {feature.title}
-                  </h3>
-                </div>
-                <p className="text-slate-400 text-[9px] sm:text-[11px] leading-snug line-clamp-1 ml-8 sm:ml-10">
-                  {feature.description}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* 6. TESTIMONIALS — Infinite Marquee */}
-      <section className="py-6 sm:py-16 px-0 bg-[#0a0d14] relative border-t border-white/5 overflow-hidden">
+      <section className="py-8 sm:py-16 px-0 bg-[#0a0d14] relative border-t border-white/5 overflow-hidden">
         <style>{`
           @keyframes marquee-scroll {
             0%   { transform: translate3d(0, 0, 0); }
@@ -707,6 +644,9 @@ const testimonials = [
           </div>
         </div>
       </section>
+
+      {/* 6.5 FAQ ACCORDION SECTION */}
+      <HomeFAQ />
 
       {/* 7. CALL TO ACTION */}
       <section className="py-6 sm:py-12 px-4 bg-background">

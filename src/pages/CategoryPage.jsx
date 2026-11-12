@@ -47,12 +47,18 @@ export default function CategoryPage() {
         
         if (subcategoriesData.length === 0) {
           const categoryTitle = categoryDoc.data().title
-          const coursesQuery = query(
-            collection(db, "courses"),
-            where("category", "==", categoryTitle)
-          )
-          const coursesSnapshot = await getDocs(coursesQuery)
-          let coursesData = coursesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+          const [coursesSnap1, coursesSnap2, coursesSnap3] = await Promise.all([
+            getDocs(query(collection(db, "courses"), where("category", "==", categoryTitle))),
+            getDocs(query(collection(db, "courses"), where("categories", "array-contains", categoryTitle))),
+            getDocs(query(collection(db, "courses"), where("categories", "array-contains", categoryId)))
+          ])
+
+          const courseMap = new Map()
+          coursesSnap1.docs.forEach((doc) => courseMap.set(doc.id, { id: doc.id, ...doc.data() }))
+          coursesSnap2.docs.forEach((doc) => courseMap.set(doc.id, { id: doc.id, ...doc.data() }))
+          coursesSnap3.docs.forEach((doc) => courseMap.set(doc.id, { id: doc.id, ...doc.data() }))
+
+          let coursesData = Array.from(courseMap.values())
           
           if (!isAdmin) {
             coursesData = coursesData.filter((course) => course.publishStatus !== "draft")

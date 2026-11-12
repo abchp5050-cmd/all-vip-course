@@ -23,7 +23,7 @@ function CourseCard({ course, paymentStatus, showButton = false, variant = "defa
     e.preventDefault()
     e.stopPropagation()
     
-    if (hasAccess && course.telegramLink) {
+    if (hasAccess && (course.telegramLinks?.length > 0 || course.telegramLink || course.telegramGroupLink)) {
       return
     } else if (hasPendingPayment) {
       navigate('/payment-history')
@@ -129,11 +129,30 @@ function CourseCard({ course, paymentStatus, showButton = false, variant = "defa
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-40 group-hover/card:opacity-60 transition-opacity duration-300 pointer-events-none" />
 
             {/* Category badge */}
-            {course.category && (
-              <div className="absolute top-1.5 left-1.5 bg-black/65 backdrop-blur-md text-white text-[8px] sm:text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded border border-white/10 max-w-[65%] truncate">
-                {course.category}
-              </div>
-            )}
+            {(() => {
+              const cats = Array.isArray(course.categories) && course.categories.length > 0 
+                ? course.categories 
+                : (course.category ? [course.category] : [])
+              const primary = cats[0]
+              const extraCount = cats.length - 1
+              if (!primary) return null
+
+              return (
+                <div className="absolute top-1.5 left-1.5 flex items-center gap-1 max-w-[68%] z-10 pointer-events-none">
+                  <div className="bg-black/65 backdrop-blur-md text-white text-[8px] sm:text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded border border-white/10 truncate">
+                    {primary}
+                  </div>
+                  {extraCount > 0 && (
+                    <div 
+                      title={cats.slice(1).join(", ")}
+                      className="bg-indigo-600/80 backdrop-blur-md text-white text-[8px] sm:text-[9px] font-bold px-1 py-0.5 rounded border border-white/10 shrink-0"
+                    >
+                      +{extraCount}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
 
             {/* Status badges */}
             {!showButton && hasPendingPayment && (
@@ -194,7 +213,7 @@ function CourseCard({ course, paymentStatus, showButton = false, variant = "defa
             {showButton && (
               <div className="mt-auto pt-1">
                 {(() => {
-                  const tgLinks = parseTelegramLinks(course.telegramLink)
+                  const tgLinks = parseTelegramLinks(course.telegramLinks || course.telegramLink || course.telegramGroupLink)
                   if (!hasAccess || tgLinks.length === 0) {
                     if (hasPendingPayment) {
                       return (
@@ -220,15 +239,17 @@ function CourseCard({ course, paymentStatus, showButton = false, variant = "defa
 
                   return (
                     <div className="space-y-1">
-                      {tgLinks.map((link, idx) => {
+                      {tgLinks.map((item, idx) => {
                         const isClicked = !!(clickedMap[`${course.id}_${idx}`] || (idx === 0 && clickedMap[course.id]))
-                        const label = tgLinks.length === 1 ? "Join Telegram" : `Join Group ${idx + 1}`
-                        const doneLabel = tgLinks.length === 1 ? "Joined" : `Group ${idx + 1} Joined`
+                        const customLabel = item.label?.trim()
+                        const defaultLabel = tgLinks.length === 1 ? "Join Telegram" : `Join Group #${idx + 1}`
+                        const label = customLabel || defaultLabel
+                        const doneLabel = customLabel ? `${customLabel} (Joined)` : (tgLinks.length === 1 ? "Joined" : `Group #${idx + 1} Joined`)
 
                         return (
                           <button
                             key={idx}
-                            onClick={(e) => handleTelegramClick(e, link, idx)}
+                            onClick={(e) => handleTelegramClick(e, item.url, idx)}
                             disabled={isClicked}
                             className={`w-full py-1.5 px-1.5 rounded-lg text-[9px] sm:text-[10px] font-bold flex items-center justify-center gap-1 transition-all ${
                               isClicked
@@ -293,7 +314,7 @@ function CourseCard({ course, paymentStatus, showButton = false, variant = "defa
           >
             <div className="text-center text-slate-400">
               <div className="text-3xl mb-1 opacity-40">📚</div>
-              <p className="text-[9px] font-medium uppercase tracking-wider">{course.category}</p>
+              <p className="text-[9px] font-medium uppercase tracking-wider">{course.categories?.[0] || course.category}</p>
             </div>
           </div>
           {/* Bottom gradient */}
@@ -310,11 +331,31 @@ function CourseCard({ course, paymentStatus, showButton = false, variant = "defa
               <Check className="w-2.5 h-2.5" /> Enrolled
             </div>
           )}
-          {course.category && (
-            <div className="absolute top-1.5 left-1.5 bg-black/50 backdrop-blur-md text-white text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full border border-white/10">
-              {course.category}
-            </div>
-          )}
+          {/* Category badges */}
+          {(() => {
+            const cats = Array.isArray(course.categories) && course.categories.length > 0 
+              ? course.categories 
+              : (course.category ? [course.category] : [])
+            const primary = cats[0]
+            const extraCount = cats.length - 1
+            if (!primary) return null
+
+            return (
+              <div className="absolute top-1.5 left-1.5 flex items-center gap-1 max-w-[70%] z-10 pointer-events-none">
+                <div className="bg-black/50 backdrop-blur-md text-white text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full border border-white/10 truncate">
+                  {primary}
+                </div>
+                {extraCount > 0 && (
+                  <div 
+                    title={cats.slice(1).join(", ")}
+                    className="bg-indigo-600/85 backdrop-blur-md text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-white/10 shrink-0"
+                  >
+                    +{extraCount}
+                  </div>
+                )}
+              </div>
+            )
+          })()}
         </div>
 
         {/* Card body */}
@@ -361,7 +402,7 @@ function CourseCard({ course, paymentStatus, showButton = false, variant = "defa
           {showButton && (
             <div className="mt-2.5">
               {(() => {
-                const tgLinks = parseTelegramLinks(course.telegramLink)
+                const tgLinks = parseTelegramLinks(course.telegramLinks || course.telegramLink || course.telegramGroupLink)
                 if (!hasAccess || tgLinks.length === 0) {
                   if (hasPendingPayment) {
                     return (
@@ -385,15 +426,17 @@ function CourseCard({ course, paymentStatus, showButton = false, variant = "defa
 
                 return (
                   <div className="space-y-1.5">
-                    {tgLinks.map((link, idx) => {
+                    {tgLinks.map((item, idx) => {
                       const isClicked = !!(clickedMap[`${course.id}_${idx}`] || (idx === 0 && clickedMap[course.id]))
-                      const label = tgLinks.length === 1 ? "Join Telegram Group" : `Join Telegram Group ${idx + 1}`
-                      const doneLabel = tgLinks.length === 1 ? "Joined" : `Group ${idx + 1} Joined`
+                      const customLabel = item.label?.trim()
+                      const defaultLabel = tgLinks.length === 1 ? "Join Telegram Group" : `Join Group #${idx + 1}`
+                      const label = customLabel || defaultLabel
+                      const doneLabel = customLabel ? `${customLabel} (Joined)` : (tgLinks.length === 1 ? "Joined" : `Group #${idx + 1} Joined`)
 
                       return (
                         <button
                           key={idx}
-                          onClick={(e) => handleTelegramClick(e, link, idx)}
+                          onClick={(e) => handleTelegramClick(e, item.url, idx)}
                           disabled={isClicked}
                           className={`w-full py-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all ${
                             isClicked

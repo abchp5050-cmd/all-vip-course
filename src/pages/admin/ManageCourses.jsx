@@ -11,7 +11,7 @@ import {
   Plus, Search, Edit2, Trash2, X, BookOpen, Upload, 
   Link as LinkIcon, Tag, Filter, Clock, Users, DollarSign,
   CheckCircle, MoreVertical, LayoutGrid, List, Send,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Check
 } from "lucide-react"
 
 export default function ManageCourses() {
@@ -53,6 +53,7 @@ export default function ManageCourses() {
     description: "",
     instructors: [],
     category: "",
+    categories: [],
     subcategory: "",
     price: "",
     status: "running",
@@ -64,7 +65,7 @@ export default function ManageCourses() {
   })
   const [tagInput, setTagInput] = useState("")
   const [imageFile, setImageFile] = useState(null)
-  const [telegramLinks, setTelegramLinks] = useState([""])
+  const [telegramLinks, setTelegramLinks] = useState([{ label: "", url: "" }])
   
   useEffect(() => {
     fetchData()
@@ -97,15 +98,21 @@ export default function ManageCourses() {
   const handleOpenModal = (course = null) => {
     if (course) {
       setEditingCourse(course)
-      const existingTgLinks = parseTelegramLinks(course.telegramLink || course.telegramGroupLink)
-      setTelegramLinks(existingTgLinks.length > 0 ? existingTgLinks : [""])
+      const existingTgLinks = parseTelegramLinks(course.telegramLinks || course.telegramLink || course.telegramGroupLink)
+      setTelegramLinks(existingTgLinks.length > 0 ? existingTgLinks : [{ label: "", url: "" }])
+      
+      const courseCategories = Array.isArray(course.categories) && course.categories.length > 0
+        ? course.categories.filter(Boolean)
+        : (course.category ? [course.category] : [])
+
       setFormData({
         title: course.title || "",
         description: course.description || "",
         instructors: course.instructors || (course.instructorName ? [course.instructorName] : []),
-        category: course.category || "",
+        category: courseCategories[0] || course.category || "",
+        categories: courseCategories,
         subcategory: course.subcategory || "",
-        price: course.price || "",
+        price: course.price !== undefined && course.price !== null ? course.price : "",
         status: course.status || "running",
         publishStatus: course.publishStatus || "published",
         imageType: course.thumbnailURL ? "link" : "upload",
@@ -115,12 +122,13 @@ export default function ManageCourses() {
       })
     } else {
       setEditingCourse(null)
-      setTelegramLinks([""])
+      setTelegramLinks([{ label: "", url: "" }])
       setFormData({
         title: "",
         description: "",
         instructors: [],
         category: "",
+        categories: [],
         subcategory: "",
         price: "",
         status: "running",
@@ -142,21 +150,51 @@ export default function ManageCourses() {
     setImageFile(null)
   }
 
-  const handleTelegramLinkChange = (index, value) => {
+  const handleToggleCategory = (catTitle) => {
+    setFormData((prev) => {
+      const currentCats = Array.isArray(prev.categories)
+        ? prev.categories
+        : (prev.category ? [prev.category] : [])
+      const exists = currentCats.includes(catTitle)
+      const nextCats = exists
+        ? currentCats.filter((c) => c !== catTitle)
+        : [...currentCats, catTitle]
+
+      // Check if current subcategory is still valid under remaining categories
+      const matchingCatIds = categories
+        .filter((c) => nextCats.includes(c.title) || nextCats.includes(c.id))
+        .map((c) => c.id)
+      const currentSubcatValid = subcategories.some(
+        (s) => s.title === prev.subcategory && matchingCatIds.includes(s.categoryId)
+      )
+
+      return {
+        ...prev,
+        categories: nextCats,
+        category: nextCats[0] || "",
+        subcategory: currentSubcatValid ? prev.subcategory : "",
+      }
+    })
+  }
+
+  const handleTelegramLinkChange = (index, field, value) => {
     setTelegramLinks((prev) => {
       const updated = [...prev]
-      updated[index] = value
+      updated[index] = {
+        ...(updated[index] || { label: "", url: "" }),
+        [field]: value
+      }
       return updated
     })
   }
 
   const handleAddTelegramLink = () => {
-    setTelegramLinks((prev) => [...prev, ""])
+    setTelegramLinks((prev) => [...prev, { label: "", url: "" }])
   }
 
   const handleRemoveTelegramLink = (index) => {
     setTelegramLinks((prev) => {
-      if (prev.length <= 1) return [""]
+      if (prev.length <= 1) return [{ label: "", url: "" }]
       return prev.filter((_, i) => i !== index)
     })
   }
@@ -176,23 +214,37 @@ export default function ManageCourses() {
         thumbnailURL = await uploadImageToImgBB(imageFile)
       }
 
-      const finalTelegramLink = telegramLinks
-        .map((l) => l.trim())
-        .filter(Boolean)
-        .join("\n")
+      const validTelegramLinks = telegramLinks
+        .map((l) => ({
+          label: (l.label || "").trim(),
+          url: (l.url || "").trim()
+        }))
+        .filter((l) => l.url.length > 0)
+
+      const finalTelegramLinkString = validTelegramLinks.map((l) => l.url).join("\n")
+      const primaryTelegramLink = validTelegramLinks.length > 0 ? validTelegramLinks[0].url : ""
+
+      const selectedCategories = Array.isArray(formData.categories)
+        ? formData.categories.filter(Boolean)
+        : (formData.category ? [formData.category] : [])
+
+      const primaryCategory = selectedCategories[0] || formData.category || ""
 
       const courseData = {
         title: formData.title,
         description: formData.description,
         instructors: formData.instructors,
         instructorName: formData.instructors.join(", "),
-        category: formData.category,
+        category: primaryCategory,
+        categories: selectedCategories,
         subcategory: formData.subcategory || "",
         price: Number(formData.price) || 0,
         status: formData.status,
         publishStatus: formData.publishStatus,
         thumbnailURL: thumbnailURL || "",
-        telegramLink: finalTelegramLink,
+        telegramLinks: validTelegramLinks,
+        telegramLink: finalTelegramLinkString,
+        telegramGroupLink: primaryTelegramLink,
         tags: formData.tags || [],
         slug: editingCourse?.slug || generateSlug(formData.title),
         updatedAt: serverTimestamp(),
@@ -242,10 +294,17 @@ export default function ManageCourses() {
   const filteredCourses = useMemo(() => {
     const q = debouncedSearchQuery.toLowerCase().trim()
     return courses.filter(course => {
+      const courseCategories = Array.isArray(course.categories) && course.categories.length > 0
+        ? course.categories
+        : (course.category ? [course.category] : [])
+
       const matchesSearch = !q || 
                             course.title?.toLowerCase().includes(q) || 
+                            courseCategories.some(c => c?.toLowerCase().includes(q)) ||
                             course.category?.toLowerCase().includes(q)
-      const matchesCategory = categoryFilter === "all" || course.category === categoryFilter
+      const matchesCategory = categoryFilter === "all" || 
+                              courseCategories.includes(categoryFilter) || 
+                              course.category === categoryFilter
       const matchesStatus = statusFilter === "all" || course.status === statusFilter
       
       return matchesSearch && matchesCategory && matchesStatus
@@ -428,11 +487,17 @@ export default function ManageCourses() {
                         <span className={`w-1.5 h-1.5 rounded-full ${course.status === "running" ? "bg-emerald-500" : "bg-amber-500"}`} />
                         <span className="capitalize">{course.status || "Running"}</span>
                       </span>
-                      {course.category && (
-                        <span className="hidden min-[380px]:inline-block text-[10px] text-slate-400 dark:text-slate-500 truncate max-w-[85px]">
-                          {course.category}
-                        </span>
-                      )}
+                      {(() => {
+                        const cats = Array.isArray(course.categories) && course.categories.length > 0 
+                          ? course.categories 
+                          : (course.category ? [course.category] : [])
+                        if (cats.length === 0) return null
+                        return (
+                          <span className="hidden min-[380px]:inline-block text-[10px] text-slate-400 dark:text-slate-500 truncate max-w-[100px]" title={cats.join(", ")}>
+                            {cats[0]}{cats.length > 1 ? ` (+${cats.length - 1})` : ""}
+                          </span>
+                        )
+                      })()}
                     </div>
                   </div>
 
@@ -484,9 +549,30 @@ export default function ManageCourses() {
                             <BookOpen className="w-6 h-6 text-slate-400" />
                           </div>
                         )}
-                        <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-[10px] font-semibold px-2 py-0.5 rounded text-white">
-                          {course.category || "Uncategorized"}
-                        </div>
+                        {(() => {
+                          const cats = Array.isArray(course.categories) && course.categories.length > 0 
+                            ? course.categories 
+                            : (course.category ? [course.category] : [])
+                          if (cats.length === 0) {
+                            return (
+                              <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-[10px] font-semibold px-2 py-0.5 rounded text-white">
+                                Uncategorized
+                              </div>
+                            )
+                          }
+                          return (
+                            <div className="absolute top-2 left-2 flex items-center gap-1 max-w-[80%]">
+                              <div className="bg-black/60 backdrop-blur-sm text-[10px] font-semibold px-2 py-0.5 rounded text-white truncate">
+                                {cats[0]}
+                              </div>
+                              {cats.length > 1 && (
+                                <div className="bg-indigo-600/85 backdrop-blur-sm text-[9px] font-bold px-1.5 py-0.5 rounded text-white shrink-0" title={cats.slice(1).join(", ")}>
+                                  +{cats.length - 1}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })()}
                         {course.publishStatus === "draft" && (
                           <div className="absolute top-2 right-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">
                             Draft
@@ -588,9 +674,27 @@ export default function ManageCourses() {
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                              {course.category || "Uncategorized"}
-                            </span>
+                            {(() => {
+                              const cats = Array.isArray(course.categories) && course.categories.length > 0 
+                                ? course.categories 
+                                : (course.category ? [course.category] : [])
+                              if (cats.length === 0) {
+                                return (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                    Uncategorized
+                                  </span>
+                                )
+                              }
+                              return (
+                                <div className="flex flex-wrap items-center gap-1 max-w-xs">
+                                  {cats.map((c, i) => (
+                                    <span key={i} className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                      {c}
+                                    </span>
+                                  ))}
+                                </div>
+                              )
+                            })()}
                           </td>
                           <td className="px-4 py-3 font-bold text-xs sm:text-sm text-orange-500 dark:text-orange-400">
                             {course.price > 0 ? `৳${course.price}` : "Free"}
@@ -722,31 +826,122 @@ export default function ManageCourses() {
 
                   {/* Organization Section */}
                   <section>
-                    <h4 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Organization</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2 mb-4">
+                      <h4 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">Organization</h4>
+                      {formData.categories.length > 0 && (
+                        <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-0.5 rounded-full border border-indigo-200/50 dark:border-indigo-800/50">
+                          {formData.categories.length} {formData.categories.length === 1 ? "category" : "categories"} selected
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* Categories Multi-Select */}
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Category</label>
-                        <select
-                          value={formData.category}
-                          onChange={(e) => setFormData({ ...formData, category: e.target.value, subcategory: "" })}
-                          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm"
-                        >
-                          <option value="">Select Category</option>
-                          {categories.map((c) => <option key={c.id} value={c.title}>{c.title}</option>)}
-                        </select>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                            Categories <span className="text-xs font-normal text-slate-500">(select one or multiple)</span>
+                          </label>
+                          {formData.categories.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setFormData({ ...formData, categories: [], category: "", subcategory: "" })}
+                              className="text-xs text-rose-500 hover:text-rose-600 transition-colors"
+                            >
+                              Clear all
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Selected Categories as removable tags */}
+                        {formData.categories.length > 0 ? (
+                          <div className="flex flex-wrap items-center gap-2 p-2.5 bg-slate-50 dark:bg-slate-950/80 rounded-xl border border-slate-200 dark:border-slate-800 mb-2.5 min-h-[46px]">
+                            {formData.categories.map((catTitle, idx) => (
+                              <span
+                                key={catTitle}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold shadow-sm transition-all ${
+                                  idx === 0
+                                    ? "bg-indigo-600 text-white"
+                                    : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
+                                }`}
+                              >
+                                <span>{catTitle}</span>
+                                {idx === 0 && (
+                                  <span className="text-[9px] bg-white/20 uppercase tracking-wider px-1.5 py-0.5 rounded font-bold">
+                                    Primary
+                                  </span>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleCategory(catTitle)}
+                                  className="p-0.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-full transition-colors"
+                                  title="Remove category"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="p-3 bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 mb-2.5 text-center">
+                            <p className="text-xs text-slate-400">No categories selected. Click the badges below to choose categories.</p>
+                          </div>
+                        )}
+
+                        {/* Clickable Pill Badges for All Categories */}
+                        <div className="space-y-1.5">
+                          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                            Available Categories:
+                          </span>
+                          <div className="flex flex-wrap gap-2 p-2.5 bg-slate-50/60 dark:bg-slate-950/40 rounded-xl border border-slate-200/80 dark:border-slate-800/80 max-h-36 overflow-y-auto">
+                            {categories.length === 0 ? (
+                              <p className="text-xs text-slate-400">No categories found in system</p>
+                            ) : (
+                              categories.map((c) => {
+                                const isSelected = formData.categories.includes(c.title)
+                                return (
+                                  <button
+                                    key={c.id}
+                                    type="button"
+                                    onClick={() => handleToggleCategory(c.title)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 select-none ${
+                                      isSelected
+                                        ? "bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-500/30"
+                                        : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
+                                    }`}
+                                  >
+                                    {isSelected ? <Check className="w-3.5 h-3.5 shrink-0" /> : <Plus className="w-3.5 h-3.5 shrink-0 text-slate-400" />}
+                                    <span>{c.title}</span>
+                                  </button>
+                                )
+                              })
+                            )}
+                          </div>
+                        </div>
                       </div>
+
+                      {/* Subcategory */}
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Subcategory</label>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                          Subcategory <span className="text-xs font-normal text-slate-500">(Optional)</span>
+                        </label>
                         <select
                           value={formData.subcategory}
                           onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
-                          disabled={!formData.category}
+                          disabled={formData.categories.length === 0}
                           className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm disabled:opacity-50"
                         >
                           <option value="">Select Subcategory</option>
-                          {subcategories.filter(s => s.categoryId === categories.find(c => c.title === formData.category)?.id).map(s => (
-                            <option key={s.id} value={s.title}>{s.title}</option>
-                          ))}
+                          {subcategories
+                            .filter((s) => {
+                              const matchingCatIds = categories
+                                .filter((c) => formData.categories.includes(c.title) || formData.categories.includes(c.id))
+                                .map((c) => c.id)
+                              return matchingCatIds.includes(s.categoryId)
+                            })
+                            .map((s) => (
+                              <option key={s.id} value={s.title}>{s.title}</option>
+                            ))}
                         </select>
                       </div>
                     </div>
@@ -811,42 +1006,71 @@ export default function ManageCourses() {
                         </select>
                       </div>
 
-                      <div className="sm:col-span-2 space-y-2.5">
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                          Telegram Group Link{telegramLinks.length > 1 ? "s" : ""}
-                        </label>
+                      <div className="sm:col-span-2 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                            Telegram Group Links
+                          </label>
+                          {telegramLinks.filter((l) => l.url?.trim()).length > 0 && (
+                            <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-0.5 rounded-full border border-indigo-200/50 dark:border-indigo-800/50">
+                              {telegramLinks.filter((l) => l.url?.trim()).length} configured
+                            </span>
+                          )}
+                        </div>
                         
-                        {telegramLinks.map((link, idx) => (
-                          <div key={idx} className="space-y-1">
-                            {idx > 0 && (
-                              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">
-                                Additional Link #{idx + 1}
-                              </label>
-                            )}
-                            <div className="flex items-center gap-2">
-                              <div className="relative flex-1">
-                                <Send className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                <input
-                                  type="url"
-                                  value={link}
-                                  onChange={(e) => handleTelegramLinkChange(idx, e.target.value)}
-                                  placeholder={idx === 0 ? "https://t.me/your_group" : `https://t.me/additional_group_${idx + 1}`}
-                                  className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-sm text-slate-900 dark:text-white"
-                                />
+                        <div className="space-y-2.5">
+                          {telegramLinks.map((link, idx) => (
+                            <div key={idx} className="p-3 sm:p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2.5">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                                  <Send className="w-3.5 h-3.5 text-indigo-500" />
+                                  Link #{idx + 1}
+                                </span>
+                                {telegramLinks.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveTelegramLink(idx)}
+                                    className="p-1.5 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors"
+                                    title="Remove this link"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
                               </div>
-                              {idx > 0 && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveTelegramLink(idx)}
-                                  className="p-2.5 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-slate-200 dark:border-slate-800 rounded-xl transition-colors shrink-0"
-                                  title="Remove this link"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              )}
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                <div>
+                                  <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">
+                                    Button Name / Label
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={link.label || ""}
+                                    onChange={(e) => handleTelegramLinkChange(idx, "label", e.target.value)}
+                                    placeholder="Button Name (e.g., Join Main Group / Cycle 1 / PDF Channel)"
+                                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-xs text-slate-900 dark:text-white"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1">
+                                    Telegram URL
+                                  </label>
+                                  <div className="relative">
+                                    <Send className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                    <input
+                                      type="url"
+                                      value={link.url || ""}
+                                      onChange={(e) => handleTelegramLinkChange(idx, "url", e.target.value)}
+                                      placeholder="https://t.me/+..."
+                                      className="w-full pl-8 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-xs text-slate-900 dark:text-white"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
 
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
                           <button
@@ -855,12 +1079,12 @@ export default function ManageCourses() {
                             className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 py-1.5 px-3 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors border border-indigo-200/50 dark:border-indigo-800/50 w-fit"
                           >
                             <Plus className="w-3.5 h-3.5" />
-                            <span>+ Add Another Link</span>
+                            <span>Add Another Link</span>
                           </button>
                           <p className="text-xs text-slate-500">
-                            {telegramLinks.filter((l) => l.trim()).length > 1
-                              ? `${telegramLinks.filter((l) => l.trim()).length} links configured (each shown as a separate Join button)`
-                              : "Students will see this link to join the course Telegram community"}
+                            {telegramLinks.filter((l) => l.url?.trim()).length > 1
+                              ? `${telegramLinks.filter((l) => l.url?.trim()).length} links configured (each shown with its custom button name)`
+                              : "Students will see this button to join the course Telegram community"}
                           </p>
                         </div>
                       </div>

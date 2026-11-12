@@ -150,18 +150,37 @@ export default function Courses() {
     if (debouncedSearchQuery && debouncedSearchQuery.trim()) {
       const q = debouncedSearchQuery.toLowerCase().trim()
       result = result.filter(
-        (course) =>
-          course.title?.toLowerCase().includes(q) ||
-          course.description?.toLowerCase().includes(q) ||
-          course.category?.toLowerCase().includes(q) ||
-          course.subcategory?.toLowerCase().includes(q),
+        (course) => {
+          const courseCategories = Array.isArray(course.categories) && course.categories.length > 0
+            ? course.categories
+            : (course.category ? [course.category] : [])
+
+          return (
+            course.title?.toLowerCase().includes(q) ||
+            course.description?.toLowerCase().includes(q) ||
+            course.category?.toLowerCase().includes(q) ||
+            courseCategories.some((c) => c?.toLowerCase().includes(q)) ||
+            course.subcategory?.toLowerCase().includes(q)
+          )
+        }
       )
     }
 
     if (categoryFilter && categoryFilter !== "all") {
       const selectedCategory = categories.find(cat => cat.id === categoryFilter)
       if (selectedCategory) {
-        result = result.filter((course) => course.category === selectedCategory.title)
+        result = result.filter((course) => {
+          const courseCategories = Array.isArray(course.categories) && course.categories.length > 0
+            ? course.categories
+            : (course.category ? [course.category] : [])
+
+          return (
+            courseCategories.includes(selectedCategory.title) ||
+            courseCategories.includes(selectedCategory.id) ||
+            course.category === selectedCategory.title ||
+            course.category === selectedCategory.id
+          )
+        })
       }
     }
 

@@ -1,4 +1,9 @@
-import { handleTelegramCallbackQuery, registerTelegramWebhook } from './_utils/telegram-bot-service.js';
+import { 
+  handleTelegramCallbackQuery, 
+  handleTelegramMessage, 
+  registerTelegramWebhook,
+  registerBotCommands 
+} from './_utils/telegram-bot-service.js';
 
 try {
   if (process.loadEnvFile && !process.env.TELEGRAM_BOT_TOKEN) {
@@ -29,13 +34,15 @@ export default async function handler(req, res) {
         });
       }
 
-      // If requested ?setup=1 or ?register=1, re-register webhook with Telegram
-      if (req.query?.setup === '1' || req.query?.register === '1') {
+      // If requested ?setup=1 or ?register=1, re-register webhook and commands with Telegram
+      if (req.query?.setup === '1' || req.query?.register === '1' || req.query?.commands === '1') {
         const setupResult = await registerTelegramWebhook();
+        const commandsResult = await registerBotCommands(botToken);
         return res.status(200).json({
           ok: true,
-          message: 'Webhook registration triggered',
-          result: setupResult
+          message: 'Webhook and Bot Commands registered successfully',
+          webhook: setupResult,
+          commands: commandsResult
         });
       }
 
@@ -45,7 +52,7 @@ export default async function handler(req, res) {
       return res.status(200).json({
         ok: true,
         endpoint: 'telegram-webhook',
-        message: 'Telegram webhook receiver is active and healthy',
+        message: 'VIP Telegram Admin Control Center webhook receiver is active and healthy',
         webhookInfo: infoData
       });
     } catch (err) {
@@ -61,9 +68,13 @@ export default async function handler(req, res) {
   try {
     const update = req.body || {};
 
-    // Check if update contains a callback_query (Approve / Reject buttons)
+    // 1. Process inline keyboard button callbacks
     if (update.callback_query) {
       await handleTelegramCallbackQuery(update.callback_query);
+    } 
+    // 2. Process text commands (/menu, /stats, /pending, /courses, /user, /announce, etc.)
+    else if (update.message) {
+      await handleTelegramMessage(update.message);
     }
 
     // Always respond 200 OK to Telegram so it acknowledges delivery

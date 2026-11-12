@@ -37,6 +37,7 @@ export default async function handler(req, res) {
       telegram_id_name,
       telegram_username,
       amount,
+      promo_code,
       date_time
     } = req.body || {};
 
@@ -65,6 +66,7 @@ export default async function handler(req, res) {
       '',
       '💰 Amount:',
       amount || 'N/A',
+      ...(promo_code ? ['', '🎟 Promo Code:', promo_code] : []),
       '',
       '⏰ Order Time:',
       date_time || new Date().toLocaleString('en-US', { timeZone: 'Asia/Dhaka', dateStyle: 'medium', timeStyle: 'short' })
