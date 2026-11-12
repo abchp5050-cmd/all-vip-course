@@ -197,6 +197,23 @@ function getTodayStartMs() {
   return dhakaNow.getTime() - dhakaOffsetMs;
 }
 
+/**
+ * Date string YYYY-MM-DD in Asia/Dhaka time zone
+ */
+export function getDhakaDateString(date = new Date()) {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Dhaka',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(date);
+  } catch (err) {
+    const d = new Date(date.getTime() + (6 * 60 + date.getTimezoneOffset()) * 60 * 1000);
+    return d.toISOString().split('T')[0];
+  }
+}
+
 // ==========================================
 // 1. INTERACTIVE MAIN ADMIN DASHBOARD
 // ==========================================
@@ -338,13 +355,38 @@ export async function handleStatsCommand(chatId, botToken, messageId = null) {
 
   try {
     const todayStartMs = getTodayStartMs();
+    const todayDateKey = getDhakaDateString(new Date());
+    const yesterdayDateKey = getDhakaDateString(new Date(Date.now() - 24 * 60 * 60 * 1000));
 
-    // Query Firestore collections in parallel
-    const [paymentsSnap, usersSnap, coursesSnap] = await Promise.all([
+    // Query Firestore collections and site traffic in parallel
+    const [
+      paymentsSnap,
+      usersSnap,
+      coursesSnap,
+      todayTrafficSnap,
+      yesterdayTrafficSnap,
+      lifetimeTrafficSnap,
+    ] = await Promise.all([
       getDocs(collection(db, "payments")),
       getDocs(collection(db, "users")),
       getDocs(collection(db, "courses")),
+      getDoc(doc(db, "site_analytics", todayDateKey)).catch(() => null),
+      getDoc(doc(db, "site_analytics", yesterdayDateKey)).catch(() => null),
+      getDoc(doc(db, "site_analytics", "lifetime")).catch(() => null),
     ]);
+
+    // Parse traffic analytics safely
+    const todayTrafficData = (todayTrafficSnap && todayTrafficSnap.exists && todayTrafficSnap.exists()) ? todayTrafficSnap.data() : {};
+    const yesterdayTrafficData = (yesterdayTrafficSnap && yesterdayTrafficSnap.exists && yesterdayTrafficSnap.exists()) ? yesterdayTrafficSnap.data() : {};
+    const lifetimeTrafficData = (lifetimeTrafficSnap && lifetimeTrafficSnap.exists && lifetimeTrafficSnap.exists()) ? lifetimeTrafficSnap.data() : {};
+
+    const uniqueVisitors = Number(todayTrafficData.uniqueVisitors || 0);
+    const pageViews = Number(todayTrafficData.pageViews || 0);
+    const yesterdayVisitors = Number(yesterdayTrafficData.uniqueVisitors || 0);
+    let totalVisitors = Number(lifetimeTrafficData.totalVisitors || 0);
+    if (totalVisitors < uniqueVisitors) {
+      totalVisitors = uniqueVisitors;
+    }
 
     // Build course price lookup map from coursesSnap
     const coursePriceMap = {};
@@ -438,6 +480,12 @@ export async function handleStatsCommand(chatId, botToken, messageId = null) {
 • Total Lifetime Revenue: <b>৳${totalRevenue.toLocaleString()}</b>
 • Total Approved Orders: <b>${totalApprovedCount}</b>
 • Pending Queue: <b>${totalPendingCount}</b> orders
+
+🌐 <b>Website Traffic (Live):</b>
+• Today's Unique Visitors: <b>${uniqueVisitors.toLocaleString()}</b> 👥
+• Today's Page Views: <b>${pageViews.toLocaleString()}</b> 👀
+• Yesterday's Visitors: <b>${yesterdayVisitors.toLocaleString()}</b>
+• Lifetime Visitors: <b>${totalVisitors.toLocaleString()}</b> 🚀
 
 👥 <b>Platform Community:</b>
 • Registered Students: <b>${totalUsers}</b>

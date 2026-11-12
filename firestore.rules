@@ -139,6 +139,13 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ===== Site Analytics Collection (Public tracking for unique visitors and page views) =====
+    match /site_analytics/{docId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if isAdmin();
+    }
+
     // Fallback: Deny everything else
     match /{document=**} {
       allow read, write: if false;

@@ -11,6 +11,7 @@ import PWAInstallPrompt from "./components/PWAInstallPrompt"
 import SettingsLoader from "./components/SettingsLoader"
 import SupportWidget from "./components/SupportWidget"
 import PremiumLoader from "./components/PremiumLoader"
+import { initVisitorTracker } from "./utils/visitorTracker"
 
 // Lazy loaded pages for optimal bundle splitting and performance
 const Home = lazy(() => import("./pages/Home"))
@@ -43,6 +44,9 @@ function ScrollToTop() {
 }
 
 function App() {
+  useEffect(() => {
+    initVisitorTracker()
+  }, [])
 
   return (
     <Router>
