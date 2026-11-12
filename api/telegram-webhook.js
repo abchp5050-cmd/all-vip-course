@@ -73,8 +73,8 @@ export default async function handler(req, res) {
       await handleTelegramCallbackQuery(update.callback_query);
     } 
     // 2. Process text commands (/menu, /stats, /pending, /courses, /user, /announce, etc.)
-    else if (update.message) {
-      await handleTelegramMessage(update.message);
+    else if (update.message || update.edited_message) {
+      await handleTelegramMessage(update.message || update.edited_message);
     }
 
     // Always respond 200 OK to Telegram so it acknowledges delivery

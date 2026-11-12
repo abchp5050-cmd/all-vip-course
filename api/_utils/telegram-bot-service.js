@@ -144,7 +144,7 @@ export async function registerTelegramWebhook(customUrl = null) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         url: webhookUrl,
-        allowed_updates: ["message", "callback_query"],
+        allowed_updates: ["message", "edited_message", "callback_query"],
         drop_pending_updates: false,
       }),
     });
@@ -2058,7 +2058,7 @@ export async function startTelegramPolling() {
   (async function pollLoop() {
     while (isPolling) {
       try {
-        const allowedUpdates = JSON.stringify(["message", "callback_query"]);
+        const allowedUpdates = JSON.stringify(["message", "edited_message", "callback_query"]);
         const url = `https://api.telegram.org/bot${botToken}/getUpdates?offset=${pollingOffset}&timeout=20&allowed_updates=${encodeURIComponent(allowedUpdates)}`;
         const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
         const data = await res.json().catch(() => ({}));
