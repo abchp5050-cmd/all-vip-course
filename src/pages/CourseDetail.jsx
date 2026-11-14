@@ -1,15 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate, Link } from "react-router-dom"
 import { motion } from "framer-motion"
-import { Play, BookOpen, Clock, UsersRound, Tag, Check, AlertCircle, ChevronRight, Star, Globe, PlayCircle, Smartphone, Infinity as InfinityIcon, Trophy, ArrowRight, MonitorPlay, FileText, ShieldCheck, CheckCircle, Zap, Layers } from "lucide-react"
+import { Play, BookOpen, Clock, UsersRound, Tag, Check, AlertCircle, ChevronRight, Star, Globe, PlayCircle, Smartphone, Infinity as InfinityIcon, Trophy, ArrowRight, ArrowLeft, Folder, Sparkles, MonitorPlay, FileText, ShieldCheck, CheckCircle, Zap, Layers } from "lucide-react"
 import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from "firebase/firestore"
 import { db } from "../lib/firebase"
 import { useAuth } from "../contexts/AuthContext"
 import { isFirebaseId } from "../lib/slug"
 import TelegramJoinButton from "../components/TelegramJoinButton"
 import { CourseDetailSkeleton } from "../components/SkeletonLoader"
+import RelatedCourses from "../components/RelatedCourses"
 
 const generateStats = (id) => {
   if (!id) return { rating: "4.8", reviewCount: 24, studentsCount: 124 };
@@ -221,17 +222,46 @@ export default function CourseDetail() {
             {/* Left Content */}
             <div className="lg:col-span-2 space-y-4 sm:space-y-6">
               
-              <div className="flex items-center gap-2 text-indigo-300 font-semibold text-xs sm:text-sm uppercase tracking-wider">
-                <span>
-                  {Array.isArray(course.categories) && course.categories.length > 0
-                    ? course.categories.join(" • ")
-                    : course.category || "General"}
-                </span>
+              {/* Top Category Pill & Quick Back Navigation */}
+              <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.history.length > 1) {
+                      navigate(-1)
+                    } else {
+                      navigate("/courses")
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:border-amber-500/40 backdrop-blur-md shadow-sm transition-all active:scale-95 group"
+                  aria-label="Back to courses"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 text-amber-400 transition-transform group-hover:-translate-x-0.5" />
+                  <span>Back</span>
+                </button>
+
+                {(() => {
+                  const cats = Array.isArray(course.categories) && course.categories.length > 0
+                    ? course.categories
+                    : (course.category ? [course.category] : ["All Courses"])
+
+                  return cats.map((cat, idx) => (
+                    <Link
+                      key={idx}
+                      to={`/courses?category=${encodeURIComponent(cat)}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-gradient-to-r from-amber-500/15 to-amber-600/20 hover:from-amber-500/25 hover:to-amber-600/30 border border-amber-500/35 hover:border-amber-400 text-amber-300 shadow-sm shadow-amber-500/10 backdrop-blur-md transition-all active:scale-95"
+                    >
+                      <Folder className="w-3 h-3 text-amber-400 shrink-0" />
+                      <span className="truncate max-w-[200px]">{cat}</span>
+                    </Link>
+                  ))
+                })()}
+
                 {course.subcategory && (
-                  <>
-                    <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500" />
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-800/70 border border-slate-700/70 text-slate-300">
+                    <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
                     <span>{course.subcategory}</span>
-                  </>
+                  </span>
                 )}
               </div>
               
@@ -427,21 +457,21 @@ export default function CourseDetail() {
                     <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 fill-amber-500" />
                     এই কোর্সে যা যা থাকছে:
                   </h4>
-                  <ul className="space-y-2.5 sm:space-y-3">
+                  <ul className="space-y-2 sm:space-y-2.5">
                     {[
-                      { icon: MonitorPlay, text: "Archive Classes", color: "text-indigo-500", bg: "bg-indigo-50 dark:bg-indigo-500/10" },
-                      { icon: FileText, text: "ক্লাস এর লেকচার শীট", color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-500/10" },
-                      { icon: BookOpen, text: "Practice Sheet", color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-500/10" },
-                      { icon: Zap, text: "Super Fast Uploading", color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-500/10" },
-                      { icon: InfinityIcon, text: "লাইফটাইম এক্সেস", color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-500/10" },
-                      { icon: Layers, text: "ক্লাস সাজানো থাকবে টপিক অনুযায়ী", color: "text-rose-500", bg: "bg-rose-50 dark:bg-rose-500/10" },
-                      { icon: ShieldCheck, text: "আগের আইডি নষ্ট হলে নতুন আইডি এড করা হবে", color: "text-teal-500", bg: "bg-teal-50 dark:bg-teal-500/10" }
+                      { icon: MonitorPlay, text: "এইচডি আর্কাইভ ক্লাস (HD Archive Classes)", color: "text-indigo-400", bg: "bg-indigo-500/15" },
+                      { icon: FileText, text: "ক্লাসের লেকচার শিট (Lecture Sheets)", color: "text-emerald-400", bg: "bg-emerald-500/15" },
+                      { icon: BookOpen, text: "প্র্যাকটিস শিট (Practice Sheets)", color: "text-sky-400", bg: "bg-sky-500/15" },
+                      { icon: Zap, text: "সুপার ফাস্ট আপলোডিং (Fast Updates)", color: "text-amber-400", bg: "bg-amber-500/15" },
+                      { icon: InfinityIcon, text: "লাইফটাইম অ্যাক্সেস (Lifetime Access)", color: "text-purple-400", bg: "bg-purple-500/15" },
+                      { icon: Layers, text: "টপিক অনুযায়ী সাজানো ক্লাস (Topic-wise Organized)", color: "text-rose-400", bg: "bg-rose-500/15" },
+                      { icon: ShieldCheck, text: "আইডি সুরক্ষায় নতুন লিংক সাপোর্ট (Instant Link Support)", color: "text-teal-400", bg: "bg-teal-500/15" }
                     ].map((feature, idx) => (
-                      <li key={idx} className="flex items-start gap-2.5 sm:gap-3 group">
-                        <div className={`mt-0.5 w-6 h-6 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${feature.bg}`}>
+                      <li key={idx} className="flex items-center gap-2.5 sm:gap-3 p-2.5 rounded-xl bg-slate-100/70 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-700/40 hover:border-amber-500/30 transition-all duration-200 group">
+                        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${feature.bg}`}>
                           <feature.icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${feature.color}`} />
                         </div>
-                        <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 leading-snug group-hover:text-slate-900 dark:group-hover:text-white transition-colors pt-1 sm:pt-1.5">
+                        <span className="text-xs sm:text-[13px] font-medium text-slate-700 dark:text-slate-300 leading-snug group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
                           {feature.text}
                         </span>
                       </li>
@@ -458,7 +488,9 @@ export default function CourseDetail() {
               </div>
             </div>
           </div>
-          
+
+          {/* Related & Suggested Courses Recommendation Engine */}
+          <RelatedCourses currentCourse={course} />
         </div>
       </div>
     </div>

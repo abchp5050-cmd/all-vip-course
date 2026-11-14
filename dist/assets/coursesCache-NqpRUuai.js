@@ -1,0 +1,1 @@
+let t=null;const s=e=>{if(Array.isArray(e)&&e.length>0){t=e;try{sessionStorage.setItem("vip_courses_cache",JSON.stringify(e))}catch{}}},a=()=>{if(t&&t.length>0)return t;try{const e=sessionStorage.getItem("vip_courses_cache");if(e){const r=JSON.parse(e);if(Array.isArray(r)&&r.length>0)return t=r,r}}catch{}return null};export{a as g,s};

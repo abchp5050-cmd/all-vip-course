@@ -362,7 +362,13 @@ export default function DynamicHeader() {
   // --- Dynamic Class Generation ---
   
   const { content, styling } = config
-  const visibleNavItems = (content.navigation || []).filter(item => item.isVisible)
+  const visibleNavItems = (content.navigation || [])
+    .filter(item => {
+      if (!item.isVisible) return false
+      const lbl = (item.label || "").toLowerCase()
+      const url = (item.url || "").toLowerCase()
+      return !lbl.includes("announc") && !url.includes("announc")
+    })
   
   const headerClass = `sticky top-0 z-50 transition-all duration-300`
   const headerStyle = {
@@ -891,16 +897,6 @@ export default function DynamicHeader() {
                         >
                           {link.label}
                         </span>
-
-                        {/* Announcement "New" badge */}
-                        {lbl.includes("announc") && (
-                          <span
-                            className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                            style={{ background: "rgba(245,158,11,0.2)", color: "#FBBF24", border: "1px solid rgba(245,158,11,0.3)" }}
-                          >
-                            NEW
-                          </span>
-                        )}
 
                         <ChevronRight
                           className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0.5"

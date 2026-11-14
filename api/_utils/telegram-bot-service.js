@@ -113,7 +113,8 @@ export async function registerBotCommands(botToken) {
           { command: "coupons", description: "Manage Promo Codes & Discounts" },
           { command: "addpromo", description: "Create Code: /addpromo <CODE> <AMOUNT>" },
           { command: "user", description: "Search User: /user <email|phone|name>" },
-          { command: "announce", description: "Post Notice: /announce <text>" },
+          { command: "notice", description: "Popup Notice: /notice <title>|<msg>|<link>" },
+          { command: "announce", description: "Popup Notice: /notice <title>|<msg>|<link>" },
           { command: "setbkash", description: "Update bKash No: /setbkash <number>" },
           { command: "setnagad", description: "Update Nagad No: /setnagad <number>" },
           { command: "setprice", description: "Update Price: /setprice <courseId> <price>" },
@@ -249,7 +250,7 @@ Welcome back, Admin! Select an action below or send a command to manage the plat
         { text: "👤 Search / Manage User", callback_data: "cmd_users_help" },
       ],
       [
-        { text: "📢 Post Announcement", callback_data: "cmd_announce_help" },
+        { text: "📢 Popup Notice Manager", callback_data: "menu_notice" },
         { text: "💳 Payment Numbers / Settings", callback_data: "cmd_settings" },
       ],
       [
@@ -1143,142 +1144,323 @@ export async function handleUserGrantExecute(userId, courseId, callbackQuery, bo
 }
 
 // ==========================================
-// 6. INSTANT WEBSITE ANNOUNCEMENT
+// 6. LIVE POPUP NOTICE MANAGER
 // ==========================================
 
-export async function handleAnnounceCommand(text, chatId, botToken) {
+function escapeTelegramHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+export async function getPopupNoticeData() {
+  try {
+    const docRef = doc(db, "settings", "popup_notice");
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      return snap.data();
+    }
+  } catch (e) {
+    console.error("[TelegramBot] Error fetching popup notice:", e.message);
+  }
+  return {
+    enabled: false,
+    badge: "SPECIAL NOTICE",
+    title: "",
+    message: "",
+    buttonText: "",
+    buttonLink: "",
+    updatedAt: 0,
+  };
+}
+
+export async function handleNoticeManager(chatId, botToken, messageId = null) {
   const token = botToken || (process.env.TELEGRAM_BOT_TOKEN || "").trim();
+  const notice = await getPopupNoticeData();
 
-  if (!text || !text.trim()) {
-    const helpText = 
-`📢 <b>Post Website Announcement</b>
-━━━━━━━━━━━━━━━━━━━━
-<b>Usage:</b> <code>/announce &lt;Message&gt;</code>
-or: <code>/announce &lt;Title&gt; | &lt;Message&gt;</code>
-
-<i>Examples:</i>
-• <code>/announce ঈদ অফার: সকল কোর্সে ৫০% ডিসকাউন্ট!</code>
-• <code>/announce New Batch | HSC 2026 Cycle 2 admission is now open!</code>
-
-<i>This will immediately update the live announcement bar at the top of the website!</i>`;
-
-    const keyboard = {
-      inline_keyboard: [
-        [
-          { text: "🗑 Delete Latest Notice", callback_data: "announce_del_latest" },
-          { text: "🔙 Main Menu", callback_data: "cmd_menu" },
-        ],
-      ],
-    };
-
-    return await sendMessage(token, chatId, helpText, { reply_markup: keyboard });
+  const isNoticeActive = Boolean(notice.enabled);
+  const statusBadge = isNoticeActive ? "🟢 <b>ACTIVE (Live on Website)</b>" : "🔴 <b>OFF (Hidden from Users)</b>";
+  const toggleBtnText = isNoticeActive ? "🔴 Turn OFF Notice" : "🟢 Turn ON Notice";
+  
+  let formattedTime = "Never";
+  if (notice.updatedAt) {
+    const d = new Date(typeof notice.updatedAt === "number" ? notice.updatedAt : (notice.updatedAt.toMillis ? notice.updatedAt.toMillis() : Date.now()));
+    formattedTime = d.toLocaleString("en-GB", { timeZone: "Asia/Dhaka" });
   }
 
+  let text = 
+`📢 <b>Live Popup Notice Manager</b>
+━━━━━━━━━━━━━━━━━━━━
+Status: ${statusBadge}
+Badge: <code>${escapeTelegramHtml(notice.badge || "SPECIAL NOTICE")}</code>
+Title: <b>${escapeTelegramHtml(notice.title || "—")}</b>
+
+<b>Message:</b>
+<i>${escapeTelegramHtml(notice.message || "(No message)")}</i>\n`;
+
+  if (notice.buttonLink) {
+    text += `\nButton Text: <b>${escapeTelegramHtml(notice.buttonText || "Default (বিস্তারিত দেখুন →)")}</b>\nLink: <code>${escapeTelegramHtml(notice.buttonLink)}</code>\n`;
+  } else if (notice.buttonText) {
+    text += `\nButton Text: <b>${escapeTelegramHtml(notice.buttonText)}</b> (Dismiss button)\n`;
+  }
+
+  text += `Version / Updated: <code>${formattedTime}</code>\n`;
+  text += 
+`━━━━━━━━━━━━━━━━━━━━
+<b>How to Update via /notice Command:</b>
+• <code>/notice off</code> — Instant Turn OFF
+• <code>/notice on</code> — Instant Turn ON
+• <code>/notice Title | Message</code>
+• <code>/notice Title | Message | Link</code>
+• <code>/notice Title | Message | ButtonText | Link</code>
+
+<i>Example:</i>
+<code>/notice HSC 26 & 27 SPECIAL COMBO! | সকল বিষয়ের সাইকেল এখন মাত্র ৫০০ টাকায়! | অফারটি নিন | https://t.me/Newvip69_bot</code>`;
+
+  const keyboard = {
+    inline_keyboard: [
+      [
+        { text: toggleBtnText, callback_data: "toggle_notice" },
+        { text: "🗑️ Delete / Clear Notice", callback_data: "delete_notice" },
+      ],
+      [
+        { text: "🔄 Refresh Status", callback_data: "menu_notice" },
+        { text: "🔙 Main Menu", callback_data: "cmd_menu" },
+      ],
+    ],
+  };
+
+  if (messageId) {
+    return await editMessageText(token, chatId, messageId, text, { reply_markup: keyboard });
+  } else {
+    return await sendMessage(token, chatId, text, { reply_markup: keyboard });
+  }
+}
+
+export async function handleNoticeToggle(callbackQuery, botToken) {
+  const token = botToken || (process.env.TELEGRAM_BOT_TOKEN || "").trim();
+  const chatId = callbackQuery.message?.chat?.id;
+  const messageId = callbackQuery.message?.message_id;
+
   try {
-    let title = "";
-    let message = text.trim();
+    const current = await getPopupNoticeData();
+    const newEnabled = !Boolean(current.enabled);
 
-    if (text.includes("|")) {
-      const parts = text.split("|");
-      title = parts[0].trim();
-      message = parts.slice(1).join("|").trim();
-    }
+    await setDoc(doc(db, "settings", "popup_notice"), {
+      ...current,
+      type: "popup_notice",
+      enabled: newEnabled,
+      badge: current.badge || "SPECIAL NOTICE",
+      title: current.title || "",
+      message: current.message || "",
+      buttonText: current.buttonText || "",
+      buttonLink: current.buttonLink || "",
+      updatedAt: Date.now(),
+    }, { merge: true });
 
-    const fullNoticeText = title ? `${title}: ${message}` : message;
-    const newItem = {
-      id: String(Date.now()),
-      text: fullNoticeText,
-      order: 0,
-      createdAt: new Date().toISOString(),
-    };
+    await answerCallbackQuery(
+      token, 
+      callbackQuery.id, 
+      newEnabled ? "Notice activated 🟢 Live on website!" : "Notice deactivated 🔴 Hidden from website!",
+      false
+    );
 
-    // 1. Update settings collection (used by AnnouncementBar)
-    const settingsQ = query(collection(db, "settings"), where("type", "==", "announcements"));
-    const settingsSnap = await getDocs(settingsQ);
+    await handleNoticeManager(chatId, token, messageId);
+  } catch (err) {
+    console.error("[TelegramBot] Error toggling notice:", err);
+    await answerCallbackQuery(token, callbackQuery.id, `Error: ${err.message}`, true);
+  }
+}
 
-    if (!settingsSnap.empty) {
-      const existing = settingsSnap.docs[0].data();
-      const items = Array.isArray(existing.items) ? existing.items : [];
-      await updateDoc(doc(db, "settings", settingsSnap.docs[0].id), {
-        enabled: true,
-        items: [newItem, ...items],
-        updatedAt: serverTimestamp(),
-      });
-    } else {
-      await addDoc(collection(db, "settings"), {
-        type: "announcements",
-        enabled: true,
-        items: [newItem],
-        updatedAt: serverTimestamp(),
-      });
-    }
+export async function handleNoticeDelete(callbackQuery, botToken) {
+  const token = botToken || (process.env.TELEGRAM_BOT_TOKEN || "").trim();
+  const chatId = callbackQuery.message?.chat?.id;
+  const messageId = callbackQuery.message?.message_id;
 
-    // 2. Add to announcements collection
+  try {
+    await setDoc(doc(db, "settings", "popup_notice"), {
+      type: "popup_notice",
+      enabled: false,
+      badge: "SPECIAL NOTICE",
+      title: "",
+      message: "",
+      buttonText: "",
+      buttonLink: "",
+      updatedAt: Date.now(),
+    }, { merge: true });
+
+    await answerCallbackQuery(token, callbackQuery.id, "Notice cleared & disabled 🗑️", false);
+    await handleNoticeManager(chatId, token, messageId);
+  } catch (err) {
+    console.error("[TelegramBot] Error deleting notice:", err);
+    await answerCallbackQuery(token, callbackQuery.id, `Error: ${err.message}`, true);
+  }
+}
+
+export async function handleNoticeCommand(text, chatId, botToken) {
+  const token = botToken || (process.env.TELEGRAM_BOT_TOKEN || "").trim();
+  const trimmed = (text || "").trim();
+
+  if (!trimmed || trimmed.toLowerCase() === "help") {
+    return await handleNoticeManager(chatId, token);
+  }
+
+  // 1. Toggle OFF
+  if (trimmed.toLowerCase() === "off") {
     try {
-      await addDoc(collection(db, "announcements"), {
-        title: title || "Notice",
-        message,
-        text: fullNoticeText,
-        active: true,
-        createdAt: serverTimestamp(),
-      });
-    } catch (e) {
-      console.warn("[TelegramBot] Error writing to announcements collection:", e.message);
+      const current = await getPopupNoticeData();
+      await setDoc(doc(db, "settings", "popup_notice"), {
+        ...current,
+        enabled: false,
+        updatedAt: Date.now(),
+      }, { merge: true });
+
+      const keyboard = {
+        inline_keyboard: [
+          [
+            { text: "🟢 Turn ON Notice", callback_data: "toggle_notice" },
+            { text: "📢 Notice Manager", callback_data: "menu_notice" },
+          ],
+          [
+            { text: "🔙 Main Menu", callback_data: "cmd_menu" },
+          ]
+        ],
+      };
+
+      return await sendMessage(
+        token, 
+        chatId, 
+        `🔴 <b>Popup Notice is now OFF!</b>\n\nIt is now hidden from all website visitors.`, 
+        { reply_markup: keyboard }
+      );
+    } catch (err) {
+      return await sendMessage(token, chatId, `⚠️ Error: ${err.message}`);
+    }
+  }
+
+  // 2. Toggle ON
+  if (trimmed.toLowerCase() === "on") {
+    try {
+      const current = await getPopupNoticeData();
+      await setDoc(doc(db, "settings", "popup_notice"), {
+        ...current,
+        enabled: true,
+        updatedAt: Date.now(),
+      }, { merge: true });
+
+      const keyboard = {
+        inline_keyboard: [
+          [
+            { text: "🔴 Turn OFF Notice", callback_data: "toggle_notice" },
+            { text: "📢 Notice Manager", callback_data: "menu_notice" },
+          ],
+          [
+            { text: "🔙 Main Menu", callback_data: "cmd_menu" },
+          ]
+        ],
+      };
+
+      return await sendMessage(
+        token, 
+        chatId, 
+        `🟢 <b>Popup Notice is now ON!</b>\n\nIt is now live on the website!`, 
+        { reply_markup: keyboard }
+      );
+    } catch (err) {
+      return await sendMessage(token, chatId, `⚠️ Error: ${err.message}`);
+    }
+  }
+
+  // 3. Create or update notice
+  // Formats supported:
+  // - Title | Message
+  // - Title | Message | Link
+  // - Title | Message | ButtonText | Link
+  // - Single line message
+  try {
+    let title = "SPECIAL NOTICE";
+    let message = "";
+    let buttonText = "";
+    let buttonLink = "";
+    let badge = "SPECIAL NOTICE";
+
+    if (trimmed.includes("|")) {
+      const parts = trimmed.split("|").map(p => p.trim());
+      title = parts[0] || "SPECIAL NOTICE";
+      message = parts[1] || "";
+
+      if (parts.length === 3) {
+        const third = parts[2];
+        if (/^(https?:\/\/|t\.me\/|wa\.me\/)/i.test(third)) {
+          buttonLink = third;
+          buttonText = "বিস্তারিত দেখুন →";
+        } else {
+          buttonText = third;
+        }
+      } else if (parts.length >= 4) {
+        buttonText = parts[2] || "";
+        buttonLink = parts.slice(3).join("|").trim();
+      }
+    } else {
+      title = "SPECIAL NOTICE";
+      message = trimmed;
     }
 
-    const confirmText = 
-`📢 <b>ANNOUNCEMENT PUBLISHED!</b>
-━━━━━━━━━━━━━━━━━━━━
-\"<b>${fullNoticeText}</b>\"
+    const newNotice = {
+      type: "popup_notice",
+      enabled: true,
+      badge,
+      title,
+      message,
+      buttonText,
+      buttonLink,
+      updatedAt: Date.now(),
+    };
 
-✅ <i>Now active and scrolling on the website announcement bar!</i>`;
+    await setDoc(doc(db, "settings", "popup_notice"), newNotice, { merge: true });
+
+    let confirmMsg = 
+`📢 <b>POPUP NOTICE PUBLISHED!</b>
+━━━━━━━━━━━━━━━━━━━━
+Status: 🟢 <b>LIVE & ACTIVE ON WEBSITE</b>
+Title: <b>${escapeTelegramHtml(title)}</b>
+
+<b>Message:</b>
+<i>${escapeTelegramHtml(message)}</i>\n`;
+
+    if (buttonLink) {
+      confirmMsg += `\nButton Text: <b>${escapeTelegramHtml(buttonText || "Default (বিস্তারিত দেখুন →)")}</b>\nLink: <code>${escapeTelegramHtml(buttonLink)}</code>`;
+    } else if (buttonText) {
+      confirmMsg += `\nButton Text: <b>${escapeTelegramHtml(buttonText)}</b> (Dismiss button)`;
+    }
+
+    confirmMsg += `\n\n✅ <i>All website visitors will see this popup modal immediately!</i>`;
 
     const keyboard = {
       inline_keyboard: [
         [
-          { text: "🗑 Delete This Notice", callback_data: "announce_del_latest" },
+          { text: "🔴 Turn OFF Notice", callback_data: "toggle_notice" },
+          { text: "🗑️ Delete Notice", callback_data: "delete_notice" },
+        ],
+        [
+          { text: "📢 Notice Manager", callback_data: "menu_notice" },
           { text: "🔙 Main Menu", callback_data: "cmd_menu" },
         ],
       ],
     };
 
-    return await sendMessage(token, chatId, confirmText, { reply_markup: keyboard });
-  } catch (error) {
-    console.error("[TelegramBot] Error posting announcement:", error);
-    return await sendMessage(token, chatId, `⚠️ Error publishing announcement: ${error.message}`);
+    return await sendMessage(token, chatId, confirmMsg, { reply_markup: keyboard });
+  } catch (err) {
+    console.error("[TelegramBot] Error publishing notice:", err);
+    return await sendMessage(token, chatId, `⚠️ Error publishing notice: ${err.message}`);
   }
 }
 
-export async function handleDeleteLatestAnnouncement(callbackQuery, botToken) {
-  const token = botToken || (process.env.TELEGRAM_BOT_TOKEN || "").trim();
-
-  try {
-    const settingsQ = query(collection(db, "settings"), where("type", "==", "announcements"));
-    const snap = await getDocs(settingsQ);
-
-    if (!snap.empty) {
-      const data = snap.docs[0].data();
-      const items = Array.isArray(data.items) ? data.items : [];
-      if (items.length > 0) {
-        const removed = items[0];
-        const remaining = items.slice(1);
-        await updateDoc(doc(db, "settings", snap.docs[0].id), {
-          items: remaining,
-          enabled: remaining.length > 0,
-          updatedAt: serverTimestamp(),
-        });
-
-        await answerCallbackQuery(token, callbackQuery.id, "Latest notice removed!", true);
-        return;
-      }
-    }
-
-    await answerCallbackQuery(token, callbackQuery.id, "No active announcements to delete.", true);
-  } catch (error) {
-    console.error("[TelegramBot] Error deleting announcement:", error);
-    await answerCallbackQuery(token, callbackQuery.id, `Error: ${error.message}`, true);
-  }
-}
+// Aliases for backwards compatibility
+export const handleAnnounceCommand = handleNoticeCommand;
+export const handleDeleteLatestAnnouncement = handleNoticeDelete;
 
 // ==========================================
 // 7. PAYMENT SETTINGS QUICK VIEW & UPDATE
@@ -1938,11 +2120,13 @@ export async function handleTelegramCallbackQuery(callbackQuery, botToken) {
     const userId = callbackData.replace("user_grant_", "").trim();
     await answerCallbackQuery(token, callbackQuery.id);
     await handleUserGrantMenu(userId, chatId, token, messageId);
-  } else if (callbackData === "cmd_announce_help") {
+  } else if (callbackData === "menu_notice" || callbackData === "cmd_announce_help") {
     await answerCallbackQuery(token, callbackQuery.id);
-    await handleAnnounceCommand("", chatId, token);
-  } else if (callbackData === "announce_del_latest") {
-    await handleDeleteLatestAnnouncement(callbackQuery, token);
+    await handleNoticeManager(chatId, token, messageId);
+  } else if (callbackData === "toggle_notice") {
+    await handleNoticeToggle(callbackQuery, token);
+  } else if (callbackData === "delete_notice" || callbackData === "announce_del_latest") {
+    await handleNoticeDelete(callbackQuery, token);
   } else if (callbackData === "cmd_settings") {
     await answerCallbackQuery(token, callbackQuery.id);
     await handlePaymentSettings(chatId, token, messageId);
@@ -2022,8 +2206,10 @@ export async function handleTelegramMessage(message, botToken) {
       await handleUserSearch(fullArgs, chatId, token);
       break;
 
+    case "/notice":
+    case "/popup":
     case "/announce":
-      await handleAnnounceCommand(fullArgs, chatId, token);
+      await handleNoticeCommand(fullArgs, chatId, token);
       break;
 
     case "/setbkash":
@@ -2053,7 +2239,7 @@ export async function handleTelegramMessage(message, botToken) {
       await sendMessage(
         token,
         chatId,
-        `👑 <b>VIP Admin Commands Guide</b>\n━━━━━━━━━━━━━━━━━━━━\n• <code>/menu</code> — Open Admin Control Dashboard\n• <code>/stats</code> — Live Platform & Revenue Analytics\n• <code>/pending</code> — Pending Orders Queue & Action\n• <code>/courses</code> — Manage Courses, Status & Prices\n• <code>/coupons</code> — Manage Promo Codes & Discounts\n• <code>/addpromo &lt;CODE&gt; &lt;AMOUNT&gt;</code> — Create Discount Code\n• <code>/user &lt;query&gt;</code> — Search User & Grant Access\n• <code>/announce &lt;msg&gt;</code> — Post Website Announcement\n• <code>/setbkash &lt;num&gt;</code> — Update bKash Number\n• <code>/setnagad &lt;num&gt;</code> — Update Nagad Number\n• <code>/setprice &lt;id&gt; &lt;num&gt;</code> — Update Course Price`
+        `👑 <b>VIP Admin Commands Guide</b>\n━━━━━━━━━━━━━━━━━━━━\n• <code>/menu</code> — Open Admin Control Dashboard\n• <code>/notice &lt;title&gt;|&lt;msg&gt;|&lt;link&gt;</code> — Post Live Popup Notice\n• <code>/notice off / on</code> — Toggle Popup Notice\n• <code>/stats</code> — Live Platform & Revenue Analytics\n• <code>/pending</code> — Pending Orders Queue & Action\n• <code>/courses</code> — Manage Courses, Status & Prices\n• <code>/coupons</code> — Manage Promo Codes & Discounts\n• <code>/addpromo &lt;CODE&gt; &lt;AMOUNT&gt;</code> — Create Discount Code\n• <code>/user &lt;query&gt;</code> — Search User & Grant Access\n• <code>/setbkash &lt;num&gt;</code> — Update bKash Number\n• <code>/setnagad &lt;num&gt;</code> — Update Nagad Number\n• <code>/setprice &lt;id&gt; &lt;num&gt;</code> — Update Course Price`
       );
       break;
 

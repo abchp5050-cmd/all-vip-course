@@ -45,16 +45,6 @@ export const createDefaultHeaderConfig = (userId) => ({
         isVisible: true,
         openInNewTab: false,
         children: []
-      },
-      {
-        id: "nav-announcements",
-        label: "Announcements",
-        type: "internal",
-        url: "/announcements",
-        order: 3,
-        isVisible: true,
-        openInNewTab: false,
-        children: []
       }
     ],
     elements: {
@@ -169,15 +159,6 @@ export const createDefaultFooterConfig = (userId) => ({
             type: "internal",
             url: "/community",
             order: 2,
-            isVisible: true,
-            openInNewTab: false
-          },
-          {
-            id: "link-announcements",
-            label: "Announcements",
-            type: "internal",
-            url: "/announcements",
-            order: 3,
             isVisible: true,
             openInNewTab: false
           }
@@ -566,10 +547,9 @@ export const initializeDefaultSitePages = async () => {
     { id: "page-home", title: "Home", slug: "/", type: "static", isVisible: true, order: 0 },
     { id: "page-courses", title: "Courses", slug: "/courses", type: "static", isVisible: true, order: 1 },
     { id: "page-community", title: "Community", slug: "/community", type: "static", isVisible: true, order: 2 },
-    { id: "page-announcements", title: "Announcements", slug: "/announcements", type: "static", isVisible: true, order: 3 },
-    { id: "page-my-courses", title: "My Courses", slug: "/my-courses", type: "static", isVisible: true, order: 4 },
-    { id: "page-profile", title: "Profile", slug: "/profile", type: "static", isVisible: true, order: 5 },
-    { id: "page-admin", title: "Admin Dashboard", slug: "/admin", type: "static", isVisible: true, order: 6 }
+    { id: "page-my-courses", title: "My Courses", slug: "/my-courses", type: "static", isVisible: true, order: 3 },
+    { id: "page-profile", title: "Profile", slug: "/profile", type: "static", isVisible: true, order: 4 },
+    { id: "page-admin", title: "Admin Dashboard", slug: "/admin", type: "static", isVisible: true, order: 5 }
   ]
   
   try {

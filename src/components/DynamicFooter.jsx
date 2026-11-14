@@ -28,8 +28,7 @@ const DEFAULT_FOOTER_CONFIG = {
         links: [
           { id: "link-home", label: "Home", type: "internal", url: "/", isVisible: true },
           { id: "link-courses", label: "Courses", type: "internal", url: "/courses", isVisible: true },
-          { id: "link-community", label: "Community", type: "internal", url: "/community", isVisible: true },
-          { id: "link-announcements", label: "Announcements", type: "internal", url: "/announcements", isVisible: true }
+          { id: "link-community", label: "Community", type: "internal", url: "/community", isVisible: true }
         ]
       },
       {
@@ -154,7 +153,12 @@ export default function DynamicFooter() {
                 {section.title}
               </h4>
               <div className="flex flex-col gap-2.5 w-full max-w-[240px] sm:max-w-none">
-                {section.links?.filter(link => link.isVisible !== false).map((link) => {
+                {section.links?.filter(link => {
+                  if (link.isVisible === false) return false
+                  const lbl = (link.label || "").toLowerCase()
+                  const url = (link.url || "").toLowerCase()
+                  return !lbl.includes("announc") && !url.includes("announc")
+                }).map((link) => {
                   const IconComponent = link.icon ? iconMap[link.icon] : null
                   
                   if (link.type === 'email' || link.type === 'phone') {

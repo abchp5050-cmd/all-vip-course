@@ -10,6 +10,7 @@ import {
   BarChart3,
   Layout,
   Bell,
+  BellRing,
   Search,
   Moon,
   Sun,
@@ -31,6 +32,7 @@ const ManageCourses = lazy(() => import("./ManageCourses"))
 const ManagePayments = lazy(() => import("./ManagePayments"))
 const ManageCoupons = lazy(() => import("./ManageCoupons"))
 const HeaderFooterBuilder = lazy(() => import("./HeaderFooterBuilder"))
+const ManagePopupNotice = lazy(() => import("./ManagePopupNotice"))
 const WebsiteSettings = lazy(() => import("./WebsiteSettings"))
 
 function AdminSkeleton() {
@@ -88,6 +90,7 @@ export default function AdminDashboard() {
     { name: "Courses", path: "/admin/courses", icon: BookOpen },
     { name: "Payments", path: "/admin/payments", icon: CreditCard, badge: pendingPaymentsCount },
     { name: "Coupons", path: "/admin/coupons", icon: Ticket },
+    { name: "Popup Notice", path: "/admin/notice", icon: BellRing },
     { name: "Header & Footer", path: "/admin/header-footer", icon: Layout },
     { name: "Reviews", path: "/admin/reviews", icon: Star },
     { name: "Settings", path: "/admin/settings", icon: Settings },
@@ -349,6 +352,8 @@ export default function AdminDashboard() {
                   <Route path="courses" element={<ManageCourses />} />
                   <Route path="payments" element={<ManagePayments />} />
                   <Route path="coupons" element={<ManageCoupons />} />
+                  <Route path="notice" element={<ManagePopupNotice />} />
+                  <Route path="announcements" element={<ManagePopupNotice />} />
                   <Route path="header-footer" element={<HeaderFooterBuilder />} />
                   {/* Fallbacks for Reviews/Settings routing if they don't exist yet */}
                   <Route path="reviews" element={<div className="p-8 text-center text-slate-500 bg-white rounded-xl shadow-sm border border-slate-100">Reviews Manager Coming Soon</div>} />

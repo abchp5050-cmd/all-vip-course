@@ -4,7 +4,7 @@ import { AuthProvider } from "./contexts/AuthContext"
 import { ThemeProvider } from "./contexts/ThemeContext"
 import { Toaster } from "./components/ui/toaster"
 import DynamicHeader from "./components/DynamicHeader"
-import AnnouncementBar from "./components/AnnouncementBar"
+import PopupNoticeModal from "./components/PopupNoticeModal"
 import DynamicFooter from "./components/DynamicFooter"
 import ProtectedRoute from "./components/ProtectedRoute"
 import PWAInstallPrompt from "./components/PWAInstallPrompt"
@@ -57,7 +57,6 @@ function App() {
             {/* ScrollToTop must be INSIDE Router to access useLocation */}
             <ScrollToTop />
             <DynamicHeader />
-            <AnnouncementBar />
             <main className="flex-1">
               <Suspense fallback={<PremiumLoader />}>
                 <Routes>
@@ -116,6 +115,7 @@ function App() {
             </main>
             <PWAInstallPrompt />
             <SupportWidget />
+            <PopupNoticeModal />
             <Toaster />
             <DynamicFooter />
           </div>

@@ -24,6 +24,7 @@ import HomeFAQ from "../components/HomeFAQ"
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore"
 import { db } from "../lib/firebase"
 import { useAuth } from "../contexts/AuthContext"
+import { setCoursesCache } from "../utils/coursesCache"
 
 export default function Home() {
   const navigate = useNavigate()
@@ -68,6 +69,7 @@ export default function Home() {
       })
 
       setTrendingCourses(coursesData.slice(0, 12))
+      setCoursesCache(coursesData)
 
       const categoriesQuery = query(collection(db, "categories"))
       const categoriesSnapshot = await getDocs(categoriesQuery)
@@ -130,63 +132,91 @@ export default function Home() {
   ]
 
 const testimonials = [
-    {
-      name: "আরিফুল ইসলাম",
-      location: "ঢাকা",
-      role: "HSC 2026 শিক্ষার্থী",
-      image: "https://i.pravatar.cc/150?img=11",
-      content: "All VIP Courses থেকে HSC ও Admission এর কোর্স নিয়েছিলাম। কম খরচে এত সুন্দর সাজানো ক্লাস, PDF এবং গাইডলাইন পাবো ভাবিনি। পরীক্ষার প্রস্তুতিতে অনেক সাহায্য পেয়েছি। ধন্যবাদ All VIP Courses টিমকে। সবাইকে এই প্ল্যাটফর্ম থেকে কোর্স নেওয়ার পরামর্শ দিব।"
-    },
-    {
-      name: "জান্নাতুল ফেরদৌস",
-      location: "রাজশাহী",
-      role: "HSC শিক্ষার্থী",
-      image: "https://i.pravatar.cc/150?img=5",
-      content: "Admission preparation এর জন্য All VIP Courses আমার জন্য অনেক উপকারী ছিল। ভালো মানের ক্লাস এবং সহজভাবে বুঝানোর কারণে পড়াশোনা অনেক সহজ হয়েছে। কম বাজেটে ভালো একটা learning platform পেয়েছি।"
-    },
-    {
-      name: "তানভীর আহমেদ",
-      location: "চট্টগ্রাম",
-      role: "HSC 2026 Candidate",
-      image: "https://i.pravatar.cc/150?img=13",
-      content: "আগে অনেক জায়গায় কোর্স খুঁজেছি, কিন্তু All VIP Courses এর মতো organized course পাইনি। HSC revision এবং admission preparation দুইটার জন্যই অনেক সাহায্য পেয়েছি।"
-    },
-    {
-      name: "মেহেদী হাসান",
-      location: "কুমিল্লা",
-      role: "Admission Aspirant",
-      image: "https://i.pravatar.cc/150?img=14",
-      content: "কম টাকায় এত বেশি resource পাওয়া সত্যিই অবাক করার মতো। নিয়মিত practice এবং guideline আমাকে অনেক confidence দিয়েছে।"
-    },
-    {
-      name: "সাদিয়া ইসলাম",
-      location: "খুলনা",
-      role: "HSC শিক্ষার্থী",
-      image: "https://i.pravatar.cc/150?img=9",
-      content: "All VIP Courses এর সবচেয়ে ভালো দিক হলো সহজ ভাষায় শেখানো এবং প্রয়োজনীয় সব material এক জায়গায় পাওয়া যায়।"
-    },
-    {
-      name: "রাকিবুল হাসান",
-      location: "বরিশাল",
-      role: "HSC Candidate",
-      image: "https://i.pravatar.cc/150?img=15",
-      content: "Admission এর সময় সঠিক direction পাচ্ছিলাম না। এই কোর্স নেওয়ার পর preparation অনেক গোছানো হয়েছে।"
-    },
-    {
-      name: "নুসরাত জাহান",
-      location: "ময়মনসিংহ",
-      role: "HSC Student",
-      image: "https://i.pravatar.cc/150?img=20",
-      content: "Premium quality content এত affordable price এ পাওয়া সত্যিই ভালো লেগেছে।"
-    },
-    {
-      name: "ইমরান হোসেন",
-      location: "সিলেট",
-      role: "Admission Student",
-      image: "https://i.pravatar.cc/150?img=33",
-      content: "যারা HSC এবং Admission নিয়ে সিরিয়াস, তাদের জন্য All VIP Courses অনেক helpful."
-    }
-  ]
+  {
+    name: "মাহমুদুল হাসান",
+    location: "ঢাকা",
+    role: "HSC 25 (Engineering Admission)",
+    image: "https://i.pravatar.cc/150?img=60",
+    content: "HSC 25 দেওয়ার পর ইঞ্জিনিয়ারিং অ্যাডমিশন কোচিংয়ের পাশাপাশি রিভিশনের জন্য সব প্ল্যাটফর্মের প্রিমিয়াম ব্যাচ দরকার ছিল। ALL VIP COURSES থেকে মাত্র ১৫০-২০০ টাকায় ACS ও অন্যান্য প্ল্যাটফর্মের ফুল ইঞ্জিনিয়ারিং ও প্রশ্নব্যাংক সলভ কোর্স পেয়ে গেছি! ক্লাস ও পিডিএফ সব একদম গোছানো।"
+  },
+  {
+    name: "আফরিন সুলতানা",
+    location: "চট্টগ্রাম",
+    role: "HSC 26 Batch",
+    image: "https://i.pravatar.cc/150?img=47",
+    content: "HSC 26-এর ফাইনাল রিভিশন আর টেস্ট পেপার সলভ ব্যাচ বাইরে কিনতে গেলে ৪-৫ হাজার টাকা লাগত। এখানে সব প্ল্যাটফর্মের সেরা রিভিশন কোর্সগুলো পানির দামে পেয়েছি। টেলিগ্রাম প্রাইভেট গ্রুপে প্রতিটা অধ্যায়ের ক্লাস আর লেকচার শিট সিরিয়ালি দেওয়া আছে!"
+  },
+  {
+    name: "আরিফুল ইসলাম",
+    location: "রংপুর",
+    role: "HSC 25 (Medical Aspirant)",
+    image: "https://i.pravatar.cc/150?img=53",
+    content: "মেডিকেল অ্যাডমিশনের জন্য দাগানো বই, প্র্যাকটিস শিট আর মেডি ট্রিক্সের সব নামিদামি প্ল্যাটফর্মের কোর্স এখান থেকে নিয়েছি। এত কম টাকায় যে এতগুলো প্ল্যাটফর্মের অরিজিনাল কোর্স ও লাইফটাইম অ্যাক্সেস পাওয়া যায়, তা সত্যিই অবিশ্বাস্য!"
+  },
+  {
+    name: "সামিয়া রহমান",
+    location: "সিলেট",
+    role: "HSC 26 Candidate",
+    image: "https://i.pravatar.cc/150?img=44",
+    content: "সামনে আমাদের HSC 26 পরীক্ষা, আর শেষ মুহূর্তে ফিজিক্স ও হায়ার ম্যাথের গ্যাপ পূরণ করার জন্য এখান থেকে কম্বো কোর্স নিয়েছি। পেমেন্ট করার সাথে সাথে ড্যাশবোর্ডে টেলিগ্রাম লিংক চলে এসেছে। ভিডিও কোয়ালিটি একদম ফুল এইচডি!"
+  },
+  {
+    name: "জুবায়ের আহমেদ",
+    location: "রাজশাহী",
+    role: "HSC 25 (Varsity & GST Aspirant)",
+    image: "https://i.pravatar.cc/150?img=68",
+    content: "HSC 25 শেষ করে ভার্সিটি ক ইউনিট ও গুচ্ছের প্রস্তুতির জন্য আলাদা আলাদা প্ল্যাটফর্মে ভর্তি হওয়া অসম্ভব ছিল। ALL VIP COURSES-এ এসে এক জায়গাতেই সব প্ল্যাটফর্মের ভার্সিটি ব্যাচ নামমাত্র মূল্যে পেয়েছি। গরিব ও মধ্যবিত্ত শিক্ষার্থীদের জন্য সেরা প্ল্যাটফর্ম!"
+  },
+  {
+    name: "নাদিয়া তাবাসসুম",
+    location: "কুমিল্লা",
+    role: "HSC 26 Batch",
+    image: "https://i.pravatar.cc/150?img=49",
+    content: "আমি HSC 26 ব্যাচের ছাত্রী। আগে বায়োলজি আর কেমিস্ট্রির কিছু সাইকেল কেনা ছিল না। এখান থেকে মাত্র ১০০ টাকা করে বাকি সব সাইকেল নিয়ে নিয়েছি। আর্কাইভ ক্লাস থেকে শুরু করে লেকচার নোট—সব সুবিধা শতভাগ পাচ্ছি।"
+  },
+  {
+    name: "তানভীর আহমেদ",
+    location: "ঢাকা",
+    role: "HSC 26 Candidate",
+    image: "https://i.pravatar.cc/150?img=13",
+    content: "অন্যান্য প্ল্যাটফর্মে যেই সাইকেল বা ফুল কোর্সগুলোর দাম ২০০০-৩০০০ টাকা, ALL VIP COURSES থেকে ঠিক সেইম কোর্সই মাত্র ১৫০ টাকায় পেয়েছি! প্রাইভেট টেলিগ্রাম চ্যানেলে সব ক্লাস আর লেকচার শিট একদম টপিক অনুযায়ী সাজানো।"
+  },
+  {
+    name: "শাকিল মাহমুদ",
+    location: "খুলনা",
+    role: "HSC 25 Batch",
+    image: "https://i.pravatar.cc/150?img=59",
+    content: "HSC 25 পরীক্ষার আগে এদের ক্র্যাশ কোর্স ও ফাইনাল মডেল টেস্ট ব্যাচগুলো আমার রেজাল্ট ভালো করতে অনেক সাহায্য করেছে। এখন অ্যাডমিশনের সব প্ল্যাটফর্মের কোর্সগুলোও এখান থেকেই নিচ্ছি। এত দ্রুত আপডেট আর সাপোর্ট অন্য কোথাও পাইনি।"
+  },
+  {
+    name: "রাফিউল করিম",
+    location: "বগুড়া",
+    role: "HSC 26 Candidate",
+    image: "https://i.pravatar.cc/150?img=57",
+    content: "বন্ধুর কাছ থেকে শুনে ALL VIP COURSES-এ এসেছিলাম। এখানে CPS, ACS থেকে শুরু করে দেশের সব টপ প্ল্যাটফর্মের HSC 26 কোর্স এক ছাদের নিচে পাওয়া যায়। ১০ গুণ কম টাকায় সব ক্লাস ও শিট পেয়ে আমি শতভাগ সন্তুষ্ট!"
+  },
+  {
+    name: "মেহেদী হাসান",
+    location: "চট্টগ্রাম",
+    role: "HSC 27 Batch",
+    image: "https://i.pravatar.cc/150?img=14",
+    content: "আগে একেক প্ল্যাটফর্ম থেকে আলাদা আলাদা কোর্স কিনতে গিয়ে অনেক টাকা খরচ হয়ে যেত। এখন ALL VIP COURSES থেকে ফিজিক্স, কেমিস্ট্রি আর ম্যাথের সবগুলো সাইকেল একসাথে পানির দামে নিয়ে নিয়েছি। নতুন ক্লাস আপলোডও হয় সুপার ফাস্ট!"
+  },
+  {
+    name: "জান্নাতুল ফেরদৌস",
+    location: "ময়মনসিংহ",
+    role: "HSC 25 (Admission Aspirant)",
+    image: "https://i.pravatar.cc/150?img=5",
+    content: "দেশের সব নামিদামি প্ল্যাটফর্মের কোর্স যে এক জায়গায় এত কম দামে পাওয়া সম্ভব, তা এখানে না আসলে বিশ্বাসই করতাম না। পেমেন্ট করার ২ মিনিটের মধ্যেই ড্যাশবোর্ডে টেলিগ্রাম জয়েন লিংক পেয়ে গেছি। ভিডিও এবং পিডিএফ শিট সব একদম অরিজিনাল!"
+  },
+  {
+    name: "ফারহান সাদিক",
+    location: "বরিশাল",
+    role: "HSC 27 Batch",
+    image: "https://i.pravatar.cc/150?img=15",
+    content: "একই ওয়েবসাইটে সব প্ল্যাটফর্মের সেরা টিচারদের কোর্স পাওয়া যায়, এর চেয়ে বড় সুবিধা আর কী হতে পারে! যারা টিউশনির টাকা বা হাতখরচ বাঁচিয়ে সেরা প্রস্তুতি নিতে চায়, তাদের জন্য ALL VIP COURSES এক কথায় সেরা।"
+  }
+]
 
 
   return (
@@ -527,11 +557,12 @@ const testimonials = [
           .marquee-track {
             display: flex;
             width: max-content;
-            animation: marquee-scroll 38s linear infinite;
+            animation: marquee-scroll 65s linear infinite;
             will-change: transform;
           }
           .marquee-track:hover,
-          .marquee-track:has(.testimonial-card:active) {
+          .marquee-track:has(.testimonial-card:active),
+          .marquee-track:active {
             animation-play-state: paused;
           }
           .testimonial-card {
@@ -579,7 +610,7 @@ const testimonials = [
             {[...testimonials, ...testimonials].map((t, index) => (
               <div
                 key={`${t.name || 'testimonial'}-${index}`}
-                className="testimonial-card flex-shrink-0 mx-2.5 w-[280px] sm:w-[310px] rounded-2xl p-4 sm:p-5 flex flex-col relative"
+                className="testimonial-card flex-shrink-0 mx-2.5 sm:mx-3 w-[290px] sm:w-[330px] rounded-2xl p-4 sm:p-5 flex flex-col justify-between relative"
                 style={{
                   background: "rgba(17, 24, 39, 0.75)",
                   backdropFilter: "blur(12px)",
@@ -605,9 +636,9 @@ const testimonials = [
                   ))}
                 </div>
 
-                {/* Review text */}
+                {/* Review text (Full text clearly readable without cut off) */}
                 <p
-                  className="mb-4 text-[11px] sm:text-[13px] italic leading-relaxed font-bengali line-clamp-3 flex-1"
+                  className="mb-4 text-[11px] sm:text-[13px] italic leading-relaxed font-bengali flex-1"
                   style={{ color: "#94A3B8" }}
                 >
                   "{t.content}"

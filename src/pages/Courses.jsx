@@ -9,6 +9,7 @@ import { CourseGridSkeleton } from "../components/SkeletonLoader"
 import { collection, query, orderBy, getDocs, where } from "firebase/firestore"
 import { db } from "../lib/firebase"
 import { useAuth } from "../contexts/AuthContext"
+import { setCoursesCache } from "../utils/coursesCache"
 
 export default function Courses() {
   const location = useLocation()
@@ -72,6 +73,7 @@ export default function Courses() {
       }
       
       setCourses(coursesData)
+      setCoursesCache(coursesData)
     } catch (error) {
       console.error("Error fetching courses:", error)
     } finally {

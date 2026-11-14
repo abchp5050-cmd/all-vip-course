@@ -191,7 +191,7 @@ function CourseCard({ course, paymentStatus, showButton = false, variant = "defa
                   {extraCount > 0 && (
                     <div 
                       title={cats.slice(1).join(", ")}
-                      className="bg-indigo-600/80 backdrop-blur-md text-white text-[8px] sm:text-[9px] font-bold px-1 py-0.5 rounded border border-white/10 shrink-0"
+                      className="bg-black/75 backdrop-blur-md text-amber-400 border border-amber-500/40 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm shadow-amber-500/10 shrink-0"
                     >
                       +{extraCount}
                     </div>
@@ -284,42 +284,18 @@ function CourseCard({ course, paymentStatus, showButton = false, variant = "defa
                   }
 
                   return (
-                    <div className="space-y-1">
-                      {tgLinks.map((item, idx) => {
-                        const isClicked = isLinkDisabled(idx)
-                        const customLabel = item.label?.trim()
-                        const defaultLabel = tgLinks.length === 1 ? "Join Telegram" : `Join Group #${idx + 1}`
-                        const label = customLabel || defaultLabel
-                        const doneLabel = tgLinks.length === 1
-                          ? "Joined / Link Used"
-                          : (customLabel ? `${customLabel} (Joined / Link Used)` : `Group #${idx + 1} (Joined / Link Used)`)
-
-                        return (
-                          <button
-                            key={idx}
-                            onClick={(e) => !isClicked && handleTelegramClick(e, item.url, idx)}
-                            disabled={isClicked}
-                            className={`w-full py-1.5 px-1.5 rounded-lg text-[9px] sm:text-[10px] font-bold flex items-center justify-center gap-1 transition-all select-none ${
-                              isClicked
-                                ? 'bg-slate-800/80 border border-slate-700/80 text-emerald-400 cursor-not-allowed opacity-90'
-                                : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white shadow hover:shadow-indigo-500/25 active:scale-[0.98]'
-                            }`}
-                          >
-                            {isClicked ? (
-                              <>
-                                <Check className="w-2.5 h-2.5 shrink-0" />
-                                <span className="truncate">{doneLabel}</span>
-                              </>
-                            ) : (
-                              <>
-                                <Send className="w-2.5 h-2.5 shrink-0" />
-                                <span className="truncate">{label}</span>
-                              </>
-                            )}
-                          </button>
-                        )
-                      })}
-                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        navigate(`/${course.slug || course.id}`)
+                        window.scrollTo({ top: 0, behavior: "smooth" })
+                      }}
+                      className="w-full py-1.5 px-2 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 hover:text-emerald-300 border border-emerald-500/35 hover:border-emerald-400 text-[10px] sm:text-[11px] font-bold flex items-center justify-center gap-1 transition-all shadow-sm active:scale-[0.98]"
+                    >
+                      <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                      <span className="truncate">কোর্সে প্রবেশ করুন →</span>
+                    </button>
                   )
                 })()}
               </div>
@@ -396,7 +372,7 @@ function CourseCard({ course, paymentStatus, showButton = false, variant = "defa
                 {extraCount > 0 && (
                   <div 
                     title={cats.slice(1).join(", ")}
-                    className="bg-indigo-600/85 backdrop-blur-md text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-white/10 shrink-0"
+                    className="bg-black/75 backdrop-blur-md text-amber-400 border border-amber-500/40 text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-sm shadow-amber-500/10 shrink-0"
                   >
                     +{extraCount}
                   </div>
@@ -473,47 +449,18 @@ function CourseCard({ course, paymentStatus, showButton = false, variant = "defa
                 }
 
                 return (
-                  <div className="space-y-1.5">
-                    {tgLinks.map((item, idx) => {
-                      const isClicked = isLinkDisabled(idx)
-                      const customLabel = item.label?.trim()
-                      const defaultLabel = tgLinks.length === 1 ? "Join Telegram Group" : `Join Group #${idx + 1}`
-                      const label = customLabel || defaultLabel
-                      const doneLabel = tgLinks.length === 1
-                        ? "Joined / Link Used"
-                        : (customLabel ? `${customLabel} (Joined / Link Used)` : `Group #${idx + 1} (Joined / Link Used)`)
-
-                      return (
-                        <button
-                          key={idx}
-                          onClick={(e) => !isClicked && handleTelegramClick(e, item.url, idx)}
-                          disabled={isClicked}
-                          className={`w-full py-1.5 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all select-none ${
-                            isClicked
-                              ? 'bg-slate-800/80 border border-slate-700/80 text-emerald-400 cursor-not-allowed opacity-90'
-                              : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow hover:shadow-md hover:shadow-indigo-500/20 active:scale-[0.98]'
-                          }`}
-                        >
-                          {isClicked ? (
-                            <>
-                              <Check className="w-3 h-3 text-emerald-400 shrink-0" />
-                              <span className="truncate">{doneLabel}</span>
-                            </>
-                          ) : (
-                            <>
-                              <Send className="w-3 h-3 shrink-0" />
-                              <span className="truncate">{label}</span>
-                            </>
-                          )}
-                        </button>
-                      )
-                    })}
-                    {!tgLinks.every((_, i) => isLinkDisabled(i)) && (
-                      <p className="text-[9px] leading-tight text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 px-2 py-1.5 rounded border border-amber-200 dark:border-amber-500/20">
-                        <span className="font-bold">Warning:</span> এই Button এক বার ক্লিক করলে পরে আর কাজ করবে না!
-                      </p>
-                    )}
-                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      navigate(`/${course.slug || course.id}`)
+                      window.scrollTo({ top: 0, behavior: "smooth" })
+                    }}
+                    className="w-full py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 hover:text-emerald-300 border border-emerald-500/35 hover:border-emerald-400 text-[10px] sm:text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-[0.98]"
+                  >
+                    <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span className="truncate">কোর্সে প্রবেশ করুন →</span>
+                  </button>
                 )
               })()}
             </div>
